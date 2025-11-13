@@ -1,0 +1,16 @@
+# Ignore dcm2niix folder
+code/dcm2niix/
+
+# Python caches
+__pycache__/
+
+# Jupyter checkpoints
+.ipynb_checkpoints/
+
+# macOS system files
+.DS_Store
+._.DS_Store
+
+
+# Ignore any hidden files in code/ if needed (optional)
+# code/.* 
