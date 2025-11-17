@@ -1,5 +1,5 @@
 # Ignore dcm2niix folder
-code/dcm2niix/
+code/convert_data/dcm2niix/
 
 # Python caches
 __pycache__/

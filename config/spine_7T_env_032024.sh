@@ -4,23 +4,20 @@ toolbox_home=/cerebro/cerebro1/dataset/bmpd/derivatives/thibault_test/code/toolb
 anaconda_dir=/export02/data/landelle/anaconda/
 
 # matlab
-LD_PREFIX="/export01/local/matlab21b/sys/os/glnxa64:/cerebro/cerebro1/dataset/bmpd/derivatives/thibault_test/code/toolbox/libraries"
+LD_PREFIX="/export01/local/matlab23b/sys/os/glnxa64:/cerebro/cerebro1/dataset/bmpd/derivatives/thibault_test/code/toolbox/libraries"
+export  LD_LIBRARY_PATH=/export01/local/matlab23b/bin/glnxa64/
 
-#if [ -z "$LD_LIBRARY_PATH" ] ; then
-#    export LD_LIBRARY_PATH="$LD_PREFIX"
-#else
- #   export LD_LIBRARY_PATH="$LD_PREFIX:$LD_LIBRARY_PATH"
-#fi
+
 
 export TMPDIR='/export02/data/tmp'
 
-# SPINALCORDTOOLBOX (installed on 2020-11-09 09:26:44)
+
 export PATH="/cerebro/cerebro1/dataset/spine_7T/derivatives/toolboxes/spinalcordtoolbox/bin:$PATH"
 export SCT_DIR=/cerebro/cerebro1/dataset/spine_7T/derivatives/toolboxes/spinalcordtoolbox/
 export MPLBACKEND=Agg
 
 # python setup
-#export PYTHONPATH="${toolbox_home}/sct_4.2.2/spinalcordtoolbox:${toolbox_home}/sct_4.2.2/scripts"
+
 source /export02/data/landelle/anaconda/etc/profile.d/conda.sh
 conda activate CL_spine_7T_env_py9
 echo "++ Python version adjusted : `which python`"
@@ -28,11 +25,6 @@ echo "++ Python version adjusted : `which python`"
 # ANTS setup
 export PATH=${PATH}:/usr/lib/ants
 
-# FSL Setup
-# FSLDIR=${toolbox_home}/fsl
-# PATH=${FSLDIR}/bin:${PATH}
-# export FSLDIR PATH
-# . ${FSLDIR}/etc/fslconf/fsl.sh
 
 # FSL Setup
 FSLDIR=/cerebro/cerebro1/dataset/bmpd/derivatives/thibault_test/code/toolbox/fsl
@@ -53,6 +45,5 @@ if [ -e $PREFIX ] ; then
 fi
 
 
-# R
-#export PATH="/cerebro/cerebro1/dataset/bmpd/derivatives/thibault_test/code/toolbox/R-4.2.1/lib:$PATH"
+
 
