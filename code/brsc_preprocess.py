@@ -250,7 +250,7 @@ class Preprocess_Sc:
             )
     
         # --- QC handling -----------------------------------------------------------------
-        manual_file=self.config["manual_dir"] + "/sub-" + ID+ "/"+ ses_name+"/func/" +  os.path.basename(i_img).split(".")[0] + "_centerline.nii.gz"
+        manual_file=self.manual_dir + "/sub-" + ID+ "/"+ ses_name+"/func/" +  os.path.basename(i_img).split(".")[0] + "_centerline.nii.gz"
         
         if os.path.exists(manual_file):
             folder_list=glob.glob(f"{self.qc_dir}/sub-{ID}/func/{ses_name}/{task_name}/sct_get_centerline/*") #check number of folder in QC dir
@@ -645,7 +645,7 @@ class Preprocess_Sc:
             if auto:
                 o_folder = os.path.join(preprocess_dir, "anat", "sct_label_vertebrae")
             else:
-                o_folder = os.path.join(self.config["manual_dir"], f"sub-{ID}", "anat")
+                o_folder = os.path.join(self.manual_dir, f"sub-{ID}", "anat")
         
         os.makedirs(o_folder, exist_ok=True)
 
