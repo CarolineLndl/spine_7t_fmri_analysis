@@ -24,9 +24,16 @@
 # ## <font color=#B2D732> <span style="background-color: #4424D6"> Imports
 
 # In[31]:
-
-
+#----------------------------------------------
+#----------------------------------------------
+# Modify manually the following variables if needed
 verbose=False
+redo=True # by default all preprocessing steps are redone, change to False if you want don't want to redo all the preprocessing
+manual_centerline=False # if you want to draw manually the centerline for moco masking step change to True
+auto_vert_labels=True # if you want to run the automatic vertebral labeling change to True, otherwise manual labeling will be used
+
+#----------------------------------------------
+#----------------------------------------------
 import sys, json, glob, os, shutil
 import pandas as pd
 from IPython.display import Image, display
@@ -130,9 +137,9 @@ for ID_nb, ID in enumerate(config["participants_IDs"]):
                 mean_func_f[ID][tag].append(utils.tmean_img(ID=ID,i_img=raw_func[ID][tag][run_nb],o_img=o_img,verbose=False))
                 ctrl_sc_files_, mask_sc_files_=preprocess_Sc.moco_mask(ID=ID,i_img=mean_func_f[ID][tag][run_nb],
                                                                        radius_size=25,task_name=tag,
-                                                                       manual=False,
-                                                                       redo_ctrl=False,
-                                                                       redo_mask=False,
+                                                                       manual=manual_centerline,
+                                                                       redo_ctrl=redo,
+                                                                       redo_mask=redo,
                                                                        verbose=verbose)
                 mask_sc_files[ID][tag].append(mask_sc_files_)
                 ctrl_sc_files[ID][tag].append(ctrl_sc_files_)
@@ -160,7 +167,7 @@ for ID_nb, ID in enumerate(config["participants_IDs"]):
                 moco_f_,moco_mean_f_,qc_dir=preprocess_Sc.moco(ID=ID,i_img=raw_func[ID][tag][run_nb],mask_img=mask_sc_files[ID][tag][run_nb],
                                                         task_name=tag,run_name=run_name,
                                                                verbose=verbose,
-                                                               redo=False)
+                                                               redo=redo)
                 moco_f[ID][tag].append(moco_f_)
                 moco_mean_f[ID][tag].append(moco_mean_f_)
 
@@ -183,8 +190,8 @@ for ID_nb, ID in enumerate(config["participants_IDs"]):
                                                         i_img=raw_anat[ID_nb],
                                                         img_type="anat",
                                                         contrast_anat="t2",
-                                                        redo=False,
-                                                        redo_qc=False, # should be true if you have done manual correction
+                                                        redo=redo,
+                                                        redo_qc=redo, # should be true if you have done manual correction
                                                         verbose=verbose))
     # segmentation of the EPIs
     seg_func_sc_files[ID]={}; csf_func_files[ID]={}
@@ -198,8 +205,8 @@ for ID_nb, ID in enumerate(config["participants_IDs"]):
                                                                               task_name=tag,
                                                                              img_type="func",
                                                                              mask_qc=mask_sc_files[ID][tag][run_nb],
-                                                                             redo=False,
-                                                                             redo_qc=False, # should be true if you have done manual correction
+                                                                             redo=redo,
+                                                                             redo_qc=redo, # should be true if you have done manual correction
                                                                              verbose=verbose))
                 
                 preprocess_Sc.segmentation(ID=ID,
@@ -207,8 +214,8 @@ for ID_nb, ID in enumerate(config["participants_IDs"]):
                                            task_name=tag,contrast_anat="t2s",
                                            img_type="func", 
                                            tissue="csf",
-                                           redo_qc=False, # should be true if you have done manual correction
-                                           redo=False,
+                                           redo_qc=redo, # should be true if you have done manual correction
+                                           redo=redo,
                                            verbose=verbose)
             
 
@@ -221,18 +228,18 @@ for ID_nb, ID in enumerate(config["participants_IDs"]):
 
 vert_labels_files=[]; 
 for ID_nb, ID in enumerate(config["participants_IDs"]):
-    for auto in [True]:
-        if auto:
-            id_info = participants_tsv.loc[participants_tsv['participant_id'] == int(ID), ['anat_disc_ref','anat_disc_ref_z']]
-            vert= id_info['anat_disc_ref'].iloc[0][-1]
-            z_value = id_info['anat_disc_ref_z'].iloc[0]
+    if auto_vert_labels:
+        id_info = participants_tsv.loc[participants_tsv['participant_id'] == int(ID), ['anat_disc_ref','anat_disc_ref_z']]
+        vert= id_info['anat_disc_ref'].iloc[0][-1]
+        z_value = id_info['anat_disc_ref_z'].iloc[0]
 
-        vert_labels_files.append(preprocess_Sc.label_vertebrae(ID=ID,
+    vert_labels_files.append(preprocess_Sc.label_vertebrae(ID=ID,
                                                                i_img=raw_anat[ID_nb],
                                                                seg_img=seg_anat_sc_files[ID_nb],
                                                                c="t2",
-                                                               initz=f"{z_value},{vert}",auto=auto,
-                                                               redo=False,
+                                                               initz=f"{z_value},{vert}",
+                                                               auto=auto_vert_labels,
+                                                               redo=redo,
                                                                verbose=verbose))
 
 
@@ -255,7 +262,7 @@ for ID_nb, ID in enumerate(config["participants_IDs"]):
                                                               labels_img=vert_labels_files[ID_nb],
                                                           img_type="t2",
                                                               tag='anat',
-                                                          redo=False,
+                                                          redo=redo,
                                                               verbose=verbose))
 
 
@@ -278,7 +285,7 @@ for ID_nb, ID in enumerate(config["participants_IDs"]):
                                                           task_name=task_name,run_name=run_name,
                                                           initwarp=warpT2w_PAM50_files[ID_nb][1],
                                                           initwarpinv=warpT2w_PAM50_files[ID_nb][0],
-                                                          redo=False,
+                                                          redo=redo,
                                                           verbose=verbose)
                 
 

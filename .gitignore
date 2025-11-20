@@ -1,6 +1,9 @@
 # Ignore dcm2niix folder
 code/convert_data/dcm2niix/
 
+#ignore log files
+log/nohup.out
+
 # Python caches
 __pycache__/
 

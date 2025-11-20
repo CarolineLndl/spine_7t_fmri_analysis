@@ -191,9 +191,9 @@ Files for preprocessing are in this repository.
   - **convert_data/**: Scripts to convert raw mri and physio data into BIDS format.
 - **config/**: Configuration files for paths and parameters.
   - `config_preprocess_spine7T.json` is used by `01_spine7T_preprocessing.ipynb`
-    - Modify paths line 1-5 as needed
-    - Specify the participant IDs to process line 12
-    - Specify the experiment tasks/acquisitions line 17-18
+    - Modify paths line 1-6 as needed
+    - Specify the participant IDs to process line 13
+    - Specify the experiment tasks/acquisitions line 18-19
     - Specify file specificities for each subject if needed line 60-65 (*e.g.,* if extra run specify only the one to process)
 
   - `participants.tsv` contains demographical information and important info for preprocessing (*e.g.,* slice number for vertebrae labeling initiation)
@@ -204,10 +204,18 @@ Files for preprocessing are in this repository.
 ### 2.1 Preprocessing 🤯
 - Update `config_preprocess_spine7T.json`
 - Two options to run preprocessing:
-  1. **Notebook**: `notebooks/01_spine7T_preprocessing.ipynb` (recommended for QC and step-by-step checks and manual adjustments)
-  2. **Script** (main path should be manually changed): `bash code/run_batch_preprocessing.sh` (runs steps automatically, less flexible)
+  > 1. **Script** `bash code/run_batch_preprocessing.sh` (main path should be manually changed) 
+  ▸ runs steps automatically: recommanded to run all steps at once 
+  ▸ less flexible than the notebook
+  ▸ By default all the steps are rerun even if some outputs already exist. If manual corrections were made, these files will be used as input for subsequent steps.
+  > 2. **Notebook** `notebooks/01_spine7T_preprocessing.ipynb`
+  ▸ run one step at a time: recommended for QC and step-by-step checks and manual adjustments
+  ▸ more flexible than the script: parameters can be easily changed and tested
+  ▸ If manual corrections were made, these files will be used as input for subsequent steps.
 
->*You can for exemple run the script and then manually check and correct specific steps in the notebook. 
+  
+
+*You can for exemple run the script and then manually check and correct specific steps in the notebook. 
 ⚠️ Each step manually modified will imply that all subsequent steps need to be re-run. </span>* 
   
 
@@ -272,7 +280,7 @@ Files for preprocessing are in this repository.
 Should be run after preprocessing.
 - Update `config_preprocess_spine7T.json`
 - Two options to run preprocessing:
-  1. **Notebook**: `notebooks/01_spine7T_denoising.ipynb` (recommended for QC and step-by-step checks and manual adjustments)
+  1. **Notebook**: `notebooks/02_spine7T_denoising.ipynb` (recommended for QC and step-by-step checks and manual adjustments)
   2. **Script** (main path should be manually changed): `bash code/run_batch_denoising.sh` (runs steps automatically, less flexible)
 
 No manual corrections are requiered for this step.
