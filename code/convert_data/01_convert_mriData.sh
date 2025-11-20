@@ -1,7 +1,6 @@
-main_dir=/cerebro/cerebro1/dataset/spine_7T/
-project_dir=$main_dir"derivatives/acdc_spine_7T_project/"
+root_dir=/cerebro/cerebro1/dataset/spine_7T/
 
-cd  $project_dir"/acdc_spine_7T_analysis/config/"
+cd  $root_dir"/spine_7T_analysis/config/"
 source spine_7T_env_032024.sh
 
 ID=101
@@ -20,24 +19,24 @@ mkdir "sub-"$ID"/behav"
 cd /data/dicom/ 
 find_mri "acdc_spine_7T_"$ID
 
-cd /cerebro/cerebro1/dataset/spine_7T/sourcedata/
+cd $root_dir"/sourcedata/"
 file=/data/dicom/acdc_spine_7T_101_20251106_091631571
-rsync -a "/data/dicom/"$file $main_dir"/sourcedata/sub-"$ID"/" # download the data
+rsync -a "/data/dicom/"$file $root_dir"/sourcedata/sub-"$ID"/" # download the data
 
 #rsync -a /data/dicom/acdc_spine_7T_90_20250728_163015298 $main_dir"/sourcedata/sub-"$ID"/" # download the data
 
 # sort dicom files
 # PMU and behavioral data should be copyed manually into the pmu and behav folder
-cd $project_dir"/acdc_spine_7T_analysis/code/convert_data/"
-python sortDCM.py -d "/cerebro/cerebro1/dataset/spine_7T/sourcedata/sub-"$ID"/"$file -o "/cerebro/cerebro1/dataset/spine_7T/sourcedata/sub-"$ID"/mri/"
+cd $root_dir"/spine_7T_analysis/code/convert_data/"
+python sortDCM.py -d $root_dir"/sourcedata/sub-"$ID"/"$file -o $root_dir"/sourcedata/sub-"$ID"/mri/"
 
 
 #Convert in BIDS
-cd $project_dir"/acdc_spine_7T_analysis/code/convert_data/"
-dcm2bids -d $main_dir"/sourcedata/sub-$ID/mri/" -p $ID -c $project_dir"/acdc_spine_7T_analysis/config/config_bids_6Nov25.txt" -o $main_dir"/rawdata/"
+cd $root_dir"/spine_7T_analysis/code/convert_data/"
+dcm2bids -d $root_dir"/sourcedata/sub-$ID/mri/" -p $ID -c $root_dir"/spine_7T_analysis/config/config_bids_6Nov25.txt" -o $root_dir"/rawdata/"
 
 #Compress physio files ------------------------------------------------
-cd $main_dir"/sourcedata/sub-"$ID"/pmu/"
+cd $root_dir"/sourcedata/sub-"$ID"/pmu/"
 EXTENSIONS=("ext" "puls" "resp")
 # Collect basenames from the known extensions only
 basenames=$(for ext in "${EXTENSIONS[@]}"; do
@@ -65,12 +64,7 @@ for base in $basenames; do
     echo "Created: ${base}.tar.gz"
 done
 
-
-
-
-
 #Convert physio to BIDS
-cd $project_dir"/acdc_spine_7T_analysis/code/convert_data/"
-python physio2bids.py -t $main_dir"sourcedata/"$ID"/pmu/"$ID"_rest"$func_run".tar.gz" -s $ID -o $main_dir"/rawdata/" -v True
-
+cd $root_dir"/spine_7T_analysis/code/convert_data/"
+python physio2bids.py -t $root_dir"sourcedata/"$ID"/pmu/"$ID"_rest"$func_run".tar.gz" -s $ID -o $root_dir"/rawdata/" -v True
 
