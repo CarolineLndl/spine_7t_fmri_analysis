@@ -10,7 +10,7 @@
 "PAM50_csf":"PAM50_cs_c1t4f.nii.gz",
 "structures":["spinalcord"],
 
-"participants_IDs":["101","102","103","104"],
+"participants_IDs":["90","93","94","95","96","97","98","99"],
     
 "design_exp":{"ses_nb":1,
               "ses_names":[""],
@@ -57,10 +57,15 @@
  
 
 
- "files_specificities":{"T2star":{"090":"run-04"},
- "func":{"090":{"task-motor_acq-shimBase+3mm":["run-01"],"task-motor_acq-shimSlice+3mm":["run-03"]},
- "095":{"task-motor_acq-shimBase+3mm":["run-01","run-02"],"task-motor_acq-shimSlice+3mm":["run-01"]},
- "096":{"task-motor_acq-shimBase+3mm":["run-01","run-02"],"task-motor_acq-shimSlice+3mm":["run-01"]},
+ "files_specificities":{"T2star":{"090":"run-04","097":"run-01"},
+ "func":{"090":{"task-motor_acq-shimBase+3mm":["run-01"],"task-motor_acq-shimSlice+3mm":["run-02","run-03"]},
+ "093":{"task-motor_acq-shimSlice+3mm":[""]},
+"094":{"task-motor_acq-shimSlice+3mm":[""]},
+ "095":{"task-motor_acq-shimBase+3mm":["run-01","run-02"]},
+ "096":{"task-motor_acq-shimBase+3mm":["run-01","run-02"]},
+ "097":{"task-motor_acq-shimBase+3mm":["run-02","run-03"]},
+ "098":{"task-motor_acq-shimBase+3mm":["run-01","run-02"]},
+ "099":{"task-motor_acq-shimSlice+3mm":[""]},
 "100":{"task-motor_acq-shimSlice+3mm":[""]},
  "101":{"task-rest_acq-shimSlice+1mm+sms2":["run-03"]},
  "102":{"task-motor_acq-shimSlice+3mm":[""]}}}
