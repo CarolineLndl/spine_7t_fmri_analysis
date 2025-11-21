@@ -121,8 +121,11 @@ class Preprocess_BrSc:
 
 
             # copy raw anatomical file to preprocess folder anat directory ------------------------------------------------------------------
-            # >>>> to implement: case of multiple anat files
-            raw_anat=self.raw_dir + "/sub-" + ID + "/anat/" + self.config["preprocess_f"]["anat_raw"].format(ID,"")
+            if ID in config['files_specificities'][ana_contrast]:
+                raw_anat=self.raw_dir + "/sub-" + ID + "/anat/" + self.config["preprocess_f"]["anat_raw"].format(ID, config['files_specificities'][ana_contrast][ID] +"_")
+    
+            else:
+                raw_anat=self.raw_dir + "/sub-" + ID + "/anat/" + self.config["preprocess_f"]["anat_raw"].format(ID,"")
             if not os.path.exists(ID_preproc_dir + "/anat/" + self.config["preprocess_f"]["anat_raw"].format(ID,"")):
                 shutil.copy(raw_anat,ID_preproc_dir + "/anat/")
          

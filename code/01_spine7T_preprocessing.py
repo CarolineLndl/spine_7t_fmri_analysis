@@ -90,8 +90,8 @@ for ID_nb,ID in enumerate(config["participants_IDs"]):
     json_f[ID]={}; raw_func[ID]={}
 
     #------ Select anat data (raw data were copied in the preprocess dir)
-    run_tag = config["files_specificities"]["T2s"][ID] if ID in config.get("files_specificities", {}).get("T2s", {}) else ""
-    raw_anat.append(glob.glob(derivatives_dir + config["preprocess_dir"]["main_dir"].format(ID) + "/anat/" + config["preprocess_f"]["anat_raw"].format(ID,""))[0])
+    run_tag = config["files_specificities"]["T2star"][ID] + "_" if ID in config.get("files_specificities", {}).get("T2star", {}) else ""
+    raw_anat.append(glob.glob(derivatives_dir + config["preprocess_dir"]["main_dir"].format(ID) + "/anat/" + config["preprocess_f"]["anat_raw"].format(ID,run_tag))[0])
 
     #------ Select func data
     for task_name in config["design_exp"]["task_names"]:

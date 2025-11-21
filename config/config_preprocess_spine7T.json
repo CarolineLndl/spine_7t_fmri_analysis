@@ -10,7 +10,7 @@
 "PAM50_csf":"PAM50_cs_c1t4f.nii.gz",
 "structures":["spinalcord"],
 
-"participants_IDs":["90","93","94","95","96","97","98","99"],
+"participants_IDs":["090","093","094","095","096","097","098","099"],
     
 "design_exp":{"ses_nb":1,
               "ses_names":[""],
@@ -37,7 +37,7 @@
                   "anat_coreg":"anat/sct_register_to_template/"
                   },
 
-"preprocess_f":{"anat_raw":"sub-{}_T2star{}.nii.gz",
+"preprocess_f":{"anat_raw":"sub-{}_{}T2star.nii.gz",
                   "func_mask":"",
                   "func_moco":"sub-{}*{}*{}*moco.nii.gz",
                   "moco_params":"moco_params*_{}*{}.nii.gz",
