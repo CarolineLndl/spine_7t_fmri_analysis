@@ -10,3 +10,4 @@ pydicom
 matlabengine==23.2.1
 dcm2bids
 pydicom
+pybids
