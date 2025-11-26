@@ -212,24 +212,33 @@ Files for preprocessing are in this repository.
 - **log**: Log files generated during processing run from bash script.
 
 ### 2.1 Preprocessing 🤯
-- Update `config_preprocess_spine7T.json`
-- Two options to run preprocessing:
-  > 1. **Script** `bash code/run_batch_preprocessing.sh` (main path should be manually changed) 
+Update manually the config file:  `config_preprocess_spine7T.json`
+  
+#### Two options to run preprocessing:
+**Option 1 - bash script** 
   ▸ runs steps automatically: recommanded to run all steps at once 
   ▸ less flexible than the notebook
   ▸ By default all the steps are rerun even if some outputs already exist. If manual corrections were made, these files will be used as input for subsequent steps.
-  > 2. **Notebook** `notebooks/01_spine7T_preprocessing.ipynb`
+```bash
+bash code/run_batch_preprocessing.sh
+```
+
+**Option 2 - Notebook** 
   ▸ run one step at a time: recommended for QC and step-by-step checks and manual adjustments
   ▸ more flexible than the script: parameters can be easily changed and tested
   ▸ If manual corrections were made, these files will be used as input for subsequent steps.
+  ▸ `notebooks/01_spine7T_preprocessing.ipynb`
+  ▸ In this case you should set up [jupyter notebook](https://jupyter.org/) first:
 
+```bash
+jupyter lab --no-browser --port=12344 --NotebookApp.token=''
+```
+
+
+You can for exemple run the script and then manually check and correct specific steps in the notebook. 
+⚠️ *Each step manually modified will imply that all subsequent steps need to be re-run. </span>* <br><br>
   
-
-*You can for exemple run the script and then manually check and correct specific steps in the notebook. 
-⚠️ Each step manually modified will imply that all subsequent steps need to be re-run. </span>* 
-  
-
-##### 👉 Visual check and manual corrections
+##### Visual check and manual corrections ✏️ 
 <details>
 <summary>For more details, click to expand </summary>
 

@@ -289,15 +289,7 @@ for ID_nb, ID in enumerate(config["participants_IDs"]):
                                                           verbose=verbose)
                 
 
-
-# In[ ]:
-
-
-
-
-
-# In[ ]:
-
+print("=== Preprocessing script finished successfully ===")
 
 
 
