@@ -22,17 +22,7 @@ For an example on how to set up the environment, see: `spine_7T_analysis/config/
 <details>
 <summary>👉 How to install dependencies</summary>
 
-#### a. Create the conda environment 
-
-Make sure conda is installed: see here [Installation instructions](https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html)
-Create the appropriate conda environment:
-```bash
-conda create --name spine_7T_env_py10 python=3.10
-conda activate spine_7T_env_py10
-pip install -r config/requirements.txt
-```
-
-#### b. Install toolboxes
+#### a. Install toolboxes
 **Toolbox to transform data:**
 - dcm2niix : see here [PyPI page](https://pypi.org/project/dcm2niix/)  
 
@@ -52,6 +42,19 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:"/export01/local/matlab23b/bin/" # The L
 cd /export/local/matlab23b/extern/engines #Navigate to MATLAB Folder, engines subfolder
 python -m pip install matlabengine==23.2.10 #Install MATLAB engine for Python
 ```
+
+#### b. Create the conda environment 
+
+Make sure conda is installed: see here [Installation instructions](https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html)
+Create the appropriate conda environment:
+*If you just what to run the preprocessing you can remove matlabengine from the requirements.txt file.*
+
+```bash
+conda create --name spine_7T_env_py10 python=3.10
+conda activate spine_7T_env_py10
+pip install -r config/requirements.txt
+```
+
 
 #### c. Load your environment
 This step should be done each time you open a new terminal session to work on the project. It will set up all necessary path for SCT, FSL and Matlab and activate the conda environment.
