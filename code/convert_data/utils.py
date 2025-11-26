@@ -3,15 +3,23 @@ import os , sys, glob
 associationMRISession = {
 		"task-rest_acq-shimBase+3mm_bold" : ["rest", "shimBase+3mm"],
 		"task-rest_acq-shimSlice+3mm_bold" : ["rest", "shimSlice+3mm"],
+		
 		"task-motor_acq-shimBase+3mm_bold" : ["motor", "shimBase+3mm"],
-		"task-motor_acq-shimBase+3mm_bold_run-01" : ["motor", "shimBase+3mm_run-01"],
-		"task-motor_acq-shimBase+3mm_bold_run-02" : ["motor", "shimBase+3mm_run-02"],
+		"task-motor_acq-shimBase+3mm_run-01_bold" : ["motor", "shimBase+3mm_run-01"],
+		"task-motor_acq-shimBase+3mm_run-02_bold" : ["motor", "shimBase+3mm_run-02"],
+		"task-motor_acq-shimBase+3mm_run-03_bold" : ["motor", "shimBase+3mm_run-03"],
+		
 		"task-motor_acq-shimSlice+3mm_bold" : ["motor", "shimSlice+3mm"],
-		"task-motor_acq-shimSlice+3mm_bold_run-01" : ["motor", "shimSlice+3mm_run-01"],
-		"task-motor_acq-shimSlice+3mm_bold_run-02" : ["motor", "shimSlice+3mm_run-02"],
+		"task-motor_acq-shimSlice+3mm_run-01_bold" : ["motor", "shimSlice+3mm_run-01"],
+		"task-motor_acq-shimSlice+3mm_run-02_bold" : ["motor", "shimSlice+3mm_run-02"],
 		"task-rest_acq-shimBase+1mm+sms2_bold" : ["rest", "shimBase+1mm+sms2"],
+		"task-rest_acq-shimBase+1mm+sms2_run-03_bold" : ["rest", "shimBase+1mm+sms2_run-03"],
+		"task-motor_acq-shimBase+1mm+sms2_bold" : ["motor", "shimBase+1mm+sms2"],
+		
 		"task-rest_acq-shimSlice+1mm+sms2_bold" : ["rest", "shimSlice+1mm+sms2"],
 		"task-motor_acq-shimSlice+1mm+sms2_bold" : ["motor", "shimSlice+1mm+sms2"],
+		"task-motor_acq-shimSlice+1mm+sms2_run-01_bold" : ["motor", "shimSlice+1mm+sms2_run-01"],
+		"task-motor_acq-shimSlice+1mm+sms2_run-02_bold" : ["motor", "shimSlice+1mm+sms2_run-02"]
 
 }
 
