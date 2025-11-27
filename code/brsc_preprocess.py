@@ -506,7 +506,7 @@ class Preprocess_Sc:
         # --- Manual segmentation paths -------------------------------------------------------------------
         if img_type=="func":
             if tissue=="csf":
-                o_manual = os.path.join(self.manual_dir, f"sub-{ID}/func/{ses_name}/{task_name}/",base_name.split('seg')[0] + "CSF_seg.nii.gz")
+                o_manual = os.path.join(self.manual_dir, f"sub-{ID}/func/{ses_name}/{task_name}/",base_name.split('mean')[0] + "CSF_seg.nii.gz")
             else:
                 o_manual = os.path.join(self.manual_dir, f"sub-{ID}/func/{ses_name}/{task_name}/", os.path.basename(o_img))
         else:
