@@ -96,7 +96,7 @@ Files are organized according to the BIDS standard:
 │     ├── ...
 │   └── log
 │       ├── ...
-├── spine_7t_fmri_analysis # Data directory
+├── spine_7t_fmri_data # Data directory
 │   ├── derivatives
 │   │   │   ├── ...
 │   │   ├── manual  # Manually corrected files
@@ -174,7 +174,7 @@ Use `dcm2bids` to convert raw mri data:
 ```bash
 cd $root_dir/spine_7t_fmri_analysis/code/
 
-dcm2bids -d $main_dir/sourcedata/sub-$ID/mri/ \
+dcm2bids -d $root_dir/spine_7t_fmri_data/sourcedata/sub-$ID/mri/ \
           -p $ID \
           -c $root_dir/spine_7t_fmri_analysis/config/config_bids_6Nov25.txt \
           -o $root_dir/spine_7t_fmri_data/
