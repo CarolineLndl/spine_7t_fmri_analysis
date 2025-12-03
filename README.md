@@ -203,19 +203,24 @@ bash 02_convert_physioData.sh
 Files for preprocessing are in this repository.
 
 - **code/**: Functions and code to run the analyses. Do not modify the file.
+  - `denoising.py` > library of denoising functions
+  - `denoising_workflow.py` > orchestrates denoising steps using the functions
+  - `preprocessing.py` > library of preprocessing functions
+  - `preprocessing_workflow.py` > orchestrates preprocessing steps using the functions
+  - `run_all_processing.sh` > shell script to launch any combination of workflows
   - **convert_data/**: Scripts to convert raw mri and physio data into BIDS format.
 - **config/**: Configuration files for paths and parameters.
-  - `config_spine_7t_fmri.json` is used by `01_spine7T_preprocessing.ipynb`
+  - `config_spine_7t_fmri.json` is used by `preprocessing_workflow.py`
   - `participants.tsv` contains demographical information and important info for preprocessing (*e.g.,* slice number for vertebrae labeling initiation)
 - **template images**: Used for analyses; do not modify.
 - **log**: Log files generated during processing run from bash script (the folder is not tracked by git).
 
 ### 2.1 Preprocessing 🤯
-▸ runs preprocessing steps automatically with with output log from STDOUT
+▸ runs preprocessing steps automatically with output log from STDOUT
 ▸ By default all the steps are rerun even if some outputs already exist. If manual corrections were made, these files will be used as input for subsequent steps.
 
 ```bash
-bash ${PATH_CODE}/code/run_batch_preprocessing.sh
+bash ${PATH_CODE}/code/run_all_processing.sh
 ```
 
 ⚠️ *Each step manually modified will imply that all subsequent steps need to be re-run. </span>* <br><br>
@@ -287,7 +292,7 @@ Should be run after preprocessing.
 ▸ runs steps automatically: recommanded to run all steps at once 
 ▸ By default all the steps are rerun even if some outputs already exist.
 ```bash
-bash ${PATH_CODE}/code/run_batch_denoising.sh
+bash ${PATH_CODE}/code/run_all_processing.sh
 ```
 
 ### 2.3 First-level Analysis (TBD) 📈
