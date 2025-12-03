@@ -209,7 +209,7 @@ Files for preprocessing are in this repository.
 ### 2.1 Preprocessing 🤯
 Update manually the config file:  `config_preprocess_spine7T.json`
   
-▸ runs steps automatically: recommanded to run all steps at once 
+▸ runs preprocessing steps automatically with with output log from STDOUT
 ▸ By default all the steps are rerun even if some outputs already exist. If manual corrections were made, these files will be used as input for subsequent steps.
 
 ```bash
