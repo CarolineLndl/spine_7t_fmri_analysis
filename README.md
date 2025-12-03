@@ -18,9 +18,9 @@ Your environment should include:
 
 #### a. Set up your project paths
 ```bash
-PATH_PROJECT=/cerebro/cerebro1/dataset/spine_7t/
-PATH_DATA=$PATH_PROJECT/spine_7t_fmri_data/
-PATH_CODE=$PATH_PROJECT/spine_7t_fmri_analysis/
+export PATH_PROJECT=/cerebro/cerebro1/dataset/spine_7t/
+export PATH_DATA=$PATH_PROJECT/spine_7t_fmri_data/
+export PATH_CODE=$PATH_PROJECT/spine_7t_fmri_analysis/
 ```
 
 #### b. Set up the toolbox paths
