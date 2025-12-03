@@ -16,13 +16,17 @@ Your environment should include:
 - dcm2niix
 - MATLAB (for denoising step only)
 
-For an example on how to set up the environment, see: `spine_7t_fmri_analysis/config/spine_7T_env.sh`
+#### a. Set up your project paths
+```bash
+PATH_PROJECT=/cerebro/cerebro1/dataset/spine_7t/
+PATH_DATA=$PATH_PROJECT/spine_7t_fmri_data/
+PATH_CODE=$PATH_PROJECT/spine_7t_fmri_analysis/
+```
 
-
+#### b. Set up the toolbox paths
 <details>
 <summary>👉 How to install dependencies</summary>
 
-#### a. Install toolboxes
 **Toolboxes for preprocessing**
 - Spinal Cord Toolbox 7.1: [Installation instructions](https://spinalcordtoolbox.com/en/latest/user_section/installation.html)
 - FSL: see here [Installation instructions](https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FslInstallation)
@@ -39,8 +43,25 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:"/export01/local/matlab23b/bin/" # The L
 cd /export/local/matlab23b/extern/engines #Navigate to MATLAB Folder, engines subfolder
 python -m pip install matlabengine==23.2.10 #Install MATLAB engine for Python
 ```
+</details>
 
-#### b. Create the conda environment 
+```bash
+SCT_DIR=$PATH_CODE/toolboxes/spinalcordtoolbox
+FSLDIR=/cerebro/cerebro1/dataset/bmpd/derivatives/thibault_test/code/toolbox/fsl
+export PATH="$SCT_DIR/bin:$PATH"   # spinalcordtoolbox
+export PATH=${FSLDIR}/bin:${PATH} # FSL
+export FSLDIR PATH
+. $FSLDIR/etc/fslconf/fsl.sh
+
+#MATLAB_DIR=/export01/local/matlab23b
+#LD_PREFIX="${MATLAB_DIR}/sys/os/glnxa64:/cerebro/cerebro1/dataset/bmpd/derivatives/thibault_test/code/toolbox/libraries"
+#export  LD_LIBRARY_PATH=/export01/local/matlab23b/bin/glnxa64/
+```
+> ⚠️ *Qt version conflict: SCT and MATLAB may use incompatible Qt libraries. If you don’t need MATLAB, consider commenting out the MATLAB path in the setup script to avoid errors. If you need MATLAB for denoising, uncomment the MATLAB path, but be aware that Qt-related errors may appear when using SCT manually.*
+
+#### c. Setup the conda environment
+<details>
+<summary>👉 How to create the conda environment </summary>
 
 Make sure conda is installed: see here [Installation instructions](https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html)
 Create the appropriate conda environment:
@@ -51,27 +72,15 @@ conda create --name spine_7T_env_py10 python=3.10
 conda activate spine_7T_env_py10
 pip install -r config/requirements.txt
 ```
+</details>
 
+Load conda environment:
 
-#### c. Load your environment
-**Option 1 - Manually activate conda environment**
-If all required toolboxes are already available in your path
-*config/spine_7T_env.sh file can be omitted and you can just activate the conda environment:
 ```bash
+anaconda_dir=$(conda info --base)
+source ${anaconda_dir}/etc/profile.d/conda.sh
 source activate spine_7T_env_py10
 ```
-
-**Option 2 — Modify and run the provided setup script** 
-This script configures all required paths for SCT, FSL, and MATLAB, and activates the conda environment. 
-Manualy change the paths to match your installation paths in *config/spine_7T_env.sh*
-You should run it each time you start a new terminal session for this project.
-> ⚠️ *Qt version conflict: SCT and MATLAB may use incompatible Qt libraries. If you don’t need MATLAB, consider commenting out the MATLAB path in the setup script to avoid errors. If you need MATLAB for denoising, uncomment the MATLAB path, but be aware that Qt-related errors may appear when using SCT manually.*
-
-```bash
-source spine_7t_fmri_analysis/config/spine_7T_env.sh
-```
-
-</details>
 
 ### 1.2 Data organization 📑
 Files are organized according to the BIDS standard:
@@ -86,7 +95,7 @@ Files are organized according to the BIDS standard:
 │     │   └── ...
 │     ├── ...
 │   ├── config
-│     ├── config_preprocess_spine7T.json
+│     ├── config_spine_7t_fmri.json
 │     ├── participants.tsv
 │     └── ...
 │   ├── template
@@ -169,23 +178,23 @@ Files are organized according to the BIDS standard:
 Use `dcm2bids` to convert raw mri data:
 
 ```bash
-cd $root_dir/spine_7t_fmri_analysis/code/
+cd ${PATH_CODE}/code/
 
-dcm2bids -d $root_dir/spine_7t_fmri_data/sourcedata/sub-$ID/mri/ \
+dcm2bids -d ${PATH_DATA}/sourcedata/sub-$ID/mri/ \
           -p $ID \
-          -c $root_dir/spine_7t_fmri_analysis/config/config_bids_6Nov25.txt \
+          -c ${PATH_CODE}/config/config_bids.txt \ 
           -o $root_dir/spine_7t_fmri_data/
 ```
 
 - `$ID` is the subject ID (e.g., 103)
-- For full data conversion instructions, see: `/acdc_spine_7t_fmri_analysis/code/convert_data/00_convert_mriData.sh`
+- For full data conversion instructions, see: `${PATH_CODE}/code/convert_data/01_convert_mriData.sh`
 
 #### Convert physio data
-Use `/spine_7t_fmri_analysis/code/convert_data/00_convert_physioData.sh` to convert raw physio data into BIDS format.
+Use `${PATH_CODE}/code/convert_data/02_convert_physioData.sh` to convert raw physio data into BIDS format.
 
 ```bash
-cd $root_dir/spine_7t_fmri_analysis/code/convert_data/
-bash 00_convert_physioData.sh
+cd ${PATH_CODE}/code/convert_data/
+bash 02_convert_physioData.sh
 ``` 
 
 ---
@@ -196,24 +205,17 @@ Files for preprocessing are in this repository.
 - **code/**: Functions and code to run the analyses. Do not modify the file.
   - **convert_data/**: Scripts to convert raw mri and physio data into BIDS format.
 - **config/**: Configuration files for paths and parameters.
-  - `config_preprocess_spine7T.json` is used by `01_spine7T_preprocessing.ipynb`
-    - Modify paths line 1-6 as needed
-    - Specify the participant IDs to process line 13
-    - Specify the experiment tasks/acquisitions line 18-19
-    - Specify file specificities for each subject if needed line 60-65 (*e.g.,* if extra run specify only the one to process)
-
+  - `config_spine_7t_fmri.json` is used by `01_spine7T_preprocessing.ipynb`
   - `participants.tsv` contains demographical information and important info for preprocessing (*e.g.,* slice number for vertebrae labeling initiation)
 - **template images**: Used for analyses; do not modify.
 - **log**: Log files generated during processing run from bash script (the folder is not tracked by git).
 
 ### 2.1 Preprocessing 🤯
-Update manually the config file:  `config_preprocess_spine7T.json`
-  
 ▸ runs preprocessing steps automatically with with output log from STDOUT
 ▸ By default all the steps are rerun even if some outputs already exist. If manual corrections were made, these files will be used as input for subsequent steps.
 
 ```bash
-bash /spine_7t_fmri_analysis/code/run_batch_preprocessing.sh
+bash ${PATH_CODE}/code/run_batch_preprocessing.sh
 ```
 
 ⚠️ *Each step manually modified will imply that all subsequent steps need to be re-run. </span>* <br><br>
@@ -277,7 +279,6 @@ bash /spine_7t_fmri_analysis/code/run_batch_preprocessing.sh
 ### 2.2 Denoising 🧹
 
 Should be run after preprocessing.
-- Update `config_preprocess_spine7T.json`
 - ⚠️ csf segmentation should be checked and manually corrected if needed before running the denoising.
 - Details on the different steps are in the .py script and will be added in the Readme later.
 
@@ -286,7 +287,7 @@ Should be run after preprocessing.
 ▸ runs steps automatically: recommanded to run all steps at once 
 ▸ By default all the steps are rerun even if some outputs already exist.
 ```bash
-bash /spine_7t_fmri_analysis/code/run_batch_denoising.sh
+bash ${PATH_CODE}/code/run_batch_denoising.sh
 ```
 
 ### 2.3 First-level Analysis (TBD) 📈

@@ -1,33 +1,21 @@
-{"root_dir":"/cerebro/cerebro1/dataset/spine_7T/",
-"raw_dir":"rawdata/",
-"derivatives_dir":"derivatives/spine_7T_project/",
-"manual_dir":"manual/",
-"tools_dir":{"main_codes":"spine_7T_analysis/",
-"spm_dir":"/cerebro/cerebro1/dataset/bmpd/derivatives/thibault_test/code/toolbox/spm12/"},
+{"root_dir":"$PATH_PROJECT/",
+"raw_dir":"$PATH_DATA/",
+"derivatives_dir":"$PATH_DATA/derivatives/",
+"manual_dir":"$PATH_DATA/derivatives/manual/",
+"tools_dir":{"main_codes":"$PATH_CODE/"},
     
 "PAM50_cord":"PAM50_cord_c1t4.nii.gz",
 "PAM50_t2":"PAM50_t2_c1t4.nii.gz",
 "PAM50_csf":"PAM50_cs_c1t4f.nii.gz",
 "structures":["spinalcord"],
-
-"participants_IDs":["099","100"],
     
 "design_exp":{"ses_nb":1,
               "ses_names":[""],
-            "task_names1":["motor","rest"],
-            "task_names":["motor"],
-            "acq_names":["shimBase+3mm","shimSlice+3mm"],
-             "run_names":{"task-motor_acq-shimBase+3mm":[""],
-                          "task-motor_acq-shimSlice+3mm":["run-01","run-02"],
-                          "task-motor_acq-shimBase+1mm+sms2":[""],
-                          "task-motor_acq-shimSlice+1mm+sms2":[""],
-                          "task-rest_acq-shimBase+3mm":[""],
-                          "task-rest_acq-shimSlice+3mm":[""],
-                          "task-rest_acq-shimBase+1mm+sms2":[""],
-                          "task-rest_acq-shimSlice+1mm+sms2":[""]}},
+            "task_names":["motor","rest"],
+            "acq_names":["shimBase+3mm","shimSlice+3mm"]},
               
-"preprocess_dir":{"main_dir":"preprocessing/nov25/sub-{}/",
-                  "QC_dir":"preprocessing/nov25/QC/",
+"preprocess_dir":{"main_dir":"preprocessing/sub-{}/",
+                  "QC_dir":"preprocessing/QC/",
                   "func_mask":"func/{}/sct_get_centerline/",
                   "func_moco":"func/{}/sct_fmri_moco/",
                   "func_seg":"func/{}/sct_deepseg/",
@@ -47,8 +35,8 @@
                   "anat_coreg":""
                   },
     
-"denoising":{"raw_physio_dir":"spine_7T/",
-    "dir":"denoising/nov25/",
+"denoising":{"raw_physio_dir":"$PATH_PROJECT/",
+    "dir":"denoising/",
     "sub_dirs":["denoised_dir"],
     "denoised_dir":"/sub-{}/{}/",
     "norm_dir":"",
@@ -58,18 +46,4 @@
 "physio_frq":400,
 "physio_json_exists":true},
  
-
-
- "files_specificities":{"T2star":{"090":"run-04","097":"run-01","105":"run-02","106":"run-02"},
- "func":{"090":{"task-motor_acq-shimBase+3mm":["run-01"],"task-motor_acq-shimSlice+3mm":["run-02"]},
- "093":{"task-motor_acq-shimSlice+3mm":[""]},
-"094":{"task-motor_acq-shimSlice+3mm":[""]},
- "095":{"task-motor_acq-shimBase+3mm":["run-02"]},
- "096":{"task-motor_acq-shimBase+3mm":["run-01","run-02"]},
- "097":{"task-motor_acq-shimBase+3mm":["run-02","run-03"]},
- "098":{"task-motor_acq-shimBase+3mm":["run-01","run-02"]},
- "099":{"task-motor_acq-shimSlice+3mm":[""]},
-"100":{"task-motor_acq-shimSlice+3mm":[""]},
- "101":{"task-rest_acq-shimSlice+1mm+sms2":["run-03"]},
- "102":{"task-motor_acq-shimSlice+3mm":[""]}}}
 } 
