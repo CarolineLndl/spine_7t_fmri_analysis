@@ -218,9 +218,12 @@ Files for preprocessing are in this repository.
 ### 2.1 Preprocessing 🤯
 ▸ runs preprocessing steps automatically with output log from STDOUT
 ▸ By default all the steps are rerun even if some outputs already exist. If manual corrections were made, these files will be used as input for subsequent steps.
+▸ if you already setup the PATH_CODE and PATH_DATA you don't need to specify --path_data --path_code
+▸ Specify individuals to process (--ids XX), the default option to run preprocessing on all participants will be setup soon
 
 ```bash
-bash ${PATH_CODE}/code/run_all_processing.sh
+bash ${PATH_CODE}/code/run_all_processing.sh --path_data ${PATH_DATA} --path_code ${PATH_CODE} --ids 090 101 106
+
 ```
 
 ⚠️ *Each step manually modified will imply that all subsequent steps need to be re-run. </span>* <br><br>
