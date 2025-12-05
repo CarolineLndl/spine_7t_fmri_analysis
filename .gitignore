@@ -30,3 +30,8 @@ notebooks/
 
 #Ignore spine_7T_env.sh
 config/spine_7T_env.sh
+
+# Ignore denoising pipelines for developpement
+code/denoising.py 
+code/denoising_workflow.py 
+
