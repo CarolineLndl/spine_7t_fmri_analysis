@@ -47,6 +47,16 @@ manual_centerline = args.manual_centerline.lower() == "true"
 auto_vert_labels = args.auto_vert_labels.lower() == "true"
 redo = args.redo.lower() == "true"
 
+participants_tsv = pd.read_csv(path_code + '/config/participants.tsv', sep='\t',dtype={'participant_id': str})
+
+new_IDs=[]
+if IDs==[""]:
+    for ID in participants_tsv["participant_id"]:
+        new_IDs.append(ID)
+        
+print(new_IDs)
+IDs=new_IDs   
+
 with open(path_code + '/config/config_spine_7t_fmri.json') as config_file: # the notebook should be in 'xx/notebook/' folder #config_proprio
     config = json.load(config_file) # load config file should be open first and the path inside modified
 
@@ -61,7 +71,6 @@ Preprocess_main=Preprocess_main(config, IDs=IDs) # initialize the function
 preprocess_Sc=Preprocess_Sc(config, IDs=IDs) # initialize the function
 ses_name=""
 
-participants_tsv = pd.read_csv(path_code + '/config/participants.tsv', sep='\t')
 
 # initialize directories
 preprocessing_dir=os.path.expandvars(config["preprocess_dir"]["main_dir"])

@@ -5,7 +5,7 @@
 # Default values
 PATH_DATA="$PATH_DATA" #Defaults from environment
 PATH_CODE="$PATH_CODE" #Defaults from environment
-IDs=() # empty  → process all participants 
+IDs=("") # empty  → process all participants 
 
 RUN_PREPROSS=true
 
