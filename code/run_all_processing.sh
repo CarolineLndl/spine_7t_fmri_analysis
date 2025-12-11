@@ -5,7 +5,7 @@
 # Default values
 PATH_DATA="$PATH_DATA" #Defaults from environment
 PATH_CODE="$PATH_CODE" #Defaults from environment
-IDs=("") # empty  → process all participants 
+IDs=() # empty  → process all participants 
 
 RUN_PREPROSS=true
 
@@ -23,6 +23,7 @@ done
 # Show participants
 [ ${#IDs[@]} -eq 0 ] && echo "No specific IDs provided: processing all participants" \
                      || echo "Processing participants: ${IDs[@]}"
+[ ${#IDs[@]} -eq 0 ] && IDs=("") # If no IDs were provided, set to empty string 
 
 # --------------------------
 # Prepare log folder
@@ -39,7 +40,7 @@ timestamp=$(date +"%Y%m%d_%H%M%S")
 
 if [ "$RUN_PREPROSS" = true ]; then
     echo "Starting preprocessing..."
-    nohup python -u ../code/preprocessing_workflow.py --id "${IDs[@]}" --redo True \
+    nohup python -u ../code/preprocessing_workflow.py --ids "${IDs[@]}" --redo True \
     > "nohup_preprocessing_${timestamp}.out" 2>&1 &
 
     echo "Preprocessing launched in background."

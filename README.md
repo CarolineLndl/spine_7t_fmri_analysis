@@ -53,11 +53,7 @@ export PATH=${FSLDIR}/bin:${PATH} # FSL
 export FSLDIR PATH
 . $FSLDIR/etc/fslconf/fsl.sh
 
-#MATLAB_DIR=/export01/local/matlab23b
-#LD_PREFIX="${MATLAB_DIR}/sys/os/glnxa64:/cerebro/cerebro1/dataset/bmpd/derivatives/thibault_test/code/toolbox/libraries"
-#export  LD_LIBRARY_PATH=/export01/local/matlab23b/bin/glnxa64/
 ```
-> ⚠️ *Qt version conflict: SCT and MATLAB may use incompatible Qt libraries. If you don’t need MATLAB, consider commenting out the MATLAB path in the setup script to avoid errors. If you need MATLAB for denoising, uncomment the MATLAB path, but be aware that Qt-related errors may appear when using SCT manually.*
 
 #### c. Setup the conda environment
 <details>
@@ -152,12 +148,10 @@ Files are organized according to the BIDS standard:
 │   │   └── func
 │   │       ├── sub-100_task-motor_acq-shimBase+3mm_bold.json
 │   │       ├── sub-100_task-motor_acq-shimBase+3mm_bold.nii.gz
-│   │       ├── sub-100_task-rest_acq-shimBase+3mm_physio.json
-│   │       ├── sub-100_task-rest_acq-shimBase+3mm_physio.tsv.gz
 │   │       └── ...
 │   ├── sourcedata  # Original DICOM and behavioral data
 │   │   ├── sub-100
-│   │   │   ├── behav
+│   │   │   ├── beh
 │   │   │   │   ├── *.csv
 │   │   │   │   ├── *.log
 │   │   │   │   ├── *.psydat
@@ -183,13 +177,13 @@ cd ${PATH_CODE}/code/
 dcm2bids -d ${PATH_DATA}/sourcedata/sub-$ID/mri/ \
           -p $ID \
           -c ${PATH_CODE}/config/config_bids.txt \ 
-          -o $root_dir/spine_7t_fmri_data/
+          -o ${PATH_DATA}/spine_7t_fmri_data/
 ```
 
-- `$ID` is the subject ID (e.g., 103)
+- `$ID` is the subject ID (e.g., 095 103)
 - For full data conversion instructions, see: `${PATH_CODE}/code/convert_data/01_convert_mriData.sh`
 
-#### Convert physio data
+#### Convert physio data (need to be update)
 Use `${PATH_CODE}/code/convert_data/02_convert_physioData.sh` to convert raw physio data into BIDS format.
 
 ```bash
@@ -203,11 +197,9 @@ bash 02_convert_physioData.sh
 Files for preprocessing are in this repository.
 
 - **code/**: Functions and code to run the analyses. Do not modify the file.
-  - `denoising.py` > library of denoising functions
-  - `denoising_workflow.py` > orchestrates denoising steps using the functions
   - `preprocessing.py` > library of preprocessing functions
   - `preprocessing_workflow.py` > orchestrates preprocessing steps using the functions
-  - `run_all_processing.sh` > shell script to launch any combination of workflows
+  - `run_all_processing.sh` > shell script to launch any combination of workflows (so far only one workflow)
   - **convert_data/**: Scripts to convert raw mri and physio data into BIDS format.
 - **config/**: Configuration files for paths and parameters.
   - `config_spine_7t_fmri.json` is used by `preprocessing_workflow.py`
@@ -216,10 +208,10 @@ Files for preprocessing are in this repository.
 - **log**: Log files generated during processing run from bash script (the folder is not tracked by git).
 
 ### 2.1 Preprocessing 🤯
-▸ runs preprocessing steps automatically with output log from STDOUT
-▸ By default all the steps are rerun even if some outputs already exist. If manual corrections were made, these files will be used as input for subsequent steps.
-▸ if you already setup the PATH_CODE and PATH_DATA you don't need to specify --path_data --path_code
-▸ Specify individuals to process (--ids XX), the default option to run preprocessing on all participants will be setup soon
+▸ runs preprocessing steps automatically with output log from STDOUT   
+▸ By default all the steps are rerun even if some outputs already exist. If manual corrections were made, these files will be used as input for subsequent steps.  
+▸ if you already setup the PATH_CODE and PATH_DATA you don't need to specify --path_data --path_code  
+▸ Specify individuals to process (--ids XXX), the default option run preprocessing on all participants in the `participants.tsv` 
 
 ```bash
 bash ${PATH_CODE}/code/run_all_processing.sh --path_data ${PATH_DATA} --path_code ${PATH_CODE} --ids 090 101 106
@@ -233,14 +225,9 @@ bash ${PATH_CODE}/code/run_all_processing.sh --path_data ${PATH_DATA} --path_cod
 <summary>For more details, click to expand </summary>
 
   - **I.a Motion correction (mask)** : ✏️
-  check the automatic centerline detection and the mask used for motion correction, if needed, manually correct the centerline with:
+  check the automatic centerline detection and the mask used for motion correction, if needed, manually correct the centerline you can modify the line 43 of the run_all_processing.sh:
   ```
-  ctrl_sc_files_, mask_sc_files_=preprocess_Sc.moco_mask(ID=ID,i_img=mean_func_f[ID][tag][run_nb],
-                                                                       radius_size=25,task_name=tag,
-                                                                       manual=True,
-                                                                       redo_ctrl=True,
-                                                                       redo_mask=True,
-                                                                       verbose=verbose)
+  nohup python -u ../code/preprocessing_workflow.py --ids "${IDs[@]}" --redo True --manual_centerline True \
   ```
 
   The output files can be found in:
@@ -262,15 +249,9 @@ bash ${PATH_CODE}/code/run_all_processing.sh --path_data ${PATH_DATA} --path_cod
   ``` 
 
   - **III Labeling of inter vertebral disk** ✏️
-  Check the automatic labeling of the inter vertebral disks on the anatomical image, if needed (now default is manual), manually correct the labeling with:
+  Check the automatic labeling of the inter vertebral disks on the anatomical image, if needed (now default is manual), you can modify the line 43 of the run_all_processing.sh :
   ```
-  vert_labels_files.append(preprocess_Sc.label_vertebrae(ID=ID,
-                                                               i_img=raw_anat[ID_nb],
-                                                               seg_img=seg_anat_sc_files[ID_nb],
-                                                               c="t2",
-                                                               initz=f"{z_value},{vert}",auto=False,
-                                                               redo=False,
-                                                               verbose=verbose))
+  nohup python -u ../code/preprocessing_workflow.py --ids "${IDs[@]}" --redo True --auto_vert_labels False \
   ```
   The output files can be found in:
   ```
@@ -284,7 +265,7 @@ bash ${PATH_CODE}/code/run_all_processing.sh --path_data ${PATH_DATA} --path_cod
 > - **I. Motion correction:** try different parameters for the mask size, or different reference images (mean functional, middle volume, etc). 
 > - **IV. Registration to template:** check if the parameters for the registration are ok. 
 
-### 2.2 Denoising 🧹
+### 2.2 Denoising (work in progress) 🧹
 
 Should be run after preprocessing.
 - ⚠️ csf segmentation should be checked and manually corrected if needed before running the denoising.
