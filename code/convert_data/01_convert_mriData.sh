@@ -3,7 +3,7 @@
 cd  ${PATH_CODE}"/config/"
 source spine_7T_env.sh
 
-ID=106
+ID=095
 
 
 # Create participant directory
@@ -32,4 +32,4 @@ python sortDCM.py -d ${PATH_DATA}"/sourcedata/sub-"$ID"/"$file -o ${PATH_DATA}"/
 
 #Convert in BIDS
 cd ${PATH_CODE}"/code/convert_data/"
-dcm2bids -d ${PATH_DATA}"/sourcedata/sub-$ID/mri/" -p $ID -c ${PATH_CODE}"/config/config_bids.txt" -o $root_dir"/spine_7t_fmri_data/"
+dcm2bids -d ${PATH_DATA}"/sourcedata/sub-$ID/mri/" -p $ID -c ${PATH_CODE}"/config/config_bids.json" -o ${PATH_DATA}"/"

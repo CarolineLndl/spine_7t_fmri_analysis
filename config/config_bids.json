@@ -1,0 +1,204 @@
+{
+    "bids_version": "1.9.0",
+    "bids_extra_metadata": true,
+    "descriptions": [
+        {
+            "datatype": "anat",
+            "suffix": "localizer",
+            "criteria": {
+                "SeriesDescription": "*localizer_iso"
+            }
+        },
+        {
+            "datatype": "anat",
+            "suffix": "T2star",
+            "criteria": {
+                "SeriesDescription": "*localizer_for_segmentation"
+            },
+            "sidecar_changes": {
+                "PulseSequenceType": "Gradient Echo",
+                "PartialFourierDirection": "j"
+            }
+        },
+        {
+            "datatype": "func",
+            "suffix": "bold",
+            "custom_entities": "task-motor_acq-shimSlice+3mm",
+            "criteria": {
+                "ProtocolName": "*bold_f0xyz_task*"
+            },
+            "sidecar_changes": {
+                "TaskName": "motor",
+                "Instructions": "Squeeze the ball as much as possible and hold when you see the green circle, or relax when you see the white cross, using the right hand.",
+                "TaskDescription": "Motor task in which participants respond to visual cues by squeezing or relaxing a ball with the right hand.",
+                "PulseSequenceType": "EPI",
+                "PartialFourierDirection": "j"
+            }
+        },
+        {
+            "datatype": "func",
+            "suffix": "bold",
+            "custom_entities": "task-motor_acq-shimBase+3mm",
+            "criteria": {
+                "ProtocolName": "*bold_baseline_task*"
+            },
+            "sidecar_changes": {
+                "TaskName": "motor",
+                "Instructions": "Squeeze the ball as much as possible and hold when you see the green circle, or relax when you see the white cross, using the right hand.",
+                "TaskDescription": "Motor task in which participants respond to visual cues by squeezing or relaxing a ball with the right hand.",
+                "PulseSequenceType": "EPI",
+                "PartialFourierDirection": "j"
+            }
+        },
+        {
+            "datatype": "func",
+            "suffix": "bold",
+            "custom_entities": "task-motor_acq-shimSlice+1mm+sms2",
+            "criteria": {
+                "ProtocolName": "*bold_1mm_slice_SMS2_f0xyz_task*"
+            },
+            "sidecar_changes": {
+                "TaskName": "motor",
+                "Instructions": "Squeeze the ball as much as possible and hold when you see the green circle, or relax when you see the white cross, using the right hand.",
+                "TaskDescription": "Motor task in which participants respond to visual cues by squeezing or relaxing a ball with the right hand.",
+                "PulseSequenceType": "EPI",
+                "PartialFourierDirection": "j"
+            }
+        },
+        {
+            "datatype": "func",
+            "suffix": "bold",
+            "custom_entities": "task-motor_acq-shimBase+1mm+sms2",
+            "criteria": {
+                "ProtocolName": "*bold_1mm_slice_SMS2_baseline_task*"
+            },
+            "sidecar_changes": {
+                "TaskName": "motor",
+                "Instructions": "Squeeze the ball as much as possible and hold when you see the green circle, or relax when you see the white cross, using the right hand.",
+                "TaskDescription": "Motor task in which participants respond to visual cues by squeezing or relaxing a ball with the right hand.",
+                "PulseSequenceType": "EPI",
+                "PartialFourierDirection": "j"
+            }
+        },
+        {
+            "datatype": "func",
+            "suffix": "bold",
+            "custom_entities": "task-rest_acq-shimSlice+3mm",
+            "criteria": {
+                "ProtocolName": "*bold_f0xyz_tsnr*"
+            },
+            "sidecar_changes": {
+                "TaskName": "rest",
+                "Instructions": "No instructions",
+                "TaskDescription": "Resting-state scan to measure tSNR",
+                "PulseSequenceType": "EPI",
+                "PartialFourierDirection": "j"
+            }
+        },
+        {
+            "datatype": "func",
+            "suffix": "bold",
+            "custom_entities": "task-rest_acq-shimBase+3mm",
+            "criteria": {
+                "ProtocolName": "*bold_baseline_tsnr*"
+            },
+            "sidecar_changes": {
+                "TaskName": "rest",
+                "Instructions": "No instructions",
+                "TaskDescription": "Resting-state scan to measure tSNR",
+                "PulseSequenceType": "EPI",
+                "PartialFourierDirection": "j"
+            }
+        },
+        {
+            "datatype": "func",
+            "suffix": "bold",
+            "custom_entities": "task-rest_acq-shimSlice+1mm+sms2",
+            "criteria": {
+                "ProtocolName": "*1mm_slice_SMS2_f0xyz_tsnr*"
+            },
+            "sidecar_changes": {
+                "TaskName": "rest",
+                "Instructions": "No instructions",
+                "TaskDescription": "Resting-state scan to measure tSNR",
+                "PulseSequenceType": "EPI",
+                "PartialFourierDirection": "j"
+            }
+        },
+        {
+            "datatype": "func",
+            "suffix": "bold",
+            "custom_entities": "task-rest_acq-shimBase+1mm+sms2",
+            "criteria": {
+                "ProtocolName": "*bold_1mm_slice_SMS2_baseline_tsnr*"
+            },
+            "sidecar_changes": {
+                "TaskName": "rest",
+                "Instructions": "No instructions",
+                "TaskDescription": "Resting-state scan to measure tSNR",
+                "PulseSequenceType": "EPI",
+                "PartialFourierDirection": "j"
+            }
+        },
+        {
+            "datatype": "func",
+            "suffix": "bold",
+            "custom_entities": "task-rest_acq-shimBase+3mm",
+            "criteria": {
+                "ProtocolName": "*R2_baseline_30vols*"
+            },
+            "sidecar_changes": {
+                "TaskName": "rest",
+                "Instructions": "No instructions",
+                "TaskDescription": "Resting-state scan to measure tSNR",
+                "PulseSequenceType": "EPI",
+                "PartialFourierDirection": "j"
+            }
+        },
+        {
+            "datatype": "func",
+            "suffix": "bold",
+            "custom_entities": "task-rest_acq-shimSlice+3mm",
+            "criteria": {
+                "ProtocolName": "*R2_f0xyz_30vols*"
+            },
+            "sidecar_changes": {
+                "TaskName": "rest",
+                "Instructions": "No instructions",
+                "TaskDescription": "Resting-state scan to measure tSNR",
+                "PulseSequenceType": "EPI",
+                "PartialFourierDirection": "j"
+            }
+        },
+        {
+            "datatype": "func",
+            "suffix": "bold",
+            "custom_entities": "task-motor_acq-shimBase+3mm",
+            "criteria": {
+                "ProtocolName": "*R2_baseline_120vols*"
+            },
+            "sidecar_changes": {
+                "TaskName": "motor",
+                "Instructions": "Squeeze the ball as much as possible and hold when you see the green circle, or relax when you see the white cross, using the right hand.",
+                "TaskDescription": "Motor task in which participants respond to visual cues by squeezing or relaxing a ball with the right hand.",
+                "PulseSequenceType": "EPI",
+                "PartialFourierDirection": "j"
+            }
+        },
+        {
+            "datatype": "func",
+            "suffix": "bold",
+            "custom_entities": "task-motor_acq-shimSlice+3mm",
+            "criteria": {
+                "ProtocolName": "*R2_f0xyz_120*"
+            },
+            "sidecar_changes": {
+                "TaskName": "motor",
+                "Instructions": "Squeeze the ball as much as possible and hold when you see the green circle, or relax when you see the white cross, using the right hand.",
+                "TaskDescription": "Motor task in which participants respond to visual cues by squeezing or relaxing a ball with the right hand.",
+                "PulseSequenceType": "EPI",
+                "PartialFourierDirection": "j"
+            }
+        }
+    ]
+}

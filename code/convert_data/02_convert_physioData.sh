@@ -72,6 +72,6 @@ cd ${PATH_CODE}"/code/convert_data/"
 for archive in ${PATH_DATA}"/sourcedata/sub-$ID/pmu/"*.tar.gz; do 
 #"$root_dir/sourcedata/sub-$ID/pmu/"*.tar.gz; do
     echo "$archive"
-    python physio2bids.py -t "$archive" -s "$ID" -o "$root_dir/" -v True
+    python physio2bids.py -t "$archive" -s "$ID" -o "${PATH_DATA}/" -v True
 done
 
