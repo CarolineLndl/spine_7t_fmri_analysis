@@ -8,20 +8,26 @@ Processing of spinal cord functional data acquired at 7T.
 ## 1. Getting Started
 
 ### 1.1 Dependencies 🔗
-Your environment should include:
-- Python (3.10.14 was used)
+To run the processing pipeline, external dependencies are required. They are listed below but more details on how to install them is described further in a), b) and c).
+- Conda (environment file: `spine_7t_fmri_analysis/config/requirements.txt`)
 - Spinal Cord Toolbox 7.1
-- Conda environment: `spine_7t_fmri_analysis/config/requirements.txt`
 - FSL
-- dcm2niix
 - MATLAB (for denoising step only)
 
-#### a. Set up your project paths
+#### a. Clone this repository and download the dataset
+We recommend creating a folder for this project (`PATH_PROJECT`: "spine_7t"). In this folder, clone this repository (`PATH_CODE`: "spine_7t_fmri_analysis") and download the dataset (`PATH_DATA`: "spine_7t_fmri_data").
+
 ```bash
-export PATH_PROJECT=/cerebro/cerebro1/dataset/spine_7t/
-export PATH_DATA=$PATH_PROJECT/spine_7t_fmri_data/
-export PATH_CODE=$PATH_PROJECT/spine_7t_fmri_analysis/
+mkdir "spine_7t"
+cd "spine_7t"
+git clone https://github.com/CarolineLndl/spine_7t_fmri_analysis.git
+git clone https://github.com/OpenNeuroDatasets/ds007067.git spine_7t_fmri_data
+export PATH_PROJECT="$(pwd)"
+export PATH_DATA=${PATH_PROJECT}/spine_7t_fmri_data/
+export PATH_CODE=${PATH_PROJECT}/spine_7t_fmri_analysis/
 ```
+
+The dataset is also accessible to download manually here: https://openneuro.org/datasets/ds007067/download
 
 #### b. Set up the toolbox paths
 <details>
@@ -32,27 +38,29 @@ export PATH_CODE=$PATH_PROJECT/spine_7t_fmri_analysis/
 - FSL: see here [Installation instructions](https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FslInstallation)
 
 **Toolboxes for denoising:**
-- Verify wich version of MATLAB is compatible with your Python version (*vis versa*): see here [Compatibility table](https://www.mathworks.com/support/requirements/python-compatibility.html)
+We use some Matlab toolboxes for denoising. Specific MATLAB versions are compatible with specific Python versions. Depending on your version of MATLAB, edit the conda environment file (`spine_7t_fmri_analysis/config/requirements.txt`) with your version of Python and your version of the MATLAB engine.
+- Verify which version of MATLAB is compatible with your Python version (*vis versa*): see here [Compatibility table](https://www.mathworks.com/support/requirements/python-compatibility.html)
 - Install MATLAB: see here [Installation instructions](https://www.mathworks.com/help/install/)
-- Install MATLAB engine for Python: see here [Installation instructions](https://www.mathworks.com/help/matlab/matlab_external/install-the-matlab-engine-for-python.html)
+- Install MATLAB engine for Python: see here [Installation instructions](https://www.mathworks.com/help/matlab/matlab_external/install-the-matlab-engine-for-python.html).
 
 ```bash
 # Example for MATLAB R2023b
 LD_LIBRARY_PATH="/export01/local/matlab23b/sys/os/glnxa64:$toolbox_home/libraries"
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:"/export01/local/matlab23b/bin/" # The LD_LIBRARY_PATH environment variable tells the system where to find shared libraries
+export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:"/export01/local/matlab23b/bin/" # The LD_LIBRARY_PATH environment variable tells the system where to find shared libraries
 cd /export/local/matlab23b/extern/engines #Navigate to MATLAB Folder, engines subfolder
 python -m pip install matlabengine==23.2.10 #Install MATLAB engine for Python
 ```
 </details>
 
+If you have a single version of SCT and FSL, `SCT_DIR` and `FSLDIR` should already be set. You can manually check them with `echo "${SCT_DIR}"` and `echo "${FSLDIR}"`. Their binaries should also be in your `PATH` variable. If you have multiple versions installed, make sure the correct versions are set. An example of how to do that is shown below.
+
 ```bash
-SCT_DIR=$PATH_CODE/toolboxes/spinalcordtoolbox
+SCT_DIR=${PATH_CODE}/toolboxes/spinalcordtoolbox
 FSLDIR=/cerebro/cerebro1/dataset/bmpd/derivatives/thibault_test/code/toolbox/fsl
-export PATH="$SCT_DIR/bin:$PATH"   # spinalcordtoolbox
+export PATH="${SCT_DIR}/bin:${PATH}"   # spinalcordtoolbox
 export PATH=${FSLDIR}/bin:${PATH} # FSL
 export FSLDIR PATH
-. $FSLDIR/etc/fslconf/fsl.sh
-
+source ${FSLDIR}/etc/fslconf/fsl.sh
 ```
 
 #### c. Setup the conda environment
@@ -176,7 +184,7 @@ cd ${PATH_CODE}/code/
 
 dcm2bids -d ${PATH_DATA}/sourcedata/sub-$ID/mri/ \
           -p $ID \
-          -c ${PATH_CODE}/config/config_bids.txt \ 
+          -c ${PATH_CODE}/config/config_bids.txt \
           -o ${PATH_DATA}/spine_7t_fmri_data/
 ```
 
@@ -189,7 +197,7 @@ Use `${PATH_CODE}/code/convert_data/02_convert_physioData.sh` to convert raw phy
 ```bash
 cd ${PATH_CODE}/code/convert_data/
 bash 02_convert_physioData.sh
-``` 
+```
 
 ---
 
@@ -211,7 +219,7 @@ Files for preprocessing are in this repository.
 ▸ runs preprocessing steps automatically with output log from STDOUT   
 ▸ By default all the steps are rerun even if some outputs already exist. If manual corrections were made, these files will be used as input for subsequent steps.  
 ▸ if you already setup the PATH_CODE and PATH_DATA you don't need to specify --path_data --path_code  
-▸ Specify individuals to process (--ids XXX), the default option run preprocessing on all participants in the `participants.tsv` 
+▸ Specify individuals to process (--ids XXX), the default option run preprocessing on all participants in the `participants.tsv`
 
 ```bash
 bash ${PATH_CODE}/code/run_all_processing.sh --path_data ${PATH_DATA} --path_code ${PATH_CODE} --ids 090 101 106
@@ -219,8 +227,8 @@ bash ${PATH_CODE}/code/run_all_processing.sh --path_data ${PATH_DATA} --path_cod
 ```
 
 ⚠️ *Each step manually modified will imply that all subsequent steps need to be re-run. </span>* <br><br>
-  
-##### Visual check and manual corrections ✏️ 
+
+##### Visual check and manual corrections ✏️
 <details>
 <summary>For more details, click to expand </summary>
 
@@ -238,7 +246,7 @@ bash ${PATH_CODE}/code/run_all_processing.sh --path_data ${PATH_DATA} --path_cod
           └── sub-<ID>_<task_acq>_bold_tmean_centerline.nii.gz
 
   ```
- 
+
   - **II Segmentation** ✏️
   Check the segmentation results, if needed, manually correct the segmentation in fsleyes using the anatomical image or mean functional image as background.
  When saving the corrected segmentation, make sure to keep the same name as the original segmentation file but save it in the `manual` folder:
@@ -246,7 +254,7 @@ bash ${PATH_CODE}/code/run_all_processing.sh --path_data ${PATH_DATA} --path_cod
   /spine_7t_fmri_analysis/derivatives/manual/sub-<ID>/func
       └── <task*_acq*>/
           └── sub-<ID>_<task_acq>_bold_moco_mean_seg.nii.gz
-  ``` 
+  ```
 
   - **III Labeling of inter vertebral disk** ✏️
   Check the automatic labeling of the inter vertebral disks on the anatomical image, if needed (now default is manual), you can modify the line 43 of the run_all_processing.sh :
@@ -257,13 +265,13 @@ bash ${PATH_CODE}/code/run_all_processing.sh --path_data ${PATH_DATA} --path_cod
   ```
   /spine_7t_fmri_analysis/derivatives/manual/sub-<ID>/anat
       └── sub-<ID>_T2star_space-orig_label-ivd.nii.gz
-  ``` 
+  ```
 </details>
 
 
 ##### ‼️ What we want to try to improve
-> - **I. Motion correction:** try different parameters for the mask size, or different reference images (mean functional, middle volume, etc). 
-> - **IV. Registration to template:** check if the parameters for the registration are ok. 
+> - **I. Motion correction:** try different parameters for the mask size, or different reference images (mean functional, middle volume, etc).
+> - **IV. Registration to template:** check if the parameters for the registration are ok.
 
 ### 2.2 Denoising (work in progress) 🧹
 
@@ -273,7 +281,7 @@ Should be run after preprocessing.
 
 #### Two options to run preprocessing:
 
-▸ runs steps automatically: recommanded to run all steps at once 
+▸ runs steps automatically: recommanded to run all steps at once
 ▸ By default all the steps are rerun even if some outputs already exist.
 ```bash
 bash ${PATH_CODE}/code/run_all_processing.sh
