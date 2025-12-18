@@ -212,9 +212,10 @@ Files for preprocessing are in this repository.
 ▸ By default all the steps are rerun even if some outputs already exist. If manual corrections were made, these files will be used as input for subsequent steps.  
 ▸ if you already setup the PATH_CODE and PATH_DATA you don't need to specify --path_data --path_code  
 ▸ Specify individuals to process (--ids XXX), the default option run preprocessing on all participants in the `participants.tsv` 
+▸ You can remove --no_denoising to run denoising after preprocessing (see section 2.2) 
 
 ```bash
-bash ${PATH_CODE}/code/run_all_processing.sh --path_data ${PATH_DATA} --path_code ${PATH_CODE} --ids 090 101 106
+bash ${PATH_CODE}/code/run_all_processing.sh --path_data ${PATH_DATA} --path_code ${PATH_CODE} --ids 090 101 106 --no_denoising
 
 ```
 
@@ -265,18 +266,27 @@ bash ${PATH_CODE}/code/run_all_processing.sh --path_data ${PATH_DATA} --path_cod
 > - **I. Motion correction:** try different parameters for the mask size, or different reference images (mean functional, middle volume, etc). 
 > - **IV. Registration to template:** check if the parameters for the registration are ok. 
 
-### 2.2 Denoising (work in progress) 🧹
+### 2.2 Denoising  🧹
 
 Should be run after preprocessing.
 - ⚠️ csf segmentation should be checked and manually corrected if needed before running the denoising.
-- Details on the different steps are in the .py script and will be added in the Readme later.
 
-#### Two options to run preprocessing:
+#### Description of the denoising steps 
+- **I. Extract motion parameters:** to regressed out the residual motion effects, we extracted slice-wise motion parameters from the moco files generated during the motion correction step.
+- **II. Compute outliers calculation:** to identify volumes with excessive motionas and included as nuisance regressors in the denoising step.
+- **III. CompCor calculation:** to eliminate the non-neural aspects of the signal, we used the CompCor (Behzadi et al., 2007) approach by extracting the mean signal and the first five principal components of the unsmoothed signal recorded from the CSF (CSF-mask in functional space).
+- **IV. Signal cleaning:** we regressed out the nuisance regressors (motion parameters, outliers, mean CSF signal and first five principal components from the CSF) and applied a high-pass temporal filter (cut-off frequency = 0.01 Hz) to the functional data.
 
-▸ runs steps automatically: recommanded to run all steps at once 
-▸ By default all the steps are rerun even if some outputs already exist.
+#### Run denoising
+▸ runs preprocessing steps automatically with output log from STDOUT   
+▸ By default all the steps are rerun even if some outputs already exist. 
+▸ if you already setup the PATH_CODE and PATH_DATA you don't need to specify --path_data --path_code  
+▸ Specify individuals to process (--ids XXX), the default option run preprocessing on all participants in the `participants.tsv` 
+▸ You can remove --no-preprocess to run preprocessing before denoising (see section 2.1) 
+
 ```bash
-bash ${PATH_CODE}/code/run_all_processing.sh
+bash ${PATH_CODE}/code/run_all_processing.sh --path_data ${PATH_DATA} --path_code ${PATH_CODE} --ids 090 101 106 --no-preprocess
+
 ```
 
 ### 2.3 First-level Analysis (TBD) 📈

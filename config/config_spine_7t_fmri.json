@@ -11,7 +11,7 @@
     
 "design_exp":{"ses_nb":1,
               "ses_names":[""],
-            "task_names":["motor","rest"],
+            "task_names":["motor"],
             "acq_names":["shimBase+3mm","shimSlice+3mm"]},
               
 "preprocess_dir":{"main_dir":"$PATH_DATA/derivatives/processing/preprocessing/sub-{}/",
@@ -36,9 +36,8 @@
                   },
     
 "denoising":{"raw_physio_dir":"$PATH_PROJECT/",
-    "dir":"$PATH_DATA/derivatives/processing/denoising/",
-    "sub_dirs":["denoised_dir"],
-    "denoised_dir":"/sub-{}/{}/",
+    "dir":"$PATH_DATA/derivatives/processing/denoising/sub-{}/",
+    "denoised_dir":"fmri_denoised",
     "norm_dir":"",
     "smoothed_dir":""},
  
