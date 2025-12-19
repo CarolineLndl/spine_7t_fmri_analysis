@@ -35,7 +35,7 @@ from preprocess import Preprocess_main, Preprocess_Sc
 import utils
 
 
-with open(path_code + '/config/config_spine_7t_fmri.json') as config_file: # the notebook should be in 'xx/notebook/' folder #config_proprio
+with open(path_code + '/config/config_spine_7t_fmri.json') as config_file:
     config = json.load(config_file) # load config file should be open first and the path inside modified
 
 parser = argparse.ArgumentParser()
