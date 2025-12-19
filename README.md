@@ -173,35 +173,39 @@ bash 02_convert_physioData.sh
 
 ---
 
-## 2. Analysis Pipelines 📊
-Files for preprocessing are in this repository.
+## Analysis Pipeline ⚙️
 
-- **code/**: Functions and code to run the analyses. Do not modify the file.
+<details><summary>Here is a brief description of the files used for data analysis.</summary>
+
+- **`code/`**: Functions and code to run the analyses. Do not modify the file.
   - `preprocessing.py` > library of preprocessing functions
   - `preprocessing_workflow.py` > orchestrates preprocessing steps using the functions
   - `run_all_processing.sh` > shell script to launch any combination of workflows (so far only one workflow)
-  - **convert_data/**: Scripts to convert raw mri and physio data into BIDS format.
-- **config/**: Configuration files for paths and parameters.
+  - **`convert_data/`**: Scripts to convert raw mri and physio data into BIDS format.
+- **`config/`**: Configuration files for paths and parameters.
   - `config_spine_7t_fmri.json` is used by `preprocessing_workflow.py`
   - `participants.tsv` contains demographical information and important info for preprocessing (*e.g.,* slice number for vertebrae labeling initiation)
-- **template images**: Used for analyses; do not modify.
-- **log**: Log files generated during processing run from bash script (the folder is not tracked by git).
+- **`template`**: Used for analyses; do not modify.
+- **`log`**: Log files generated during processing run from bash script (the folder is not tracked by git).
 
-### 2.1 Preprocessing 🤯
-▸ runs preprocessing steps automatically with output log from STDOUT   
-▸ By default all the steps are rerun even if some outputs already exist. If manual corrections were made, these files will be used as input for subsequent steps.  
-▸ if you already setup the PATH_CODE and PATH_DATA you don't need to specify --path_data --path_code  
-▸ Specify individuals to process (--ids XXX), the default option run preprocessing on all participants in the `participants.tsv` 
-▸ Specify task to process (--tasks motor or rest), the default option run preprocessing on all tasks defined in the config_file_7t_fmri.json
-▸ You can remove --no_denoising to run denoising after preprocessing (see section 2.2) 
+</details>
+
+Run the pipeline:
 
 ```bash
 bash ${PATH_CODE}/code/run_all_processing.sh --path_data ${PATH_DATA} --path_code ${PATH_CODE} --ids 090 101 106 --tasks motor --no_denoising
-
 ```
 
-⚠️ *Each step manually modified will imply that all subsequent steps need to be re-run. </span>* <br><br>
-  
+- runs preprocessing steps automatically with output log from STDOUT   
+- By default all the steps are rerun even if some outputs already exist. If manual corrections were made, these files will be used as input for subsequent steps.  
+- if you already setup the PATH_CODE and PATH_DATA you don't need to specify --path_data --path_code  
+- Specify individuals to process (--ids XXX), the default option run preprocessing on all participants in the `participants.tsv` 
+- Specify task to process (--tasks motor or rest), the default option run preprocessing on all tasks defined in the config_file_7t_fmri.json
+- You can remove --no_denoising to run denoising after preprocessing (see section 2.2) 
+
+> [!WARNING]  
+> Each step manually modified will imply that all subsequent steps need to be re-run.
+
 ##### Visual check and manual corrections ✏️ 
 <details>
 <summary>For more details, click to expand </summary>
