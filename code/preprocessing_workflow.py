@@ -28,9 +28,12 @@ import sys, json, glob, os, re, shutil, argparse
 import pandas as pd
 from IPython.display import Image, display
 
-
 # get path of the parent location of this file, and go up one level
 path_code = os.path.dirname(os.path.abspath(__file__)).rsplit('/', 1)[0]
+sys.path.append(path_code + "/code/") # Change this line according to your directory
+from preprocess import Preprocess_main, Preprocess_Sc
+import utils
+
 
 with open(path_code + '/config/config_spine_7t_fmri.json') as config_file: # the notebook should be in 'xx/notebook/' folder #config_proprio
     config = json.load(config_file) # load config file should be open first and the path inside modified
@@ -63,13 +66,6 @@ print(IDs)
 
 if tasks!=[""]:
     config["design_exp"]["task_names"]=tasks
-
-
-#Import scripts
-sys.path.append(path_code + "/code/") # Change this line according to your directory
-
-from preprocess import Preprocess_main, Preprocess_Sc
-import utils
 
 #Initialize codes
 Preprocess_main=Preprocess_main(config, IDs=IDs) # initialize the function
