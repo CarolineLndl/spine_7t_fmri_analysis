@@ -32,27 +32,23 @@ export PATH_CODE=$PATH_PROJECT/spine_7t_fmri_analysis/
 ```
 
 ### Dependencies 🔗
+
 Your environment should include:
 - Python (tested with 3.10.14, but other versions could work)
 - [Spinal Cord Toolbox v7.1](https://spinalcordtoolbox.com/en/latest/user_section/installation.html)
 - [FSL](https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FslInstallation)
-- Conda environment: `spine_7t_fmri_analysis/config/requirements.txt`
-- dcm2niix
+- [Conda](https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html)
+- [dcm2niix](https://github.com/rordenlab/dcm2niix)
 
-#### c. Setup the conda environment
-<details>
-<summary>👉 How to create the conda environment </summary>
+#### Setup the conda environment
 
-Make sure conda is installed: see here [Installation instructions](https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html)
 Create the appropriate conda environment:
-*If you just what to run the preprocessing you can remove matlabengine from the requirements.txt file.*
 
 ```bash
 conda create --name spine_7T_env_py10 python=3.10
 conda activate spine_7T_env_py10
 pip install -r config/requirements.txt
 ```
-</details>
 
 Load conda environment:
 
