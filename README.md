@@ -38,35 +38,6 @@ Your environment should include:
 - [FSL](https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FslInstallation)
 - Conda environment: `spine_7t_fmri_analysis/config/requirements.txt`
 - dcm2niix
-- MATLAB (for denoising step only)
-
-#### b. Set up the toolbox paths
-<details>
-<summary>👉 How to install dependencies</summary>
-
-**Toolboxes for denoising:**
-- Verify wich version of MATLAB is compatible with your Python version (*vis versa*): see here [Compatibility table](https://www.mathworks.com/support/requirements/python-compatibility.html)
-- Install MATLAB: see here [Installation instructions](https://www.mathworks.com/help/install/)
-- Install MATLAB engine for Python: see here [Installation instructions](https://www.mathworks.com/help/matlab/matlab_external/install-the-matlab-engine-for-python.html)
-
-```bash
-# Example for MATLAB R2023b
-LD_LIBRARY_PATH="/export01/local/matlab23b/sys/os/glnxa64:$toolbox_home/libraries"
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:"/export01/local/matlab23b/bin/" # The LD_LIBRARY_PATH environment variable tells the system where to find shared libraries
-cd /export/local/matlab23b/extern/engines #Navigate to MATLAB Folder, engines subfolder
-python -m pip install matlabengine==23.2.10 #Install MATLAB engine for Python
-```
-</details>
-
-```bash
-SCT_DIR=$PATH_CODE/toolboxes/spinalcordtoolbox
-FSLDIR=/cerebro/cerebro1/dataset/bmpd/derivatives/thibault_test/code/toolbox/fsl
-export PATH="$SCT_DIR/bin:$PATH"   # spinalcordtoolbox
-export PATH=${FSLDIR}/bin:${PATH} # FSL
-export FSLDIR PATH
-. $FSLDIR/etc/fslconf/fsl.sh
-
-```
 
 #### c. Setup the conda environment
 <details>
