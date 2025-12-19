@@ -5,12 +5,16 @@ Processing of spinal cord functional data acquired at 7T.
 
 ---
 
-## 1. Getting Started
+## Getting Started
 
-### 1.1 Dependencies 🔗
+### Download data 📀
+
+TODO: Insert instructions to download data from OpenNeuro
+
+### Dependencies 🔗
 Your environment should include:
-- Python (3.10.14 was used)
-- Spinal Cord Toolbox 7.1
+- Python (tested with 3.10.14, but other versions could work)
+- Spinal Cord Toolbox v7.1
 - Conda environment: `spine_7t_fmri_analysis/config/requirements.txt`
 - FSL
 - dcm2niix
