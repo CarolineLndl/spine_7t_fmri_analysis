@@ -56,6 +56,7 @@ redo = args.redo.lower() == "true"
 path_data = args.path_data
 
 config["raw_dir"]=path_data
+config["code_dir"]=path_code
 
 # Load participants info
 participants_tsv = pd.read_csv(path_code + '/config/participants.tsv', sep='\t',dtype={'participant_id': str})
