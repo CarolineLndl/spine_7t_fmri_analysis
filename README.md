@@ -114,7 +114,7 @@ export PATH_DATA=$PATH_PROJECT/ds007067
 ### Clone repository
 
 ```bash
-clone https://github.com/CarolineLndl/spine_7t_fmri_analysis.git .
+git clone https://github.com/CarolineLndl/spine_7t_fmri_analysis.git .
 export PATH_CODE=$PATH_PROJECT/spine_7t_fmri_analysis/
 ```
 
@@ -206,7 +206,8 @@ bash ${PATH_CODE}/code/run_all_processing.sh --path_data ${PATH_DATA} --path_cod
 > [!WARNING]  
 > Each step manually modified will imply that all subsequent steps need to be re-run.
 
-##### Visual check and manual corrections ✏️ 
+### Visual check and manual corrections ✏️ 
+
 <details>
 <summary>For more details, click to expand </summary>
 
