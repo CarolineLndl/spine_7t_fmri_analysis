@@ -193,7 +193,7 @@ bash 02_convert_physioData.sh
 Run the pipeline:
 
 ```bash
-bash ${PATH_CODE}/code/run_all_processing.sh --path_data ${PATH_DATA} --path_code ${PATH_CODE} --ids 090 101 106 --tasks motor --no_denoising
+bash ${PATH_CODE}/code/run_all_processing.sh --path_data ${PATH_DATA} --path_code ${PATH_CODE} --ids 090 101 106 --tasks motor --no-denoising
 ```
 
 - runs preprocessing steps automatically with output log from STDOUT   
