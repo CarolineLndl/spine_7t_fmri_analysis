@@ -47,7 +47,7 @@ Create the appropriate conda environment:
 ```bash
 conda create --name spine_7T_env_py10 python=3.10
 conda activate spine_7T_env_py10
-pip install -r config/requirements.txt
+pip install -r $PATH_CODE/config/requirements.txt
 ```
 
 Load conda environment:
