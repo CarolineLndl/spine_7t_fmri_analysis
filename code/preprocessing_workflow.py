@@ -28,12 +28,13 @@ import sys, json, glob, os, re, shutil, argparse
 import pandas as pd
 from IPython.display import Image, display
 
+# get path of the parent location of this file, and go up one level
+path_code = os.path.dirname(os.path.abspath(__file__)).rsplit('/', 1)[0]
+sys.path.append(path_code + "/code/") # Change this line according to your directory
+from preprocess import Preprocess_main, Preprocess_Sc
+import utils
 
-# Get the environment variable PATH_CODE
-path_code = os.environ.get("PATH_CODE")
-path_data = os.environ.get("PATH_DATA")
-
-with open(path_code + '/config/config_spine_7t_fmri.json') as config_file: # the notebook should be in 'xx/notebook/' folder #config_proprio
+with open(path_code + '/config/config_spine_7t_fmri.json') as config_file:
     config = json.load(config_file) # load config file should be open first and the path inside modified
 
 parser = argparse.ArgumentParser()
@@ -43,6 +44,7 @@ parser.add_argument("--verbose", default="False")
 parser.add_argument("--manual_centerline", default="False")
 parser.add_argument("--auto_vert_labels", default="True")
 parser.add_argument("--redo", default="True")
+parser.add_argument("--path-data", required=True)
 args = parser.parse_args()
 
 IDs = args.ids
@@ -51,7 +53,12 @@ verbose = args.verbose.lower() == "true"
 manual_centerline = args.manual_centerline.lower() == "true"
 auto_vert_labels = args.auto_vert_labels.lower() == "true"
 redo = args.redo.lower() == "true"
+path_data = args.path_data
 
+config["raw_dir"]=path_data
+config["code_dir"]=path_code
+
+# Load participants info
 participants_tsv = pd.read_csv(path_code + '/config/participants.tsv', sep='\t',dtype={'participant_id': str})
 
 new_IDs=[]
@@ -65,13 +72,6 @@ print(IDs)
 if tasks!=[""]:
     config["design_exp"]["task_names"]=tasks
 
-
-#Import scripts
-sys.path.append(path_code + "/code/") # Change this line according to your directory
-
-from preprocess import Preprocess_main, Preprocess_Sc
-import utils
-
 #Initialize codes
 Preprocess_main=Preprocess_main(config, IDs=IDs) # initialize the function
 preprocess_Sc=Preprocess_Sc(config, IDs=IDs) # initialize the function
@@ -79,9 +79,9 @@ ses_name=""
 
 
 # initialize directories
-preprocessing_dir=os.path.expandvars(config["preprocess_dir"]["main_dir"])
-derivatives_dir=os.path.expandvars(config["derivatives_dir"])
-manual_dir=os.path.expandvars(config["manual_dir"])
+preprocessing_dir = os.path.join(config["raw_dir"], os.path.expandvars(config["preprocess_dir"]["main_dir"]))
+derivatives_dir = os.path.join(config["raw_dir"], config["derivatives_dir"])
+manual_dir = os.path.join(config["raw_dir"], config["manual_dir"])
 
 #------------------------------------------------------------------
 #------ Preprocessing
@@ -97,7 +97,7 @@ for ID_nb,ID in enumerate(IDs):
 
     
     #---------------Anat preprocessing ---------------------------------------------------
-    raw_anat=glob.glob(preprocessing_dir.format(ID) + "/anat/" + config["preprocess_f"]["anat_raw"].format(ID,"*"))[0]
+    raw_anat = glob.glob(preprocessing_dir.format(ID) + "anat/" + config["preprocess_f"]["anat_raw"].format(ID,"*"))[0]
     
     #------------------------------------------------------------------
     #------ Segmentation of the anatomical image

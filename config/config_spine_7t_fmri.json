@@ -1,8 +1,5 @@
-{"root_dir":"$PATH_PROJECT",
-"raw_dir":"$PATH_DATA",
-"derivatives_dir":"$PATH_DATA/derivatives/",
-"manual_dir":"$PATH_DATA/derivatives/manual/",
-"code_dir":"$PATH_CODE",
+{"derivatives_dir":"derivatives/",
+"manual_dir":"derivatives/manual/",
     
 "PAM50_cord":"PAM50_cord_c1t4.nii.gz",
 "PAM50_t2":"PAM50_t2_c1t4.nii.gz",
@@ -14,8 +11,8 @@
             "task_names":["motor","rest"],
             "acq_names":["shimBase+3mm","shimSlice+3mm"]},
               
-"preprocess_dir":{"main_dir":"$PATH_DATA/derivatives/processing/preprocessing/sub-{}/",
-                  "QC_dir":"$PATH_DATA/derivatives/processing/preprocessing/QC/",
+"preprocess_dir":{"main_dir":"derivatives/processing/preprocessing/sub-{}/",
+                  "QC_dir":"derivatives/processing/preprocessing/QC/",
                   "func_mask":"func/{}/sct_get_centerline/",
                   "func_moco":"func/{}/sct_fmri_moco/",
                   "func_seg":"func/{}/sct_deepseg/",
