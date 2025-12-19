@@ -114,7 +114,7 @@ export PATH_DATA=$PATH_PROJECT/ds007067
 ### Clone repository
 
 ```bash
-git clone https://github.com/CarolineLndl/spine_7t_fmri_analysis.git .
+git clone https://github.com/CarolineLndl/spine_7t_fmri_analysis.git
 export PATH_CODE=$PATH_PROJECT/spine_7t_fmri_analysis/
 ```
 
