@@ -79,9 +79,9 @@ ses_name=""
 
 
 # initialize directories
-preprocessing_dir=os.path.expandvars(config["preprocess_dir"]["main_dir"])
-derivatives_dir=os.path.expandvars(config["derivatives_dir"])
-manual_dir=os.path.expandvars(config["manual_dir"])
+preprocessing_dir = os.path.join(config["raw_dir"], os.path.expandvars(config["preprocess_dir"]["main_dir"]))
+derivatives_dir = os.path.join(config["raw_dir"], config["derivatives_dir"])
+manual_dir = os.path.join(config["raw_dir"], config["manual_dir"])
 
 #------------------------------------------------------------------
 #------ Preprocessing
@@ -97,7 +97,7 @@ for ID_nb,ID in enumerate(IDs):
 
     
     #---------------Anat preprocessing ---------------------------------------------------
-    raw_anat=glob.glob(preprocessing_dir.format(ID) + "/anat/" + config["preprocess_f"]["anat_raw"].format(ID,"*"))[0]
+    raw_anat = glob.glob(preprocessing_dir.format(ID) + "anat/" + config["preprocess_f"]["anat_raw"].format(ID,"*"))[0]
     
     #------------------------------------------------------------------
     #------ Segmentation of the anatomical image
