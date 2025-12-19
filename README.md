@@ -7,9 +7,29 @@ Processing of spinal cord functional data acquired at 7T.
 
 ## Getting Started
 
+### Set up your project paths
+
+Create a folder that will contain the code of this repository as well as the source and processed data, then define the variable in SHELL:
+
+```bash
+export PATH_PROJECT=<PATH_TO_PROJECT>
+```
+
 ### Download data 📀
 
 TODO: Insert instructions to download data from OpenNeuro
+
+Define variable:
+```bash
+export PATH_DATA=$PATH_PROJECT/ds007067
+```
+
+### Clone repository
+
+```bash
+clone https://github.com/CarolineLndl/spine_7t_fmri_analysis.git .
+export PATH_CODE=$PATH_PROJECT/spine_7t_fmri_analysis/
+```
 
 ### Dependencies 🔗
 Your environment should include:
@@ -19,13 +39,6 @@ Your environment should include:
 - FSL
 - dcm2niix
 - MATLAB (for denoising step only)
-
-#### a. Set up your project paths
-```bash
-export PATH_PROJECT=/cerebro/cerebro1/dataset/spine_7t/
-export PATH_DATA=$PATH_PROJECT/spine_7t_fmri_data/
-export PATH_CODE=$PATH_PROJECT/spine_7t_fmri_analysis/
-```
 
 #### b. Set up the toolbox paths
 <details>
