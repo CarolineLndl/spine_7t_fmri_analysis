@@ -19,49 +19,8 @@ export PATH_PROJECT=<PATH_TO_PROJECT>
 
 TODO: Insert instructions to download data from OpenNeuro
 
-Define variable:
-```bash
-export PATH_DATA=$PATH_PROJECT/ds007067
-```
-
-### Clone repository
-
-```bash
-clone https://github.com/CarolineLndl/spine_7t_fmri_analysis.git .
-export PATH_CODE=$PATH_PROJECT/spine_7t_fmri_analysis/
-```
-
-### Dependencies 🔗
-
-Your environment should include:
-- Python (tested with 3.10.14, but other versions could work)
-- [Spinal Cord Toolbox v7.1](https://spinalcordtoolbox.com/en/latest/user_section/installation.html)
-- [FSL](https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FslInstallation)
-- [Conda](https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html)
-- [dcm2niix](https://github.com/rordenlab/dcm2niix)
-
-#### Setup the conda environment
-
-Create the appropriate conda environment:
-
-```bash
-conda create --name spine_7T_env_py10 python=3.10
-conda activate spine_7T_env_py10
-pip install -r $PATH_CODE/config/requirements.txt
-```
-
-Load conda environment:
-
-```bash
-anaconda_dir=$(conda info --base)
-source ${anaconda_dir}/etc/profile.d/conda.sh
-source activate spine_7T_env_py10
-```
-
-### 1.2 Data organization 📑
-Files are organized according to the BIDS standard:
 <details>
-<summary>Click to expand folder tree</summary>
+<summary>Files are organized according to the BIDS standard.</summary>
 
 ```
 ├── spine_7t_fmri_analysis  # GitHub repository
@@ -146,6 +105,47 @@ Files are organized according to the BIDS standard:
 ```
 
 </details>
+
+Define variable:
+```bash
+export PATH_DATA=$PATH_PROJECT/ds007067
+```
+
+### Clone repository
+
+```bash
+clone https://github.com/CarolineLndl/spine_7t_fmri_analysis.git .
+export PATH_CODE=$PATH_PROJECT/spine_7t_fmri_analysis/
+```
+
+### Dependencies 🔗
+
+Your environment should include:
+- Python (tested with 3.10.14, but other versions could work)
+- [Spinal Cord Toolbox v7.1](https://spinalcordtoolbox.com/en/latest/user_section/installation.html)
+- [FSL](https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FslInstallation)
+- [Conda](https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html)
+- [dcm2niix](https://github.com/rordenlab/dcm2niix)
+
+#### Setup the conda environment
+
+Create the appropriate conda environment:
+
+```bash
+conda create --name spine_7T_env_py10 python=3.10
+conda activate spine_7T_env_py10
+pip install -r $PATH_CODE/config/requirements.txt
+```
+
+Load conda environment:
+
+```bash
+anaconda_dir=$(conda info --base)
+source ${anaconda_dir}/etc/profile.d/conda.sh
+source activate spine_7T_env_py10
+```
+
+### Data organization 📑
 
 ### 1.3 Get data into BIDS format 🗂️
 #### Convert mri data
