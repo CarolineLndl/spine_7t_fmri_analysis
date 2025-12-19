@@ -34,7 +34,6 @@ sys.path.append(path_code + "/code/") # Change this line according to your direc
 from preprocess import Preprocess_main, Preprocess_Sc
 import utils
 
-
 with open(path_code + '/config/config_spine_7t_fmri.json') as config_file:
     config = json.load(config_file) # load config file should be open first and the path inside modified
 
@@ -45,6 +44,7 @@ parser.add_argument("--verbose", default="False")
 parser.add_argument("--manual_centerline", default="False")
 parser.add_argument("--auto_vert_labels", default="True")
 parser.add_argument("--redo", default="True")
+parser.add_argument("--path-data", required=True)
 args = parser.parse_args()
 
 IDs = args.ids
@@ -53,7 +53,11 @@ verbose = args.verbose.lower() == "true"
 manual_centerline = args.manual_centerline.lower() == "true"
 auto_vert_labels = args.auto_vert_labels.lower() == "true"
 redo = args.redo.lower() == "true"
+path_data = args.path_data
 
+config["raw_dir"]=path_data
+
+# Load participants info
 participants_tsv = pd.read_csv(path_code + '/config/participants.tsv', sep='\t',dtype={'participant_id': str})
 
 new_IDs=[]
