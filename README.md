@@ -34,19 +34,15 @@ export PATH_CODE=$PATH_PROJECT/spine_7t_fmri_analysis/
 ### Dependencies 🔗
 Your environment should include:
 - Python (tested with 3.10.14, but other versions could work)
-- Spinal Cord Toolbox v7.1
+- [Spinal Cord Toolbox v7.1](https://spinalcordtoolbox.com/en/latest/user_section/installation.html)
+- [FSL](https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FslInstallation)
 - Conda environment: `spine_7t_fmri_analysis/config/requirements.txt`
-- FSL
 - dcm2niix
 - MATLAB (for denoising step only)
 
 #### b. Set up the toolbox paths
 <details>
 <summary>👉 How to install dependencies</summary>
-
-**Toolboxes for preprocessing**
-- Spinal Cord Toolbox 7.1: [Installation instructions](https://spinalcordtoolbox.com/en/latest/user_section/installation.html)
-- FSL: see here [Installation instructions](https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FslInstallation)
 
 **Toolboxes for denoising:**
 - Verify wich version of MATLAB is compatible with your Python version (*vis versa*): see here [Compatibility table](https://www.mathworks.com/support/requirements/python-compatibility.html)
