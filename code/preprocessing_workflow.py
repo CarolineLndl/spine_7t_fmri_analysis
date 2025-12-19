@@ -29,9 +29,10 @@ import pandas as pd
 from IPython.display import Image, display
 
 
-# Get the environment variable PATH_CODE
-path_code = os.environ.get("PATH_CODE")
-path_data = os.environ.get("PATH_DATA")
+# get path of the parent location of this file, and go up one level
+path_code = os.path.dirname(os.path.abspath(__file__)).rsplit('/', 1)[0]
+
+print("Code path:", path_code)
 
 with open(path_code + '/config/config_spine_7t_fmri.json') as config_file: # the notebook should be in 'xx/notebook/' folder #config_proprio
     config = json.load(config_file) # load config file should be open first and the path inside modified
@@ -43,6 +44,7 @@ parser.add_argument("--verbose", default="False")
 parser.add_argument("--manual_centerline", default="False")
 parser.add_argument("--auto_vert_labels", default="True")
 parser.add_argument("--redo", default="True")
+parser.add_argument("--path-data")
 args = parser.parse_args()
 
 IDs = args.ids
