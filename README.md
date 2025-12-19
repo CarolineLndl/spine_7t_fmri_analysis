@@ -137,14 +137,6 @@ conda activate spine_7T_env_py10
 pip install -r $PATH_CODE/config/requirements.txt
 ```
 
-Load conda environment:
-
-```bash
-anaconda_dir=$(conda info --base)
-source ${anaconda_dir}/etc/profile.d/conda.sh
-source activate spine_7T_env_py10
-```
-
 ### Data organization 📑
 
 ### 1.3 Get data into BIDS format 🗂️
