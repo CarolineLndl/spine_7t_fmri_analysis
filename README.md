@@ -212,10 +212,11 @@ Files for preprocessing are in this repository.
 ▸ By default all the steps are rerun even if some outputs already exist. If manual corrections were made, these files will be used as input for subsequent steps.  
 ▸ if you already setup the PATH_CODE and PATH_DATA you don't need to specify --path_data --path_code  
 ▸ Specify individuals to process (--ids XXX), the default option run preprocessing on all participants in the `participants.tsv` 
+▸ Specify task to process (--tasks motor or rest), the default option run preprocessing on all tasks defined in the config_file_7t_fmri.json
 ▸ You can remove --no_denoising to run denoising after preprocessing (see section 2.2) 
 
 ```bash
-bash ${PATH_CODE}/code/run_all_processing.sh --path_data ${PATH_DATA} --path_code ${PATH_CODE} --ids 090 101 106 --no_denoising
+bash ${PATH_CODE}/code/run_all_processing.sh --path_data ${PATH_DATA} --path_code ${PATH_CODE} --ids 090 101 106 --tasks motor --no_denoising
 
 ```
 
@@ -281,11 +282,12 @@ Should be run after preprocessing.
 ▸ runs preprocessing steps automatically with output log from STDOUT   
 ▸ By default all the steps are rerun even if some outputs already exist. 
 ▸ if you already setup the PATH_CODE and PATH_DATA you don't need to specify --path_data --path_code  
-▸ Specify individuals to process (--ids XXX), the default option run preprocessing on all participants in the `participants.tsv` 
+▸ Specify individuals to denoise (--ids XXX), the default option run denoising on all participants in the `participants.tsv`
+▸ Specify task to denoise (--tasks motor or rest), the default option run denoising on all tasks defined in the config_file_7t_fmri.json
 ▸ You can remove --no-preprocess to run preprocessing before denoising (see section 2.1) 
 
 ```bash
-bash ${PATH_CODE}/code/run_all_processing.sh --path_data ${PATH_DATA} --path_code ${PATH_CODE} --ids 090 101 106 --no-preprocess
+bash ${PATH_CODE}/code/run_all_processing.sh --path_data ${PATH_DATA} --path_code ${PATH_CODE} --ids 090 101 106 --tasks motor --no-preprocess
 
 ```
 

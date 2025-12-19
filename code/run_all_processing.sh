@@ -6,7 +6,7 @@
 PATH_DATA="$PATH_DATA" #Defaults from environment
 PATH_CODE="$PATH_CODE" #Defaults from environment
 IDs=() # empty  → process all participants 
-
+TASKS=() # empty → process all tasks
 RUN_PREPROSS=true
 RUN_DENOISING=true
 
@@ -16,6 +16,7 @@ while [[ $# -gt 0 ]]; do
         --path_data) PATH_DATA="$2"; shift 2 ;;
         --path_code) PATH_CODE="$2"; shift 2 ;;
         --ids) shift; while [[ $# -gt 0 && "$1" != --* ]]; do IDs+=("$1"); shift; done ;;
+        --tasks) shift; while [[ $# -gt 0 && "$1" != --* ]]; do TASKS+=("$1"); shift; done ;;
         --no-preprocess) RUN_PREPROSS=false; shift;;
         --no-denoising) RUN_DENOISING=false; shift;;
         *) echo "Unknown argument $1"; exit 1 ;;
@@ -26,6 +27,17 @@ done
 [ ${#IDs[@]} -eq 0 ] && echo "No specific IDs provided: processing all participants" \
                      || echo "Processing participants: ${IDs[@]}"
 [ ${#IDs[@]} -eq 0 ] && IDs=("") # If no IDs were provided, set to empty string 
+
+
+
+if [ ${#TASKS[@]} -eq 0 ]; then
+    echo "No task specified: processing all tasks"
+    TASKS_ARG=()        # do not pass --task
+else
+    echo "Processing tasks: ${TASKS[@]}"
+    TASKS_ARG=(--tasks "${TASKS[@]}")
+fi
+
 
 # --------------------------
 # Prepare log folder
@@ -42,7 +54,7 @@ timestamp=$(date +"%Y%m%d_%H%M%S")
 
 if [ "$RUN_PREPROSS" = true ]; then
     echo "Starting preprocessing..."
-    nohup python -u ../code/preprocessing_workflow.py --ids "${IDs[@]}" --redo True \
+    nohup python -u ../code/preprocessing_workflow.py --ids "${IDs[@]}" --tasks "${TASKS[@]}" --redo True \
     > "nohup_preprocessing_${timestamp}.out" 2>&1 &
 
     echo "Preprocessing launched in background."
@@ -55,7 +67,7 @@ fi
 
 if [ "$RUN_DENOISING" = true ]; then
     echo "Starting denoising..."
-    nohup python -u ../code/denoising_workflow.py --ids "${IDs[@]}" --redo True \
+    nohup python -u ../code/denoising_workflow.py --ids "${IDs[@]}" --tasks "${TASKS[@]}" --redo True \
     > "nohup_denoising_${timestamp}.out" 2>&1 &
 
     echo "Denoising launched in background."

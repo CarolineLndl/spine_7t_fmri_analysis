@@ -33,8 +33,12 @@ from IPython.display import Image, display
 path_code = os.environ.get("PATH_CODE")
 path_data = os.environ.get("PATH_DATA")
 
+with open(path_code + '/config/config_spine_7t_fmri.json') as config_file: # the notebook should be in 'xx/notebook/' folder #config_proprio
+    config = json.load(config_file) # load config file should be open first and the path inside modified
+
 parser = argparse.ArgumentParser()
 parser.add_argument("--ids", nargs='+', default=[""])
+parser.add_argument("--tasks", nargs='+', default=[""])
 parser.add_argument("--verbose", default="False")
 parser.add_argument("--manual_centerline", default="False")
 parser.add_argument("--auto_vert_labels", default="True")
@@ -42,6 +46,7 @@ parser.add_argument("--redo", default="True")
 args = parser.parse_args()
 
 IDs = args.ids
+tasks = args.tasks
 verbose = args.verbose.lower() == "true"
 manual_centerline = args.manual_centerline.lower() == "true"
 auto_vert_labels = args.auto_vert_labels.lower() == "true"
@@ -56,8 +61,10 @@ if IDs==[""]:
         
     IDs=new_IDs   
 print(IDs)
-with open(path_code + '/config/config_spine_7t_fmri.json') as config_file: # the notebook should be in 'xx/notebook/' folder #config_proprio
-    config = json.load(config_file) # load config file should be open first and the path inside modified
+
+if tasks!=[""]:
+    config["design_exp"]["task_names"]=tasks
+
 
 #Import scripts
 sys.path.append(path_code + "/code/") # Change this line according to your directory
