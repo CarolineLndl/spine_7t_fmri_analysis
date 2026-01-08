@@ -47,11 +47,10 @@ class Preprocess_main:
         # Class attributes -------------------------------------------------------------------------------------
         self.config = config # load config info
         self.participant_IDs= IDs # list of the participants to analyze
-        self.root_dir=os.path.expandvars(self.config["root_dir"]) # main drectory of the project
-        self.raw_dir=os.path.expandvars(self.config["raw_dir"]) # directory of the raw data
-        self.derivatives_dir=os.path.expandvars(self.config["derivatives_dir"]) # directory of the derivatives data
-        self.manual_dir=os.path.expandvars(self.config["manual_dir"]) # directory of the manual corrections
-        self.qc_dir=os.path.expandvars(self.config["preprocess_dir"]["QC_dir"]) # directory of the QC outputs
+        self.raw_dir = os.path.join(self.config["raw_dir"])  # directory of the raw data
+        self.derivatives_dir = os.path.join(self.config["raw_dir"], self.config["derivatives_dir"])  # directory of the derivatives data
+        self.manual_dir = os.path.join(self.config["raw_dir"], self.config["manual_dir"])  # directory of the manual corrections
+        self.qc_dir = os.path.join(self.config["raw_dir"], self.config["preprocess_dir"]["QC_dir"])  # directory of the QC outputs
        
         # Create directories -------------------------------------------------------------------------------------
         os.makedirs(self.qc_dir, exist_ok=True)
@@ -59,7 +58,7 @@ class Preprocess_main:
         # Create participant directories (if not already existed)
         for ID in self.participant_IDs:
             if "preprocess_dir" in self.config.keys():
-                ID_preproc_dir=os.path.expandvars(self.config["preprocess_dir"]["main_dir"].format(ID)) # directory of the preprocess data
+                ID_preproc_dir = os.path.join(self.config["raw_dir"], os.path.expandvars(self.config["preprocess_dir"]["main_dir"].format(ID))) # directory of the preprocess data
                
                 if not os.path.exists(ID_preproc_dir):
                     os.makedirs(ID_preproc_dir)
@@ -134,16 +133,17 @@ class Preprocess_Sc:
 
         if IDs==None:
             raise ValueError("Please provide the participant ID (e.g., _.stc(ID='A001')).")
-        
+
+        # Class attributes -------------------------------------------------------------------------------------
         self.config = config # load config info
         self.participant_IDs= IDs # list of the participants to analyze
-        self.root_dir=os.path.expandvars(config["root_dir"]) # main drectory of the project
-        self.raw_dir=os.path.expandvars(self.config["raw_dir"]) # directory of the raw data
-        self.derivatives_dir=os.path.expandvars(self.config["derivatives_dir"]) # directory of the derivatives data
-        self.manual_dir=os.path.expandvars(self.config["manual_dir"]) # directory of the manual corrections
-        self.qc_dir=os.path.expandvars(self.config["preprocess_dir"]["QC_dir"]) # directory of the QC outputs
-        self.code_dir=os.path.expandvars(config["code_dir"])
-        self.preprocessing_dir=os.path.expandvars(self.config["preprocess_dir"]["main_dir"])
+        self.raw_dir = os.path.join(self.config["raw_dir"])  # directory of the raw data
+        self.derivatives_dir = os.path.join(self.config["raw_dir"], self.config["derivatives_dir"])  # directory of the derivatives data
+        self.manual_dir = os.path.join(self.config["raw_dir"], self.config["manual_dir"])  # directory of the manual corrections
+        self.qc_dir = os.path.join(self.config["raw_dir"], self.config["preprocess_dir"]["QC_dir"])  # directory of the QC outputs
+        self.preprocessing_dir = os.path.join(self.config["raw_dir"], os.path.expandvars(self.config["preprocess_dir"]["main_dir"]))  # directory of the preprocess data
+        self.code_dir = os.path.join(self.config["code_dir"])  # directory of the code
+
         # Check the structure type ----------------------------------------------------------------
         if len(self.config["structures"])>1:
             self.structure="spinalcord/" # structure subfolder if two structures are specified
