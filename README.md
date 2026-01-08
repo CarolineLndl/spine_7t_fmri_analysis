@@ -5,83 +5,22 @@ Processing of spinal cord functional data acquired at 7T.
 
 ---
 
-## 1. Getting Started
+## Getting Started
 
-### 1.1 Dependencies 🔗
-Your environment should include:
-- Python (3.10.14 was used)
-- Spinal Cord Toolbox 7.1
-- Conda environment: `spine_7t_fmri_analysis/config/requirements.txt`
-- FSL
-- dcm2niix
-- MATLAB (for denoising step only)
+### Set up your project paths
 
-#### a. Set up your project paths
+Create a folder that will contain the code of this repository as well as the source and processed data, then define the variable in SHELL:
+
 ```bash
-export PATH_PROJECT=/cerebro/cerebro1/dataset/spine_7t/
-export PATH_DATA=$PATH_PROJECT/spine_7t_fmri_data/
-export PATH_CODE=$PATH_PROJECT/spine_7t_fmri_analysis/
+export PATH_PROJECT=<PATH_TO_PROJECT>
 ```
 
-#### b. Set up the toolbox paths
+### Download data 📀
+
+TODO: Insert instructions to download data from OpenNeuro
+
 <details>
-<summary>👉 How to install dependencies</summary>
-
-**Toolboxes for preprocessing**
-- Spinal Cord Toolbox 7.1: [Installation instructions](https://spinalcordtoolbox.com/en/latest/user_section/installation.html)
-- FSL: see here [Installation instructions](https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FslInstallation)
-
-**Toolboxes for denoising:**
-- Verify wich version of MATLAB is compatible with your Python version (*vis versa*): see here [Compatibility table](https://www.mathworks.com/support/requirements/python-compatibility.html)
-- Install MATLAB: see here [Installation instructions](https://www.mathworks.com/help/install/)
-- Install MATLAB engine for Python: see here [Installation instructions](https://www.mathworks.com/help/matlab/matlab_external/install-the-matlab-engine-for-python.html)
-
-```bash
-# Example for MATLAB R2023b
-LD_LIBRARY_PATH="/export01/local/matlab23b/sys/os/glnxa64:$toolbox_home/libraries"
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:"/export01/local/matlab23b/bin/" # The LD_LIBRARY_PATH environment variable tells the system where to find shared libraries
-cd /export/local/matlab23b/extern/engines #Navigate to MATLAB Folder, engines subfolder
-python -m pip install matlabengine==23.2.10 #Install MATLAB engine for Python
-```
-</details>
-
-```bash
-SCT_DIR=$PATH_CODE/toolboxes/spinalcordtoolbox
-FSLDIR=/cerebro/cerebro1/dataset/bmpd/derivatives/thibault_test/code/toolbox/fsl
-export PATH="$SCT_DIR/bin:$PATH"   # spinalcordtoolbox
-export PATH=${FSLDIR}/bin:${PATH} # FSL
-export FSLDIR PATH
-. $FSLDIR/etc/fslconf/fsl.sh
-
-```
-
-#### c. Setup the conda environment
-<details>
-<summary>👉 How to create the conda environment </summary>
-
-Make sure conda is installed: see here [Installation instructions](https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html)
-Create the appropriate conda environment:
-*If you just what to run the preprocessing you can remove matlabengine from the requirements.txt file.*
-
-```bash
-conda create --name spine_7T_env_py10 python=3.10
-conda activate spine_7T_env_py10
-pip install -r config/requirements.txt
-```
-</details>
-
-Load conda environment:
-
-```bash
-anaconda_dir=$(conda info --base)
-source ${anaconda_dir}/etc/profile.d/conda.sh
-source activate spine_7T_env_py10
-```
-
-### 1.2 Data organization 📑
-Files are organized according to the BIDS standard:
-<details>
-<summary>Click to expand folder tree</summary>
+<summary>Files are organized according to the BIDS standard.</summary>
 
 ```
 ├── spine_7t_fmri_analysis  # GitHub repository
@@ -167,6 +106,39 @@ Files are organized according to the BIDS standard:
 
 </details>
 
+Define variable:
+```bash
+export PATH_DATA=$PATH_PROJECT/ds007067
+```
+
+### Clone repository
+
+```bash
+git clone https://github.com/CarolineLndl/spine_7t_fmri_analysis.git
+export PATH_CODE=$PATH_PROJECT/spine_7t_fmri_analysis/
+```
+
+### Dependencies 🔗
+
+Your environment should include:
+- Python (tested with 3.10.14, but other versions could work)
+- [Spinal Cord Toolbox v7.1](https://spinalcordtoolbox.com/en/latest/user_section/installation.html)
+- [FSL](https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FslInstallation)
+- [Conda](https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html)
+- [dcm2niix](https://github.com/rordenlab/dcm2niix)
+
+#### Setup the conda environment
+
+Create the appropriate conda environment:
+
+```bash
+conda create --name spine_7T_env_py10 python=3.10
+conda activate spine_7T_env_py10
+pip install -r $PATH_CODE/config/requirements.txt
+```
+
+### Data organization 📑
+
 ### 1.3 Get data into BIDS format 🗂️
 #### Convert mri data
 Use `dcm2bids` to convert raw mri data:
@@ -193,36 +165,41 @@ bash 02_convert_physioData.sh
 
 ---
 
-## 2. Analysis Pipelines 📊
-Files for preprocessing are in this repository.
+## Analysis Pipeline ⚙️
 
-- **code/**: Functions and code to run the analyses. Do not modify the file.
+<details><summary>Here is a brief description of the files used for data analysis.</summary>
+
+- **`code/`**: Functions and code to run the analyses. Do not modify the file.
   - `preprocessing.py` > library of preprocessing functions
   - `preprocessing_workflow.py` > orchestrates preprocessing steps using the functions
   - `run_all_processing.sh` > shell script to launch any combination of workflows (so far only one workflow)
-  - **convert_data/**: Scripts to convert raw mri and physio data into BIDS format.
-- **config/**: Configuration files for paths and parameters.
+  - **`convert_data/`**: Scripts to convert raw mri and physio data into BIDS format.
+- **`config/`**: Configuration files for paths and parameters.
   - `config_spine_7t_fmri.json` is used by `preprocessing_workflow.py`
   - `participants.tsv` contains demographical information and important info for preprocessing (*e.g.,* slice number for vertebrae labeling initiation)
-- **template images**: Used for analyses; do not modify.
-- **log**: Log files generated during processing run from bash script (the folder is not tracked by git).
+- **`template`**: Used for analyses; do not modify.
+- **`log`**: Log files generated during processing run from bash script (the folder is not tracked by git).
 
-### 2.1 Preprocessing 🤯
-▸ runs preprocessing steps automatically with output log from STDOUT   
-▸ By default all the steps are rerun even if some outputs already exist. If manual corrections were made, these files will be used as input for subsequent steps.  
-▸ if you already setup the PATH_CODE and PATH_DATA you don't need to specify --path_data --path_code  
-▸ Specify individuals to process (--ids XXX), the default option run preprocessing on all participants in the `participants.tsv` 
-▸ Specify task to process (--tasks motor or rest), the default option run preprocessing on all tasks defined in the config_file_7t_fmri.json
-▸ You can remove --no_denoising to run denoising after preprocessing (see section 2.2) 
+</details>
+
+Run the pipeline:
 
 ```bash
-bash ${PATH_CODE}/code/run_all_processing.sh --path_data ${PATH_DATA} --path_code ${PATH_CODE} --ids 090 101 106 --tasks motor --no_denoising
-
+bash ${PATH_CODE}/code/run_all_processing.sh --path_data ${PATH_DATA} --path_code ${PATH_CODE} --ids 090 101 106 --tasks motor --no-denoising
 ```
 
-⚠️ *Each step manually modified will imply that all subsequent steps need to be re-run. </span>* <br><br>
-  
-##### Visual check and manual corrections ✏️ 
+- runs preprocessing steps automatically with output log from STDOUT   
+- By default all the steps are rerun even if some outputs already exist. If manual corrections were made, these files will be used as input for subsequent steps.  
+- if you already setup the PATH_CODE and PATH_DATA you don't need to specify --path_data --path_code  
+- Specify individuals to process (--ids XXX), the default option run preprocessing on all participants in the `participants.tsv` 
+- Specify task to process (--tasks motor or rest), the default option run preprocessing on all tasks defined in the config_file_7t_fmri.json
+- You can remove --no_denoising to run denoising after preprocessing (see section 2.2) 
+
+> [!WARNING]  
+> Each step manually modified will imply that all subsequent steps need to be re-run.
+
+### Visual check and manual corrections ✏️ 
+
 <details>
 <summary>For more details, click to expand </summary>
 
