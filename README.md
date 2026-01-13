@@ -17,7 +17,7 @@ export PATH_PROJECT=<PATH_TO_PROJECT>
 
 ### Download data 📀
 
-TODO: Insert instructions to download data from OpenNeuro
+See: https://openneuro.org/datasets/ds007067/download
 
 <details>
 <summary>Files are organized according to the BIDS standard.</summary>
