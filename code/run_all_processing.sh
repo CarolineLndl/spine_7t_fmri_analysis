@@ -67,7 +67,7 @@ fi
 
 if [ "${RUN_DENOISING}" = true ]; then
     echo "Starting denoising..."
-    nohup python -u ../code/denoising_workflow.py --ids "${IDs[@]}" "${TASKS_ARG[@]}" --redo True \
+    nohup python -u ../code/denoising_workflow.py --path-data "${PATH_DATA}" --ids "${IDs[@]}" "${TASKS_ARG[@]}" --redo True \
     > "nohup_denoising_${timestamp}.out" 2>&1 &
 
     echo "Denoising launched in background."

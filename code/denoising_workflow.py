@@ -3,29 +3,29 @@
 
 # # <font color=#B2D732> <span style="background-color: #4424D6">  Spinal cord fMRI denoising </font>
 
-# @ author of the script:  <font color=#B2D732> Caroline Landelle </font>, caroline.landelle@mcgill.ca // landelle.caroline@gmail.com   
-# 
-# **Description:** This notebook provides code for BOLD signal fMRI denoising, template registration and smoothing  
-# The pipeline was adapted from Landelle et al. 2025 (preprint): https://github.com/CarolineLndl/Landelle_spinebrain_aging
-# 
-# *For each individual, we accounted for the physiological and other noise sources by modeling nuisance noises present in CSF and by collecting physiological data using the Tapas PhysiO toolbox (Kasper et al., 2017). First, we used the RETROspective Image CORrection (RETROICOR) procedure (Glover et al., 2000) [..] Second, [...] we used the CompCor (Behzadi et al., 2007) approach [...]. Finally, we applied a bandpass filter 0.01-0.17 Hz to emphasize low-frequency signals of interest.*
-# 
-# > <font color=#B2D732> **I.** </font> **Extract slice wise motion parameters**  
-# > <font color=#B2D732> **II.** </font> **Compute outliers calculation**  
-# > <font color=#B2D732> **IV.** </font> **Compcor calculation**  
-# > <font color=#B2D732> **V.** </font> **Signal cleaning**  
-# 
-# **Toolbox required:**  nilearn (Python), FSL (bash)  
+# @ author of the script:  <font color=#B2D732> Caroline Landelle </font>, caroline.landelle@mcgill.ca // landelle.caroline@gmail.com
 #
-# **Inputs**:  
+# **Description:** This notebook provides code for BOLD signal fMRI denoising, template registration and smoothing
+# The pipeline was adapted from Landelle et al. 2025 (preprint): https://github.com/CarolineLndl/Landelle_spinebrain_aging
+#
+# *For each individual, we accounted for the physiological and other noise sources by modeling nuisance noises present in CSF and by collecting physiological data using the Tapas PhysiO toolbox (Kasper et al., 2017). First, we used the RETROspective Image CORrection (RETROICOR) procedure (Glover et al., 2000) [..] Second, [...] we used the CompCor (Behzadi et al., 2007) approach [...]. Finally, we applied a bandpass filter 0.01-0.17 Hz to emphasize low-frequency signals of interest.*
+#
+# > <font color=#B2D732> **I.** </font> **Extract slice wise motion parameters**
+# > <font color=#B2D732> **II.** </font> **Compute outliers calculation**
+# > <font color=#B2D732> **IV.** </font> **Compcor calculation**
+# > <font color=#B2D732> **V.** </font> **Signal cleaning**
+#
+# **Toolbox required:**  nilearn (Python), FSL (bash)
+#
+# **Inputs**:
 # This notebook required the following data:
 # - preprossed anatomical, fmri images and physiological recordings
-# 
-# 
+#
+#
 # **Ouputs**:
 # See the output description at each step of the Notebook.
 
-# ## <font color=#B2D732> <span style="background-color: #4424D6"> Initialization </font>  
+# ## <font color=#B2D732> <span style="background-color: #4424D6"> Initialization </font>
 # Before running the script you should create a config.json file with the right pathways
 
 
@@ -39,8 +39,7 @@ import pandas as pd
 
 
 # Get the environment variable PATH_CODE
-path_code = os.environ.get("PATH_CODE")
-path_data = os.environ.get("PATH_DATA")
+path_code = os.path.dirname(os.path.abspath(__file__)).rsplit('/', 1)[0]
 
 with open(path_code + '/config/config_spine_7t_fmri.json') as config_file: # the notebook should be in 'xx/notebook/' folder #config_proprio
     config = json.load(config_file) # load config file should be open first and the path inside modified
@@ -52,6 +51,7 @@ parser.add_argument("--verbose", default="False")
 parser.add_argument("--manual_centerline", default="False")
 parser.add_argument("--auto_vert_labels", default="True")
 parser.add_argument("--redo", default="True")
+parser.add_argument("--path-data", required=True)
 args = parser.parse_args()
 
 IDs = args.ids
@@ -60,7 +60,10 @@ verbose = args.verbose.lower() == "true"
 manual_centerline = args.manual_centerline.lower() == "true"
 auto_vert_labels = args.auto_vert_labels.lower() == "true"
 redo = args.redo.lower() == "true"
+path_data = os.path.abspath(args.path_data)
 
+config["raw_dir"]=path_data
+config["code_dir"]=path_code
 
 participants_tsv = pd.read_csv(path_code + '/config/participants.tsv', sep='\t',dtype={'participant_id': str})
 
@@ -68,8 +71,8 @@ new_IDs=[]
 if IDs==[""]:
     for ID in participants_tsv["participant_id"]:
         new_IDs.append(ID)
-       
-    IDs=new_IDs   
+
+    IDs=new_IDs
 
 if tasks!=[""]:
     config["design_exp"]["task_names"]=tasks
@@ -89,10 +92,10 @@ preprocess_Sc=Preprocess_Sc(config, IDs=IDs)
 preprocess_main=Preprocess_main(config, IDs=IDs)
 
 # initialize directories
-preprocessing_dir=os.path.expandvars(config["preprocess_dir"]["main_dir"])
-derivatives_dir=os.path.expandvars(config["derivatives_dir"])
-manual_dir=os.path.expandvars(config["manual_dir"])
-denoising_dir=os.path.expandvars(config["denoising"]["dir"])
+preprocessing_dir = os.path.join(config["raw_dir"], config["preprocess_dir"]["main_dir"])
+derivatives_dir = os.path.join(config["raw_dir"], config["derivatives_dir"])
+manual_dir = os.path.join(config["raw_dir"], config["manual_dir"])
+denoising_dir = os.path.join(config["raw_dir"], config["denoising"]["dir"])
 
 #------------------------------------------------------------------
 #------ Denoising
@@ -111,8 +114,8 @@ for ID_nb,ID in enumerate(IDs):
         for task_name in config["design_exp"]["task_names"]:
             for acq_name in config["design_exp"]["acq_names"]:
                 tag="task-" + task_name + "_acq-" + acq_name
-                raw_func=glob.glob(os.path.expandvars(config["raw_dir"]) + f'/sub-{ID}/func/sub-{ID}_{tag}_*bold.nii.gz') 
-                     
+                raw_func=glob.glob(os.path.join(config["raw_dir"], f'sub-{ID}', 'func', f'sub-{ID}_{tag}_*bold.nii.gz'))
+
                 for func_file in raw_func:
                     # Check run number if multiple run exists
                     match = re.search(r"_?(run-\d+)", func_file)
@@ -121,14 +124,15 @@ for ID_nb,ID in enumerate(IDs):
                         print(run_name)
                     else:
                         run_name=""
-                    moco_file=glob.glob(preprocessing_dir.format(ID) + config["preprocess_dir"]["func_moco"].format(tag) + config["preprocess_f"]["func_moco"].format(ID,tag,run_name))[0]
-                
 
-                    
+                    moco_file=glob.glob(os.path.join(preprocessing_dir.format(ID), config["preprocess_dir"]["func_moco"].format(tag), config["preprocess_f"]["func_moco"].format(ID,tag,run_name)))[0]
+
+
+
                     #------------------------------------------------------------------
                     #------ moco parameters
                     #------------------------------------------------------------------
-                    moco_param_f=glob.glob(preprocessing_dir.format(ID) + config["preprocess_dir"]["func_moco"].format(tag) + config["preprocess_f"]["moco_params"].format(tag,run_name))
+                    moco_param_f=glob.glob(os.path.join(preprocessing_dir.format(ID), config["preprocess_dir"]["func_moco"].format(tag), config["preprocess_f"]["moco_params"].format(tag,run_name)))
                     denoising.moco_params(ID=ID,input_file=moco_param_f, task_name=tag,run_name=run_name,redo=redo)
 
                     #------------------------------------------------------------------
@@ -164,7 +168,7 @@ for ID_nb,ID in enumerate(IDs):
                         DCT=False,
                         redo=redo
                     )
-                    
+
                     #------------------------------------------------------------------
                     #------ Combine all confounds together
                     #------------------------------------------------------------------
@@ -200,22 +204,17 @@ for ID_nb,ID in enumerate(IDs):
                     Clean_image_file=denoising.clean_images(
                         ID=ID,
                         func_file=moco_file,  # Find functional file,
-                        task_name=tag, 
+                        task_name=tag,
                         run_name=run_name,
                         confounds_file=confounds,
                         mask_file=cord_seg_file,
                         high_pass=0.01,
-                        low_pass= None, 
+                        low_pass= None,
                         tag_name= "HP_nostd", #std means the data were z-scored
                         standardize=False,#"zscore", # False if you don't want
                         n_jobs=4,
                         redo=redo)
 
-        
+
     print(f'=== Denoising done for : {ID} ===', flush=True)
     print("=========================================", flush=True)
-        
-
-        
-                                            
-         
