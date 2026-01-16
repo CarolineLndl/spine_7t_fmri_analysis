@@ -11,3 +11,5 @@ dcm2bids
 pydicom
 pybids
 dcm2niix
+seaborn
+nipype
