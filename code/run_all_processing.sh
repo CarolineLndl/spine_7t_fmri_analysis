@@ -5,7 +5,7 @@
 # Default values
 PATH_DATA="$PATH_DATA" #Defaults from environment
 PATH_CODE="$PATH_CODE" #Defaults from environment
-IDs=() # empty  → process all participants 
+IDs=() # empty  → process all participants
 TASKS=() # empty → process all tasks
 RUN_PREPROSS=true
 RUN_DENOISING=true
@@ -13,8 +13,8 @@ RUN_DENOISING=true
 # Parse arguments
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        --path_data) PATH_DATA="$2"; shift 2 ;;
-        --path_code) PATH_CODE="$2"; shift 2 ;;
+        --path-data) PATH_DATA="$2"; shift 2 ;;
+        --path-code) PATH_CODE="$2"; shift 2 ;;
         --ids) shift; while [[ $# -gt 0 && "$1" != --* ]]; do IDs+=("$1"); shift; done ;;
         --tasks) shift; while [[ $# -gt 0 && "$1" != --* ]]; do TASKS+=("$1"); shift; done ;;
         --no-preprocess) RUN_PREPROSS=false; shift;;
@@ -26,7 +26,7 @@ done
 # Show participants
 [ ${#IDs[@]} -eq 0 ] && echo "No specific IDs provided: processing all participants" \
                      || echo "Processing participants: ${IDs[@]}"
-[ ${#IDs[@]} -eq 0 ] && IDs=("") # If no IDs were provided, set to empty string 
+[ ${#IDs[@]} -eq 0 ] && IDs=("") # If no IDs were provided, set to empty string
 
 
 
@@ -42,7 +42,7 @@ fi
 # --------------------------
 # Prepare log folder
 # --------------------------
-cd "$PATH_CODE" || exit 1
+cd "${PATH_CODE}" || exit 1
 mkdir -p log
 cd log || exit 1
 
@@ -52,9 +52,9 @@ timestamp=$(date +"%Y%m%d_%H%M%S")
 # Run preprocessing
 # --------------------------
 
-if [ "$RUN_PREPROSS" = true ]; then
+if [ "${RUN_PREPROSS}" = true ]; then
     echo "Starting preprocessing..."
-    nohup python -u ../code/preprocessing_workflow.py --ids "${IDs[@]}" --tasks "${TASKS[@]}" --redo True \
+    nohup python -u ../code/preprocessing_workflow.py --path-data "${PATH_DATA}"  --ids "${IDs[@]}" "${TASKS_ARG[@]}" --redo True \
     > "nohup_preprocessing_${timestamp}.out" 2>&1 &
 
     echo "Preprocessing launched in background."
@@ -65,9 +65,9 @@ fi
 # Run denoising
 # --------------------------
 
-if [ "$RUN_DENOISING" = true ]; then
+if [ "${RUN_DENOISING}" = true ]; then
     echo "Starting denoising..."
-    nohup python -u ../code/denoising_workflow.py --ids "${IDs[@]}" --tasks "${TASKS[@]}" --redo True \
+    nohup python -u ../code/denoising_workflow.py --path-data "${PATH_DATA}" --ids "${IDs[@]}" "${TASKS_ARG[@]}" --redo True \
     > "nohup_denoising_${timestamp}.out" 2>&1 &
 
     echo "Denoising launched in background."

@@ -25,25 +25,25 @@ import utils
 class Preprocess_main:
     '''
     The Preprocess_main class is used to setup the preprocessing directories and files according to the config file
-    
+
     Attributes
     ----------
-    config : dict 
-        Defining all the parameters of the analysis including the path to the raw data, the participants to analyze, 
+    config : dict
+        Defining all the parameters of the analysis including the path to the raw data, the participants to analyze,
         the structure to preprocess (brain/spinal cord), the design of the experiment, and the preprocessing parameters
 
     verbose : bool
         Whether to print information during the each step (default: True)
     '''
-    
+
     def __init__(self, config, ana_contrast="T2star",IDs=None,verbose=True):
-        if verbose:    
-            print("All the raw data should be store in BIDS format")
+        if verbose:
+            print("All the raw data should be stored in BIDS format")
             print(" ")
         if IDs==None:
             raise ValueError("Please provide the participant ID (e.g., _.stc(ID='A001')).")
 
-        
+
         # Class attributes -------------------------------------------------------------------------------------
         self.config = config # load config info
         self.participant_IDs= IDs # list of the participants to analyze
@@ -51,7 +51,7 @@ class Preprocess_main:
         self.derivatives_dir = os.path.join(self.config["raw_dir"], self.config["derivatives_dir"])  # directory of the derivatives data
         self.manual_dir = os.path.join(self.config["raw_dir"], self.config["manual_dir"])  # directory of the manual corrections
         self.qc_dir = os.path.join(self.config["raw_dir"], self.config["preprocess_dir"]["QC_dir"])  # directory of the QC outputs
-       
+
         # Create directories -------------------------------------------------------------------------------------
         os.makedirs(self.qc_dir, exist_ok=True)
 
@@ -59,7 +59,7 @@ class Preprocess_main:
         for ID in self.participant_IDs:
             if "preprocess_dir" in self.config.keys():
                 ID_preproc_dir = os.path.join(self.config["raw_dir"], os.path.expandvars(self.config["preprocess_dir"]["main_dir"].format(ID))) # directory of the preprocess data
-               
+
                 if not os.path.exists(ID_preproc_dir):
                     os.makedirs(ID_preproc_dir)
                     # create 1 folder per session if there are multiple sessions (exemple multiple days of acquisition)
@@ -67,17 +67,17 @@ class Preprocess_main:
                         ses_dir="/" + ses_name if int(self.config["design_exp"]["ses_nb"])>0 else ""
                         if ses_dir != "":
                             os.makedirs(ID_preproc_dir +  ses_dir,exist_ok=True)
-                        
+
                         os.mkdir(ID_preproc_dir +  ses_dir + "/anat/") # create anat folder
                         os.mkdir(ID_preproc_dir + ses_dir + "/func/") # create func folder
-                        
+
                         # spinal cord or brain subfolders will be created if two structures are specified in the config file
                         if len(self.config["structures"])>1:
                             for structure in self.config["structures"]:
                                os.mkdir(ID_preproc_dir +  ses_dir + "/anat/" + structure)
-                            
+
                     print("New folders in preprocess dir have been created") if verbose==True else None
-                
+
             #create manual correction folder if not already existing (>>> improve: add session folders)
             if not os.path.exists(self.manual_dir + "/sub-" + ID):
                 ID_manual_dir=self.manual_dir + "/sub-" + ID
@@ -86,7 +86,7 @@ class Preprocess_main:
                     ses_dir="/" + ses_name if int(self.config["design_exp"]["ses_nb"])>0 else ""
                     if ses_dir != "":
                         os.makedirs(ID_manual_dir +  ses_dir,exist_ok=True) # create session folder
-                        
+
                     os.mkdir(ID_manual_dir +  ses_dir + "/anat/") # create anat folder
                     os.mkdir(ID_manual_dir + ses_dir + "/func/") # create anat folder
 
@@ -101,7 +101,7 @@ class Preprocess_main:
                             for acq_name in self.config["design_exp"]['acq_names']:
                                 tag="task-" + task_name + "_acq-" + acq_name
                                 os.makedirs(ID_preproc_dir +"/" +ses_dir +"/func/" + tag ,exist_ok=True)
-                    
+
                     else:
                         for task_name in self.config["design_exp"]['task_names']:
                             task_dir=task_name if int(self.config["design_exp"]["task_nb"])>1 else ""
@@ -111,23 +111,23 @@ class Preprocess_main:
             # copy raw anatomical file to preprocess folder anat directory ------------------------------------------------------------------
             print(self.raw_dir + "/sub-" + ID + "/anat/" + self.config["preprocess_f"]["anat_raw"].format(ID,"*"))
             raw_anat=glob.glob(self.raw_dir + "/sub-" + ID + "/anat/" + self.config["preprocess_f"]["anat_raw"].format(ID,"*"))[0]
-            
+
             if not os.path.exists(ID_preproc_dir + "/anat/" + os.path.basename(raw_anat)):
                 shutil.copy(raw_anat,ID_preproc_dir + "/anat/")
-         
-    
+
+
 class Preprocess_Sc:
     '''
     The Preprocess class is used to compute spinal cord preprocessing
     Motion correction, segmentation, vertebrae labeling, registration to template
     All functions are based on the spinal cord toolbox (SCT v7.2.dev0)
-    
-    
+
+
     Attributes
     ----------
     config : dict
         Defining all the parameters of the analysis including the path and the participants to analyze
-    
+
     '''
     def __init__(self, config, IDs=None):
 
@@ -149,16 +149,16 @@ class Preprocess_Sc:
             self.structure="spinalcord/" # structure subfolder if two structures are specified
         else:
             self.structure="" # no structure subfolder if only one structure is specified
-        
-        
+
+
     def moco_mask(self,ID=None,i_img=None,o_folder=None, radius_size=15,ses_name='',task_name='', tag='',manual=False,redo_ctrl=False,redo_mask=False,verbose=True):
-        
+
         """
         This function creates a mask around a spinal cord centerline.
 
         References:
         -----------
-        - https://spinalcordtoolbox.com/user_section/command-line.html#sct-get-centerline  
+        - https://spinalcordtoolbox.com/user_section/command-line.html#sct-get-centerline
         - https://spinalcordtoolbox.com/user_section/command-line.html#sct-create-mask
 
         Attributes:
@@ -201,7 +201,7 @@ class Preprocess_Sc:
 
         # --- Define directories -----------------------------------------------------------
         preprocess_dir = self.preprocessing_dir.format(ID)
-       
+
         # --- Define method and output folder ----------------------------------------------
         if manual==True:
             method="viewer"
@@ -210,11 +210,11 @@ class Preprocess_Sc:
             method="optic"
             if o_folder is None : # gave the default folder name if not provided
                 o_folder=preprocess_dir + "/" + ses_name + "/"+ self.config["preprocess_dir"]["func_mask"].format(task_name)
-        
+
         os.makedirs(o_folder + self.structure, exist_ok=True)
         centerline_f=o_folder + self.structure  + os.path.basename(i_img).split(".")[0] + "_centerline" # output centerline filename without extension
 
-        
+
         # --- Create mask output folder ----------------------------------------------------
         mask_o_folder=preprocess_dir + "/" + ses_name + "/"+ self.config["preprocess_dir"]["func_mask"].format(task_name)
         os.makedirs(mask_o_folder + self.structure, exist_ok=True)
@@ -226,14 +226,14 @@ class Preprocess_Sc:
                 print("Centerline for sub-" + ID)
             cmd_centerline=f"sct_get_centerline -i {i_img} -o {centerline_f} -c t1 -method {method} -centerline-algo bspline -qc {self.qc_dir}/ -v 0"
             os.system(cmd_centerline)
-        
+
         # --- Create mask around centerline ------------------------------------------------
         if not os.path.exists(mask_f) or redo_mask:
             if verbose:
                 print("Create a mask for sub-" + ID)
             cmd_mask=f"sct_create_mask -i {i_img} -p centerline,{centerline_f}.nii.gz -size {radius_size} -o {mask_f} -v 0"
             os.system(cmd_mask)
-        
+
         # --- Validate mask and image dimensions ------------------------------------------
         img_4d=nib.load(i_img) # load the 4D image
         mask_3d=nib.load(mask_f) # load the 3D mask
@@ -243,10 +243,10 @@ class Preprocess_Sc:
             f"Check with: fsleyes {mask_f} {i_img}\n"
             f"Possible cause: centerline does not start at the first slice."
             )
-    
+
         # --- QC handling -----------------------------------------------------------------
         manual_file=self.manual_dir + "/sub-" + ID+ "/"+ ses_name+"/func/" +  os.path.basename(i_img).split(".")[0] + "_centerline.nii.gz"
-        
+
         if os.path.exists(manual_file):
             folder_list=glob.glob(f"{self.qc_dir}/sub-{ID}/func/{ses_name}/{task_name}/sct_get_centerline/*") #check number of folder in QC dir
             centerline_f = manual_file.split(".nii.gz")[0]
@@ -259,7 +259,7 @@ class Preprocess_Sc:
                     print("Running QC for manual centerline...")
                 cmd_qc=f"sct_qc -i {i_img} -s {centerline_f}.nii.gz -p sct_get_centerline -qc {self.qc_dir} -v 0"
                 os.system(cmd_qc)
-       
+
         # --- Generate QC plot -------------------------------------------------------------
         if verbose:
             qc_indiv_path=f"{self.qc_dir}/sub-{ID}/func/{ses_name}/{task_name}/sct_get_centerline/"
@@ -271,14 +271,14 @@ class Preprocess_Sc:
                 print("manual=True, redo_ctrl=True, redo_mask=True")
                 print("⚠ Ensure the centerline starts at the first slice.")
 
-        return centerline_f+'.nii.gz', mask_f 
-           
-       
-            
+        return centerline_f+'.nii.gz', mask_f
+
+
+
     def moco(self,ID=None,i_img=None,mask_img=None,o_folder=None,params=None,ses_name='',task_name='',run_name="",redo=False,verbose=True):
-        
+
         """
-        This function performs motion correction on functional (fMRI) images using a mask around the spinal cord.  
+        This function performs motion correction on functional (fMRI) images using a mask around the spinal cord.
         It also plots motion parameters for visual inspection.
 
         Reference:
@@ -296,8 +296,8 @@ class Preprocess_Sc:
         o_folder : str
             Output folder (default: None; if not provided, the input folder will be used).
         params : str
-            Motion correction parameters (default: None).  
-            Default parameters are predefined in this function but can be modified if necessary.  
+            Motion correction parameters (default: None).
+            Default parameters are predefined in this function but can be modified if necessary.
             See the Spinal Cord Toolbox documentation for more details. These parameters should remain consistent across participants in the same study.
         ses_name : str
             Session name, if applicable (should include the 'ses-' prefix in BIDS format).
@@ -327,7 +327,7 @@ class Preprocess_Sc:
         - moco_params_x_task-*.nii.gz and moco_params_y_task-*.nii.gz — 3D NIfTI files containing motion correction parameters along the X and Y directions, respectively.
         """
 
-        
+
         # --- Validate inputs --------------------------------------------------------------
         if ID is None:
             raise ValueError("Please provide a participant ID (e.g., _.stc(ID='A001')).")
@@ -345,7 +345,7 @@ class Preprocess_Sc:
 
         os.makedirs(o_folder, exist_ok=True)
         os.makedirs(o_folder + self.structure, exist_ok=True)
-        
+
         run_tag = f"_{run_name}" if run_name else ""
         task_tag = f"_{task_name}" if task_name else ""
 
@@ -357,7 +357,7 @@ class Preprocess_Sc:
             params = 'poly=0,smooth=1,metric=MeanSquares,gradStep=1,sampling=0.2'
             if verbose:
                 print(f"Using default motion correction parameters: {params}")
-        
+
         # --- Run motion correction --------------------------------------------------------
         if not os.path.exists(moco_file) or redo:
             if verbose:
@@ -368,10 +368,10 @@ class Preprocess_Sc:
             # Rename output parameter files for clarity
             for dim in ["x","y"]:
                 os.rename(os.path.dirname(moco_file) + "/moco_params_"+dim+".nii.gz",os.path.dirname(moco_file) + "/moco_params_"+dim+  task_tag +run_tag+".nii.gz")
-            
+
             params_tsv=o_folder +'moco_params.tsv'.split('.')[0] + task_tag + run_tag + '.tsv'
             os.rename(o_folder + 'moco_params.tsv',params_tsv )
-  
+
         # --- Load and plot motion parameters ----------------------------------------------
         ## Load motion parameters
         params_tsv=o_folder +'moco_params.tsv'.split('.')[0] + task_tag + run_tag + '.tsv'
@@ -391,10 +391,10 @@ class Preprocess_Sc:
         axs.set_xlabel("Volumes")
         if verbose:
             plt.show()
-            
+
         if not os.path.exists(params_txt.split(".")[0] + ".pdf") or redo==True:
             plt.savefig(params_txt.split(".")[0] + ".pdf") # save the plot
-            plt.close() 
+            plt.close()
 
         # --- Generate QC plot -------------------------------------------------------------
         if verbose:
@@ -404,7 +404,7 @@ class Preprocess_Sc:
 
             if not os.path.exists(o_folder + self.structure+'FD_mean.txt') or redo==True:
                 np.savetxt(o_folder +self.structure+ 'FD_mean.txt', [meandiff]) # save the mean framewise displacement
-                
+
             qc_indiv_path = f"{self.qc_dir}/sub-{ID}/func/{ses_name}/{task_name}/sct_fmri_moco/sct_fmri_moco/"
             qc_indiv_dir=utils.get_latest_dir(base_dir=qc_indiv_path)
 
@@ -413,7 +413,7 @@ class Preprocess_Sc:
     def segmentation(self,ID=None,i_img=None,i_gm_img=None,o_folder=None,mask_qc=None,task_name='',ses_name='',tag='',tissue=None,img_type="anat",contrast_anat="t1",redo=False,redo_qc=False,verbose=True):
 
         """
-        This function segments the spinal cord.  
+        This function segments the spinal cord.
         Visual inspection and manual corrections are required.
 
         Reference:
@@ -475,11 +475,11 @@ class Preprocess_Sc:
             if img_type=="func":
                 key = f"{img_type}_csf_seg" if tissue == "csf" else f"{img_type}_seg"
                 o_folder = os.path.join(preprocess_dir, ses_name + self.config["preprocess_dir"][key].format(task_name, self.structure))
-        
+
             else:
                 o_folder = os.path.join(preprocess_dir, ses_name + self.config["preprocess_dir"][f"{img_type}_seg"])
 
-                
+
         os.makedirs(o_folder, exist_ok=True)
 
         # --- Define output filenames ---------------------------------------------------------------------
@@ -504,7 +504,7 @@ class Preprocess_Sc:
         else:
             o_manual = os.path.join(self.manual_dir, f"sub-{ID}/anat/", os.path.basename(o_img))
 
-        
+
         # --- Run segmentation ----------------------------------------------------------------------------
         if not os.path.exists(o_img) or redo:
             print(f">>>>> Segmentation is running for {img_type} image of sub-{ID}...") if verbose else None
@@ -517,7 +517,7 @@ class Preprocess_Sc:
                     os.system(cmd_propseg) # run propseg
                     csf_mask=glob.glob(os.path.dirname(o_img) + "/*_CSF_*")[0] # filename of the CSF segmentation
                     cmd=f"sct_qc -i {i_img} -s {csf_mask} -p sct_propseg -qc {self.qc_dir }/sub-{ID}/ -v 0" # QC report
-                         
+
             elif img_type!="func":
                 if tissue=="gm":
                     cmd=f"sct_deepseg graymatter -i {i_img} -c {contrast_anat} -thr 0.01 -o {o_img} -qc {self.qc_dir} -qc-subject sub-{ID} -v 0" # segmentation
@@ -529,7 +529,7 @@ class Preprocess_Sc:
                     cmd=f"sct_deepseg spinalcord -i {i_img} -c {contrast_anat} -thr 0.01 -o {o_img} -qc {self.qc_dir}/ -qc-subject sub-{ID} -v 0" # segmentation
 
             os.system(cmd) # run the process
-            
+
         # --- Use manual segmentation if available ---------------------------------------------------------
 
         if os.path.exists(o_manual):
@@ -572,13 +572,13 @@ class Preprocess_Sc:
 
             ## plot qc
             self._plot_qc(ID=ID, ses_name=ses_name, task_name=task_name, tag="segmentation", qc_indiv_path=qc_indiv_path, fig_size=(10,10),alpha=0.8)
-        
+
         return o_img
-    
-        
+
+
 
     def label_vertebrae(self,ID=None,i_img=None,seg_img=None,c="t2",initz=None,labels=range(1,15),auto=True,o_folder=None,ses_name='',task_name='',tag='',redo=False,verbose=True):
-        
+
         """
         Labels vertebrae on a spinal cord image, automatically or manually.
         Can use an existing segmentation to guide automatic labeling.
@@ -586,7 +586,7 @@ class Preprocess_Sc:
         References:
         ----------
         - https://spinalcordtoolbox.com/user_section/command-line.html#sct-label-utils
-        - https://spinalcordtoolbox.com/stable/user_section/command-line/sct_label_vertebrae.html#sct-label-vertebrae 
+        - https://spinalcordtoolbox.com/stable/user_section/command-line/sct_label_vertebrae.html#sct-label-vertebrae
 
         Attributes:
         -----------
@@ -631,7 +631,7 @@ class Preprocess_Sc:
         if auto and seg_img is None:
             raise Warning("Automatic labeling requires a segmentation file (seg_img)")
 
-        
+
 
         # --- Define output folder and filenames ----------------------------------------------------------
         preprocess_dir = self.preprocessing_dir.format(ID)
@@ -641,7 +641,7 @@ class Preprocess_Sc:
                 o_folder = os.path.join(preprocess_dir, "anat", "sct_label_vertebrae")
             else:
                 o_folder = os.path.join(self.manual_dir, f"sub-{ID}", "anat")
-        
+
         os.makedirs(o_folder, exist_ok=True)
 
         base_name = os.path.basename(i_img).split(".")[0]
@@ -665,9 +665,9 @@ class Preprocess_Sc:
                 nb=labels # array with label numbers
                 cmd="sct_label_utils -i " +i_img + " -o "+label_file+" -qc "+self.qc_dir+" -create-viewer " + ', '.join(map(str, nb)).replace(" ","") #1,2,3,4,5,6,7,8,9,10,11,12,13,14,15"
                 print(f">>>>> Place labels manually at the posterior tip of each inter-vertebral disc for sub-{ID}...") if verbose else None
-  
+
             os.system(cmd)
-                
+
 
 
         # --- QC visualization -------------------------------------------------------------------------------
@@ -675,19 +675,19 @@ class Preprocess_Sc:
             if auto:
                 qc_indiv_path=self.qc_dir + "/"+ self.qc_dir.split("/")[-3] +"/sub-" + ID + "/anat/sct_label_vertebrae/"
                 tag="automatic labeling"
-                    
+
             else:
                 qc_indiv_path=self.qc_dir + "/"+ self.qc_dir.split("/")[-3] +"/sub-" + ID + "/anat/sct_label_utils/"
                 tag="manual labeling"
-            
+
             self._plot_qc(ID=ID, ses_name=ses_name, task_name=task_name, tag=tag, qc_indiv_path=qc_indiv_path, fig_size=(5,5),alpha=0.8)
-                    
+
             print(" ")
 
         return label_file
-    
+
     def coreg_anat2PAM50(self,ID=None,i_img=None,o_folder=None,seg_img=None,labels_img=None,img_type="t2",param=None,ses_name='',task_name='',tag='T2w',redo=False,verbose=True):
-        
+
         """
         Registers anatomical image to the PAM50 template and warps the template into anatomical space.
 
@@ -747,7 +747,7 @@ class Preprocess_Sc:
             o_folder = os.path.join(preprocess_dir, f"{self.config['preprocess_dir'][tag + '_coreg']}")
 
         os.makedirs(o_folder, exist_ok=True)
-       
+
         warp_from_anat2PAM50 = os.path.join(o_folder, f"sub-{ID}_from-{tag}_to-PAM50_mode-image_xfm.nii.gz") # warping field form anat to PAM50
         warp_from_PAM502anat = os.path.join(o_folder, f"sub-{ID}_from-PAM50_to-{tag}_mode-image_xfm.nii.gz") # warping field form PAM50 to anat
 
@@ -756,7 +756,7 @@ class Preprocess_Sc:
         if os.path.exists(manual_seg):
             print("Segmentation file will be the manually corrected file") if verbose else None
             seg_img = manual_seg
-        
+
          # --- Use manual labels if available ---------------------------------------------------------
         manual_labels = glob.glob(os.path.join(self.manual_dir, f"sub-{ID}", ses_name, "anat", "*label-ivd_mask.nii.gz"))
         if manual_labels:
@@ -768,7 +768,7 @@ class Preprocess_Sc:
             cmd_coreg=f"sct_register_to_template -i {i_img} -s {seg_img} -ldisc {labels_img} -c {img_type} -param {param} -ofolder {o_folder} -qc {self.qc_dir}/"
             print(">>>>> Registration step is running for sub-" + ID) if verbose == True else None
             os.system(cmd_coreg)
-            
+
             # Rename warping fields for consistency
             os.rename(os.path.join(o_folder, "warp_anat2template.nii.gz"), warp_from_anat2PAM50)
             os.rename(os.path.join(o_folder, "warp_template2anat.nii.gz"), warp_from_PAM502anat)
@@ -778,18 +778,18 @@ class Preprocess_Sc:
             cmd_template = f"sct_warp_template -d {i_img} -w {warp_from_PAM502anat} -s 1 -ofolder {template_folder} -a 0 -s 0"
             os.system(cmd_template)
 
-    
+
         # --- QC visualization ---------------------------------------------------------------------------
         if verbose:
             qc_indiv_path = self.qc_dir + "/"+ self.qc_dir.split("/")[-3] +"/sub-" + ID + "/anat/sct_register_to_template"
             tag="anat2PAM50"
             self._plot_qc(ID=ID, ses_name=ses_name, task_name=task_name, tag=tag, qc_indiv_path=qc_indiv_path, fig_size=(15,15),alpha=0.5)
-            print(" ")   
+            print(" ")
 
-        return warp_from_PAM502anat, warp_from_anat2PAM50 
-        
+        return warp_from_PAM502anat, warp_from_anat2PAM50
+
     def coreg_img2PAM50(self,ID=None,i_img=None,o_folder=None,i_seg=None,PAM50_cord=None,PAM50_t2=None,img_type="func",coreg_type="slicereg",initwarp=None,initwarpinv=None,param=None,ses_name='',task_name='',run_name="",redo=False,verbose=True):
-        
+
         """
         Registers a mean functional (or other modality) image to the PAM50 template.
 
@@ -846,7 +846,7 @@ class Preprocess_Sc:
             raise Warning("Please provide participant ID, e.g., _.stc(ID='A001')")
         if i_img is None or i_seg is None or initwarp is None or initwarpinv is None:
             raise Warning("Provide i_img, i_seg, and warping fields (initwarp, initwarpinv)")
-        
+
         # --- Default template files -----------------------------------------------------------------------
         if PAM50_cord is None:
             PAM50_cord = os.path.join(self.code_dir, "template", self.config["PAM50_cord"])
@@ -870,17 +870,17 @@ class Preprocess_Sc:
                 param='step=1,type=seg,algo=centermass,metric=MeanSquares:step=2,algo=bsplinesyn,type=seg,slicewise=1,iter=5'
             elif img_type=="dwi":
                 param='step=1,type=seg,algo=centermass,metric=MeanSquares:step=2,algo=bsplinesyn,type=seg,slicewise=1,iter=5'
-                    
+
         # --- Define output folder -------------------------------------------------------------------------
         preprocess_dir = self.preprocessing_dir.format(ID)
 
         if img_type=="func":
             if o_folder is None : # gave the default folder name if not provided
                 o_folder=preprocess_dir + "/"+ses_name+ self.config["preprocess_dir"]["func_coreg"].format(task_name,self.structure)
-            
+
         os.makedirs(o_folder, exist_ok=True)
 
-            
+
         # --- Output filenames -----------------------------------------------------------------------------
         base_name = os.path.basename(i_img).split('.')[0]
         o_img = os.path.join(o_folder, f"{base_name}_coreg_in_PAM50.nii.gz")
@@ -896,15 +896,15 @@ class Preprocess_Sc:
             if img_type=="func":
                 os.rename(glob.glob(o_folder+  "PAM50_t2_*reg.nii.gz")[0],o_folder+  "PAM50_t2_reg" + run_tag + ".nii.gz")
 
-                    
+
         if verbose:
             qc_indiv_path = os.path.join(self.qc_dir, f"sub-{ID}", ses_name, "func", task_name, "sct_register_multimodal", "sct_register_multimodal")
             tag=img_type+"2PAM50"
             self._plot_qc(ID=ID, ses_name=ses_name, task_name=task_name, tag=tag, qc_indiv_path=qc_indiv_path, fig_size=(10,25),alpha=0.3)
-            print(" ")  
+            print(" ")
 
         return (o_folder, o_warp_img,o_warpinv_img)
-        
+
     def apply_warp(self,i_img=None,ID=None,o_folder=None,dest_img=None,warping_field=None,ses_name='',task_name='',tag='_w',threshold=None,mean=False,method='spline',redo=False,verbose=True,n_jobs=1):
         """
         Apply warping field(s) to spinal cord input image(s) using sct_apply_transfo.
@@ -957,10 +957,10 @@ class Preprocess_Sc:
             dest_img=[]
             for ID_nb in enumerate(i_imgs):
                 dest_img.append(self.code_dir + "/template/"+ self.config["PAM50_t2"])
-                
+
         else:
             dest_img=[dest_img] if isinstance(dest_img,str) else dest_img
-        
+
         # --- Define output folders -------------------------------------------------------------------------
         if o_folder==None:
             o_folders=[]
@@ -971,17 +971,17 @@ class Preprocess_Sc:
 
         else:
              o_folders=o_folder
-        
+
         # --- Define output filenames -----------------------------------------------------------------------
         o_imgs=[]
         for ID_nb, filename in enumerate(i_imgs):
             o_imgs.append(o_folders[ID_nb] +  os.path.basename(i_imgs[ID_nb]).split('.')[0] + tag + ".nii.gz")
-        
+
         # --- Apply transformation --------------------------------------------------------------------------
         if not all(os.path.exists(f) for f in o_imgs) or redo:
             print(" ")
             print(">>>>> Apply transformation is running with " + str(n_jobs)+ " parallel jobs on " +str(len(self.participant_IDs)) + " participant(s)")
-        
+
             Parallel(n_jobs=n_jobs)(delayed(self._run_apply_warp)(i_img=i_imgs[ID_nb],
                                                                         dest_img=dest_img[ID_nb],
                                                                         warp_file=warping_fields[ID_nb],
@@ -992,29 +992,29 @@ class Preprocess_Sc:
                                                                         mean=mean,
                                                                         method=method)
                                         for ID_nb in range(len(warping_fields)))
-  
 
-                 
+
+
         else:
 
             if verbose:
                 print("Tranformation was already applied put redo=True to redo that step")
-            
+
         return o_imgs
 
 
     def _run_apply_warp(self,i_img,dest_img,warp_file,o_folder,ID,tag,threshold,mean,method):
-        
+
         o_img= o_folder +  os.path.basename(i_img).split('.')[0] + tag + ".nii.gz"
-        
+
         string='sct_apply_transfo -i '+i_img+' -d '+dest_img+' -w '+warp_file+' -x '+method+' -o ' + o_img
         os.system(string)
 
-        if threshold:                                                    
+        if threshold:
             #Transform the output image in a binary image
             string2="fslmaths "+o_img+" -thr "+str(threshold)+" -bin " + o_img
             os.system(string2)
-        
+
         if mean==True:
             o_mean_img= o_folder +  os.path.basename(i_img).split('.')[0] + tag + "_mean.nii.gz"
             string='fslmaths '+o_img+' -Tmean '+o_mean_img
@@ -1023,19 +1023,19 @@ class Preprocess_Sc:
         print("New warped image was generated for " + ID)
 
         return o_img
-        
-        
+
+
 
 
     def _plot_qc(self,ID, ses_name, task_name, tag, qc_indiv_path, fig_size=(5,5),alpha=0.8):
-        qc_indiv_dir=utils.get_latest_dir(base_dir=qc_indiv_path) 
+        qc_indiv_dir=utils.get_latest_dir(base_dir=qc_indiv_path)
         img_bck=qc_indiv_dir + "/background_img.png"
         img_cntr=qc_indiv_dir + "/overlay_img.png"
-        
+
         # plot the image ctrl as an overlay on the image bck
         img_bck_data = mpimg.imread(img_bck)
         img_cntr_data = mpimg.imread(img_cntr)
-        
+
         plt.figure(figsize=fig_size)
         plt.imshow(img_bck_data)
         plt.imshow(img_cntr_data, alpha=alpha)  # alpha controls transparency

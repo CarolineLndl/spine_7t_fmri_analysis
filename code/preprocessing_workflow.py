@@ -1,25 +1,25 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-#  Spinal Cord fMRI preprocessing 
+#  Spinal Cord fMRI preprocessing
 # ____________________________________________________
-# 
+#
 # ### Project: acdc_spine_7T
 # ____________________________________________________
 # @ author: Caroline Landelle, caroline.landelle@mcgill.ca // landelle.caroline@gmail.com
 # July 2025
-# 
-# Description: 
-# This notebook provides code for preprocessing fMRI data of spinal cord acquisition at 7T. 
-# 
-# Toolbox required: 
-# > SpinalCordToolbox  
-# > FSL (Python)  
-# 
+#
+# Description:
+# This notebook provides code for preprocessing fMRI data of spinal cord acquisition at 7T.
+#
+# Toolbox required:
+# > SpinalCordToolbox
+# > FSL (Python)
+#
 # ____________________________________________________
-# 
-# nb: The Philipps system includes additional "dummy scans" at the beginning of the acquisition to allow the magnetization to stabilize to a steady state. The dummy scans are not stored, so they will make the banging sound like normal scans but there will be no data associated with them.    
-# 
+#
+# nb: The Philips system includes additional "dummy scans" at the beginning of the acquisition to allow the magnetization to stabilize to a steady state. The dummy scans are not stored, so they will make the banging sound like normal scans but there will be no data associated with them.
+#
 #------------------------------------------------------------------
 #------ Initialization
 #------------------------------------------------------------------
@@ -62,21 +62,18 @@ config["code_dir"]=path_code
 participants_tsv = pd.read_csv(path_code + '/config/participants.tsv', sep='\t',dtype={'participant_id': str})
 
 new_IDs=[]
-if IDs==[""]:
+if IDs == [""]:
     for ID in participants_tsv["participant_id"]:
         new_IDs.append(ID)
-        
-    IDs=new_IDs   
-print(IDs)
+    IDs = new_IDs
 
-if tasks!=[""]:
-    config["design_exp"]["task_names"]=tasks
+if tasks != [""]:
+    config["design_exp"]["task_names"] = tasks
 
 #Initialize codes
 Preprocess_main=Preprocess_main(config, IDs=IDs) # initialize the function
 preprocess_Sc=Preprocess_Sc(config, IDs=IDs) # initialize the function
 ses_name=""
-
 
 # initialize directories
 preprocessing_dir = os.path.join(config["raw_dir"], os.path.expandvars(config["preprocess_dir"]["main_dir"]))
@@ -91,18 +88,18 @@ print("Participant(s) included : ", IDs, flush=True)
 print("===================================", flush=True)
 print("")
 
-for ID_nb,ID in enumerate(IDs):
+for ID_nb, ID in enumerate(IDs):
     print("", flush=True)
     print(f'=== Preprocessing start for :  {ID} ===', flush=True)
 
-    
+
     #---------------Anat preprocessing ---------------------------------------------------
-    raw_anat = glob.glob(preprocessing_dir.format(ID) + "anat/" + config["preprocess_f"]["anat_raw"].format(ID,"*"))[0]
-    
+    raw_anat = glob.glob(os.path.join(preprocessing_dir.format(ID), "anat", config["preprocess_f"]["anat_raw"].format(ID,"*")))[0]
+
     #------------------------------------------------------------------
     #------ Segmentation of the anatomical image
     #------------------------------------------------------------------
-    
+
     seg_anat_sc_file=preprocess_Sc.segmentation(ID=ID,
                                                 i_img=raw_anat,
                                                 img_type="anat",
@@ -110,7 +107,7 @@ for ID_nb,ID in enumerate(IDs):
                                                 redo=redo,
                                                 redo_qc=redo, # should be true if you have done manual correction
                                                 verbose=verbose)
-    
+
     print(f'=== Anat segmentation : Done {ID} ===', flush=True)
 
     #------------------------------------------------------------------
@@ -130,7 +127,7 @@ for ID_nb,ID in enumerate(IDs):
                                                     auto=auto_vert_labels,
                                                     redo=redo,
                                                     verbose=verbose)
-        
+
 
     print(f'=== Anat vertebral labelling : Done {ID} ===', flush=True)
 
@@ -138,10 +135,10 @@ for ID_nb,ID in enumerate(IDs):
     #------ Registration in PAM50
     #------------------------------------------------------------------
 
-    manual_seg_file=f'{manual_dir}/sub-{ID}/anat/' + os.path.basename(seg_anat_sc_file) 
+    manual_seg_file=f'{manual_dir}/sub-{ID}/anat/' + os.path.basename(seg_anat_sc_file)
     seg_anat_sc_final_file=manual_seg_file if os.path.exists(manual_seg_file) else seg_anat_sc_file
     param = "step=1,type=seg,algo=centermassrot:step=2,type=im,algo=syn,iter=5,slicewise=1,metric=CC,smooth=0"
-    
+
     warpT2w_PAM50_files=preprocess_Sc.coreg_anat2PAM50(ID=ID,
                                                               i_img=raw_anat,
                                                               seg_img=seg_anat_sc_final_file,
@@ -151,7 +148,7 @@ for ID_nb,ID in enumerate(IDs):
                                                               param=param,
                                                               redo=redo,
                                                               verbose=verbose)
-    
+
     print(f'=== Registration anat to PAM50 : Done {ID} ===', flush=True)
 
     #---------------Func preprocessing ---------------------------------------------------
@@ -160,7 +157,7 @@ for ID_nb,ID in enumerate(IDs):
         for acq_name in config["design_exp"]["acq_names"]:
             tag="task-" + task_name + "_acq-" + acq_name
             json_f=glob.glob(os.path.expandvars(config["raw_dir"]) + f'/sub-{ID}/func/sub-{ID}_{tag}_*bold.json')
-            raw_func=glob.glob(os.path.expandvars(config["raw_dir"]) + f'/sub-{ID}/func/sub-{ID}_{tag}_*bold.nii.gz')  
+            raw_func=glob.glob(os.path.expandvars(config["raw_dir"]) + f'/sub-{ID}/func/sub-{ID}_{tag}_*bold.nii.gz')
             o_dir=preprocessing_dir.format(ID)+  "/func/" +tag + '/'
 
             for func_file in raw_func:
@@ -188,7 +185,7 @@ for ID_nb,ID in enumerate(IDs):
 
                 print(mask_sc_file)
                 print(f'=== Moco masks : Done  {ID} {tag} {run_name} ===', flush=True)
-                      
+
                 #------------------------------------------------------------------
                 #------ Run moco
                 #------------------------------------------------------------------
@@ -220,12 +217,12 @@ for ID_nb,ID in enumerate(IDs):
                 preprocess_Sc.segmentation(ID=ID,
                                            i_img=moco_mean_f,
                                            task_name=tag,contrast_anat="t2s",
-                                           img_type="func", 
+                                           img_type="func",
                                            tissue="csf",
                                            redo_qc=redo, # should be true if you have done manual correction
                                            redo=redo,
                                            verbose=verbose)
-                
+
                 print(f'=== Func segmentation : Done  {ID} {tag} {run_name} ===', flush=True)
 
                 #------------------------------------------------------------------
@@ -242,9 +239,9 @@ for ID_nb,ID in enumerate(IDs):
                                                              param=param,
                                                              redo=redo,
                                                              verbose=verbose)
-                
+
                 print(f'=== Func registration : Done  {ID} {tag} {run_name} ===')
 
-        
+
     print(f'=== Preprocessing done for : {ID} ===', flush=True)
     print("=========================================", flush=True)
