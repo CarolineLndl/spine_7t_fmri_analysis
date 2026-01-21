@@ -168,13 +168,13 @@ The dataset downloaded from OpenNeuro is already organized in the BIDS format.
 Run the pipeline:
 
 ```bash
-bash "${PATH_CODE}/code/run_all_processing.sh" --path-data "${PATH_DATA}" --path-code "${PATH_CODE}" --ids 090 101 106 --tasks motor --no-denoising
+bash "${PATH_CODE}/code/run_all_processing.sh" --path-data "${PATH_DATA}" --path-code "${PATH_CODE}" --ids "${IDs[@]}" --tasks motor --no-denoising
 ```
 
 - Runs preprocessing steps automatically with output log from STDOUT.
 - By default all the steps are rerun even if some outputs already exist. If manual corrections were made, these files will be used as input for subsequent steps.
 - If you have already setup `PATH_CODE` and `PATH_DATA`, you don't need to specify `--path-data` and `--path-code`.
-- Specify individuals to process (`--ids XXX`), the default option run preprocessing on all participants in the `participants.tsv`.
+- Specify individuals to process (`--ids 090 101 106`) or `IDs=(090 101 106)` and (`--ids "${IDs[@]}"`) , the default option run preprocessing on all participants in the `participants.tsv`.
 - Specify task to process (`--tasks` `motor` or `rest`), the default option runs preprocessing on all tasks defined in the `config_file_7t_fmri.json`
 - You can remove `--no-denoising` to run denoising after preprocessing (see section 2.2).
 
@@ -242,12 +242,12 @@ Should be run after preprocessing.
 - Runs preprocessing steps automatically with output log from STDOUT.
 - By default all the steps are rerun even if some outputs already exist.
 - If you already have setup `PATH_CODE` and `PATH_DATA`, you don't need to specify `--path-data` and `--path-code`.
-- Specify individuals to denoise (`--ids XXX`), the default option run denoising on all participants in the `participants.tsv`.
-- Specify task to denoise (`--tasks` `motor` or `rest`), the default option run denoising on all tasks defined in the `config_file_7t_fmri.json`.
+- Specify individuals to process (`--ids 090 101 106`) or `IDs=(090 101 106)` and (`--ids "${IDs[@]}"`) , the default option run preprocessing on all participants in the `participants.tsv`. Specify task to denoise (`--tasks` `motor` or `rest`), the default option run denoising on all tasks defined in the `config_file_7t_fmri.json`.
 - You can remove `--no-preprocess` to run preprocessing before denoising (see section 2.1).
 
 ```bash
-bash "${PATH_CODE}/code/run_all_processing.sh" --path-data "${PATH_DATA}" --path-code "${PATH_CODE}" --ids 090 101 106 --tasks motor --no-preprocess
+# ids(090 101 106)
+bash "${PATH_CODE}/code/run_all_processing.sh" --path-data "${PATH_DATA}" --path-code "${PATH_CODE}" --ids "${IDs[@]}" --tasks motor --no-preprocess
 
 ```
 
