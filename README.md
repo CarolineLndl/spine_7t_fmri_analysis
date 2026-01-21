@@ -139,13 +139,6 @@ conda activate spine_7T_env_py10
 pip install -r "${PATH_CODE}/config/requirements.txt"
 ```
 
-### Data organization 📑
-
-### 1.3 Get data into BIDS format 🗂️
-#### Convert mri data
-The dataset downloaded from OpenNeuro is already organized in the BIDS format.
-
-
 ---
 
 ## Analysis Pipeline ⚙️
