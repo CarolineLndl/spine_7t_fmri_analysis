@@ -21,7 +21,6 @@ import json,sys, os, glob, re, argparse
 import nibabel as nb
 import pandas as pd
 
-
 # Get the environment variable PATH_CODE
 path_code = os.path.dirname(os.path.abspath(__file__)).rsplit('/', 1)[0]
 

@@ -644,7 +644,6 @@ class Denoising:
             output_compcor_file=physio_dir +  '/sub-' + ID +  '_'+str(n_compcor)+'_acompcor'+structure_tag+task_tag+run_tag+'.txt'
 
         # --- Run confound extraction --------------------------------------------------------
-
         if os.path.exists(output_DCT_file) and redo:
                         if verbose:
                             print("----------------------------------------------------------")
