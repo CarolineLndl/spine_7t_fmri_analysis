@@ -9,7 +9,6 @@ import utils as utils
 
 from joblib import Parallel, delayed
 
-
 # Plotting
 import matplotlib.gridspec as GridSpec
 import matplotlib.pyplot as plt
@@ -21,7 +20,6 @@ from nipype.algorithms.confounds import compute_noise_components
 
 #Nilearn
 from nilearn import image
-
 
 class Denoising:
     """
@@ -49,11 +47,9 @@ class Denoising:
         self.qc_dir=os.path.join(self.config["raw_dir"], self.config["preprocess_dir"]["QC_dir"]) # directory of the QC output
         self.denoising_dir = os.path.join(self.config["raw_dir"], config["denoising"]["dir"])
 
-
        # Create directories -------------------------------------------------------------------------------------
         main_denoising_dir = Path(self.denoising_dir.split("sub")[0])
         main_denoising_dir.mkdir(parents=True, exist_ok=True)
-
 
         # Create participant directories (if not already existed)
         for ID in self.participant_IDs:
@@ -73,7 +69,6 @@ class Denoising:
                     ID_dir=ID_denoising_dir +  ses_dir + "/" + structure
                 else:
                     ID_dir=ID_denoising_dir +  ses_dir
-
 
             print("New folders in denoising dir have been created") if verbose==True else None
 
@@ -107,9 +102,6 @@ class Denoising:
                                     if sub_dir=="denoised_dir":
                                         os.makedirs(new_path + "/confounds/",exist_ok=True)
 
-
-
-
     def moco_params(self,ID=None, slice_wise=True,input_file=None, func_file=None, structure="",task_name='',run_name='', output_file=None,redo=False,verbose=True):
         '''
             Create slicewise moco parameters
@@ -141,9 +133,6 @@ class Denoising:
 
             outputs
             ----------
-
-
-
         '''
 
         if ID==None:
@@ -182,17 +171,13 @@ class Denoising:
                 if os.path.exists(output_moco_file) and redo==False and verbose==True:
                     print("Brain moco params were already extracted please, put redo=True to recalculate it")
 
-
                 # create a dataframe with volume value for each slice as we do not have the slice wise motion corrected parameters
-
-
             if structure=="spinalcord" or structure=="":
                 #checkek wether there is params_x in the input_file list
                 X_file=[f for f in input_file if 'params_x' in f]
                 Y_file=[f for f in input_file if 'params_y' in f]
                 X_img=nib.load(X_file[0]) # load the X moco parameter image
                 Y_img=nib.load(Y_file[0]) # load the X moco parameter image
-
 
                 #extract the mocovalue for each slice
                 for slice_nb in range(0,X_img.header.get_data_shape()[2]):
@@ -207,7 +192,6 @@ class Denoising:
                         imgseries_reshape=imgseries.reshape(img.shape[3], 1)
                         moco_value.append(imgseries_reshape)
                     moco_value=np.hstack(moco_value)
-
 
                     np.savetxt(output_moco_file, moco_value)
 
@@ -254,11 +238,8 @@ class Denoising:
             redo : bool
                 whether to redo the calculation if the output file already exists (optional , default=False)
 
-
             Outputs:
             --------
-
-
         '''
 
         # --- Input validation -------------------------------------------------------------
@@ -291,7 +272,6 @@ class Denoising:
         if not os.path.exists(os.path.dirname(output_file)):
             os.makedirs(os.path.dirname(output_file))
 
-
         # --- Run outliers calculation --------------------------------------------------------
         cmd_fsl="fsl_motion_outliers -i "+i_img+" -o "+output_file+ ".txt —m "+mask_file+ " --nomoco --dvars -p "+output_file + ".png "
 
@@ -311,7 +291,6 @@ class Denoising:
                 np.savetxt(output_file +".txt", array, fmt='%d', delimiter='   ')
 
         return output_file + ".txt"
-
 
     def find_physio_file(self,input_dir=None, ID=None, ses_name='', task_name='', run_name='',copy=True,output_dir=None,redo=False, verbose=True):
         '''
@@ -348,7 +327,6 @@ class Denoising:
 
         if verbose:
             print("Looking for physio file in : " + input_dir)
-
 
         # --- Define variables -----------------------------------------------------------
         task_tag="" if task_name=="" else "_" + task_name
@@ -449,7 +427,6 @@ class Denoising:
 
         return output if len(physio_file_tsv) == 1 or len(physio_file_mat) > 0 else (output_resp, output_puls) if len(physio_file_tsv) == 2 else (output_resp, output_puls, output_tics) if len(physio_file_log) > 0 else None
 
-
     def plot_physio(self,ID=None,TR=None,frq=None,denoising_mat=None,task_name="",run_name="",output_dir=None,redo=False,verbose=False):
         '''
             Plot physiological recordings
@@ -479,8 +456,6 @@ class Denoising:
            ----------
                 output_file : str
                     filename of the physio plot
-
-
         '''
         task_tag="" if task_name=="" else "_" + task_name
         run_tag="" if run_name=="" else "_" + run_name
@@ -503,7 +478,6 @@ class Denoising:
 
         output_file=output_dir   + '/sub-' + ID + task_tag + run_tag + '_physio.png'
 
-
         # 1. Load .mat file______________________________________________________
         mat_file={}
 
@@ -519,13 +493,13 @@ class Denoising:
                             'hr':mat_file_load[12], # heart rate / secondes
                             'rvt':mat_file_load[13]} # respiratory volume per time (per secondes)
 
-    # 2. Convert .mat in .txt files_______________________________________
+        # 2. Convert .mat in .txt files_______________________________________
         np.savetxt(output_dir +  '/sub-' + ID +  task_tag + run_tag + '_raw_resp.txt', mat_file['r'])
         np.savetxt(output_dir +  '/sub-' + ID + task_tag + run_tag +  '_raw_card.txt', mat_file['c'])
         np.savetxt(output_dir +  '/sub-' + ID + task_tag + run_tag + '_hr.txt', mat_file['hr'])
         np.savetxt(output_dir +  '/sub-' + ID + task_tag + run_tag +  '_rvt.txt', mat_file['rvt'])
 
-            # 3 Plots physio and save figures_________________________________________
+        # 3 Plots physio and save figures_________________________________________
 
         fig=plt.figure(figsize=(20, 5), facecolor='w', edgecolor='k')
         gs=GridSpec.GridSpec(2,2,figure=fig) # 2 rows, 3 columns
@@ -562,10 +536,7 @@ class Denoising:
             if verbose==True:
                 print("physio plot were saved here : " + output_file)
 
-
         return output_file
-
-
 
     def confounds_ts(self,ID=None,func_file=None,slice_wise=True,mask_seg_file=None,mask_csf_file=None,compcor=False, DCT=False, output_file=None, task_name="",run_name="", structure="", n_compcor=5, n_DCT=3, redo=False, verbose=True):
         '''
@@ -686,7 +657,6 @@ class Denoising:
                             print("Compute Compcor: " + ID + " : " + task_name + " " + run_name)
                             print("----------------------------------------------------------")
 
-
         if redo or (
             (DCT and not os.path.exists(output_DCT_file)) or
             (compcor and not os.path.exists(output_compcor_file))
@@ -769,11 +739,8 @@ class Denoising:
 
         return output_compcor_file, output_DCT_file
 
-
-
     def combine_confounds(self,ID=None,confounds_infos=None,func_file=None,structure="",retroicor_confounds=False,compcor_confounds=False,moco_confounds=False,outliers_confounds=False,DCT_confounds=False,slice_wise=True,task_name="",run_name="",redo=False, verbose=True):
         '''
-
             Combine confounds into a single file.
 
             Attributes
@@ -823,7 +790,6 @@ class Denoising:
             - Automatically handles missing confound files (fills NaNs).
             - Handles slice-wise or volume-wise processing.
             - Motion files may need harmonization (FSL vs SCT delimiters).
-
         '''
         # --- Input validation -------------------------------------------------------------
         if ID==None:
@@ -929,7 +895,6 @@ class Denoising:
 
         return output_file
 
-
     def plot_confound_design(self,ID=None,confound_file=None,confounds_infos=None,structure="",task_name="",run_name='',redo=False, verbose=True):
         '''
             Plot confound design matrix
@@ -953,8 +918,6 @@ class Denoising:
                 whether to redo the calculation if the output file already exists (optional , default=False)
             verbose : bool
                 whether to print progress messages and plots (optional , default=True)
-
-
         '''
         if ID==None:
             raise(Exception('ID should be provided ex: ID="A001"'))
@@ -999,13 +962,21 @@ class Denoising:
                 plt.savefig(confound_file.split('.')[0]+'.png')
             plt.close(fig)
 
-
-
-       # confounds_infos["Outliers"]=0
-
-
     def clean_images(self,ID=None,slice_wise=True,func_file=None,structure="",output_file=None,confounds_file=None,mask_file=None,task_name='',run_name='',standardize="zscore",detrend=False,high_pass=0.01,low_pass=0.17,tag_name="",n_jobs=1,redo=False,verbose=True):
+        '''
+            Denoise fMRI data using specified confounds.
 
+            Attributes
+            ----------
+            ID: str
+                participant ID (required , default=None)
+            slice_wise : bool
+                whether to denoise slice by slice (optional , default=True)
+            func_file : str
+                4D preprocessed functional file. If None, it is automatically retrieved from preprocessing folders.
+            structure : str
+                could be 'brain' or 'spinalcord' name of the structure to work on
+        '''
         ########### Check initiation:
         if ID==None:
             raise(Exception('ID should be provided ex: ID="A001"'))
@@ -1052,7 +1023,6 @@ class Denoising:
                         func_slice=func_img
                         mask_slice=mask_img
 
-
                     # extract the mask value to check if there are not empty if so do not denoised this slice
                     data = mask_slice.get_fdata()
 
@@ -1069,7 +1039,6 @@ class Denoising:
                         Clean_image.to_filename(output_file) #save image
                     else:
                         func_slice.to_filename(output_file)
-
 
             if slice_wise:
                 # merge each slices in a single img
@@ -1091,7 +1060,6 @@ class Denoising:
             os.system(fsl_command)# run fsl command
 
         return output_main_file
-
 
     def standardize(self,input_files,output_files,json_files=None,mask_files=None,redo=False):
         #demean and standardized the signal by the std
