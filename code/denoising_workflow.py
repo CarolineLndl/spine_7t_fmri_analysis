@@ -89,110 +89,109 @@ for ID_nb,ID in enumerate(IDs):
     print("", flush=True)
     print(f'=== Denoising start for :  {ID} ===', flush=True)
 
-    for ID in IDs:
-        for task_name in config["design_exp"]["task_names"]:
-            for acq_name in config["design_exp"]["acq_names"]:
-                tag="task-" + task_name + "_acq-" + acq_name
-                raw_func=glob.glob(os.path.join(config["raw_dir"], f'sub-{ID}', 'func', f'sub-{ID}_{tag}_*bold.nii.gz'))
+    for task_name in config["design_exp"]["task_names"]:
+        for acq_name in config["design_exp"]["acq_names"]:
+            tag="task-" + task_name + "_acq-" + acq_name
+            raw_func=glob.glob(os.path.join(config["raw_dir"], f'sub-{ID}', 'func', f'sub-{ID}_{tag}_*bold.nii.gz'))
 
-                for func_file in raw_func:
-                    # Check run number if multiple run exists
-                    match = re.search(r"_?(run-\d+)", func_file)
-                    if match:
-                        run_name=match.group(1)
-                        print(run_name)
-                    else:
-                        run_name=""
+            for func_file in raw_func:
+                # Check run number if multiple run exists
+                match = re.search(r"_?(run-\d+)", func_file)
+                if match:
+                    run_name=match.group(1)
+                    print(run_name)
+                else:
+                    run_name=""
 
-                    moco_file=glob.glob(os.path.join(preprocessing_dir.format(ID), config["preprocess_dir"]["func_moco"].format(tag), config["preprocess_f"]["func_moco"].format(ID,tag,run_name)))[0]
-
+                moco_file=glob.glob(os.path.join(preprocessing_dir.format(ID), config["preprocess_dir"]["func_moco"].format(tag), config["preprocess_f"]["func_moco"].format(ID,tag,run_name)))[0]
 
 
-                    #------------------------------------------------------------------
-                    #------ moco parameters
-                    #------------------------------------------------------------------
-                    moco_param_f=glob.glob(os.path.join(preprocessing_dir.format(ID), config["preprocess_dir"]["func_moco"].format(tag), config["preprocess_f"]["moco_params"].format(tag,run_name)))
-                    denoising.moco_params(ID=ID,input_file=moco_param_f, task_name=tag,run_name=run_name,redo=redo)
 
-                    #------------------------------------------------------------------
-                    #------ outliers parameters
-                    #------------------------------------------------------------------
-                    denoising.outliers(ID=ID,task_name=tag,run_name=run_name,redo=redo)
+                #------------------------------------------------------------------
+                #------ moco parameters
+                #------------------------------------------------------------------
+                moco_param_f=glob.glob(os.path.join(preprocessing_dir.format(ID), config["preprocess_dir"]["func_moco"].format(tag), config["preprocess_f"]["moco_params"].format(tag,run_name)))
+                denoising.moco_params(ID=ID,input_file=moco_param_f, task_name=tag,run_name=run_name,redo=redo)
 
-                    #------------------------------------------------------------------
-                    #------ Compute compcor
-                    #------------------------------------------------------------------
-                    cord_seg_file = glob.glob(os.path.join(preprocessing_dir.format(ID) + config["preprocess_dir"]["func_seg"].format(tag) + config["preprocess_f"]["func_seg"].format(ID,tag,run_name)))[0]
-                    manual_cord_file=os.path.join(manual_dir, f"sub-{ID}", "func",tag, os.path.basename(cord_seg_file))
-                    csf_seg_file = glob.glob(os.path.join(preprocessing_dir.format(ID) + config["preprocess_dir"]["func_csf_seg"].format(tag) + config["preprocess_f"]["func_csf"].format(ID,tag,run_name)))[0]
-                    manual_csf_file=os.path.join(manual_dir, f"sub-{ID}", "func",tag, os.path.basename(csf_seg_file))
+                #------------------------------------------------------------------
+                #------ outliers parameters
+                #------------------------------------------------------------------
+                denoising.outliers(ID=ID,task_name=tag,run_name=run_name,redo=redo)
 
-                    # Check if manual file exits
-                    if os.path.exists(manual_cord_file):
-                        cord_seg_file = manual_cord_file
+                #------------------------------------------------------------------
+                #------ Compute compcor
+                #------------------------------------------------------------------
+                cord_seg_file = glob.glob(os.path.join(preprocessing_dir.format(ID) + config["preprocess_dir"]["func_seg"].format(tag) + config["preprocess_f"]["func_seg"].format(ID,tag,run_name)))[0]
+                manual_cord_file=os.path.join(manual_dir, f"sub-{ID}", "func",tag, os.path.basename(cord_seg_file))
+                csf_seg_file = glob.glob(os.path.join(preprocessing_dir.format(ID) + config["preprocess_dir"]["func_csf_seg"].format(tag) + config["preprocess_f"]["func_csf"].format(ID,tag,run_name)))[0]
+                manual_csf_file=os.path.join(manual_dir, f"sub-{ID}", "func",tag, os.path.basename(csf_seg_file))
 
-                    if os.path.exists(manual_csf_file):
-                        csf_seg_file = manual_csf_file
+                # Check if manual file exits
+                if os.path.exists(manual_cord_file):
+                    cord_seg_file = manual_cord_file
 
-                    # Run compcor / DCT
-                    compcor_out, DCT_out = denoising.confounds_ts(
-                        ID=ID,
-                        task_name=tag,
-                        run_name=run_name,
-                        func_file=moco_file,
-                        mask_seg_file=cord_seg_file,
-                        mask_csf_file=csf_seg_file,
-                        n_compcor=15,
-                        compcor=True,
-                        DCT=False,
-                        redo=redo
-                    )
+                if os.path.exists(manual_csf_file):
+                    csf_seg_file = manual_csf_file
 
-                    #------------------------------------------------------------------
-                    #------ Combine all confounds together
-                    #------------------------------------------------------------------
-                    confound_infos={'outliers':1,'moco':2,'compcor':15}
-                    confounds=denoising.combine_confounds(
-                        ID=ID,
-                        task_name=tag,
-                        run_name=run_name,
-                        confounds_infos=confound_infos,
-                        outliers_confounds=True,
-                        retroicor_confounds=False,
-                        compcor_confounds=True,
-                        moco_confounds=True,
-                        DCT_confounds=False,
-                        slice_wise=True,
-                        redo=redo
-                    )
+                # Run compcor / DCT
+                compcor_out, DCT_out = denoising.confounds_ts(
+                    ID=ID,
+                    task_name=tag,
+                    run_name=run_name,
+                    func_file=moco_file,
+                    mask_seg_file=cord_seg_file,
+                    mask_csf_file=csf_seg_file,
+                    n_compcor=15,
+                    compcor=True,
+                    DCT=False,
+                    redo=redo
+                )
 
-                    #save the plots
-                    denoising.plot_confound_design(
-                        ID=ID,
-                        confound_file=confounds.split("_slice")[0] + "_slice010_z.txt",
-                        structure="",
-                        task_name=tag,
-                        run_name=run_name,
-                        confounds_infos=confound_infos,
-                        redo=redo,
-                        verbose=verbose)
+                #------------------------------------------------------------------
+                #------ Combine all confounds together
+                #------------------------------------------------------------------
+                confound_infos={'outliers':1,'moco':2,'compcor':15}
+                confounds=denoising.combine_confounds(
+                    ID=ID,
+                    task_name=tag,
+                    run_name=run_name,
+                    confounds_infos=confound_infos,
+                    outliers_confounds=True,
+                    retroicor_confounds=False,
+                    compcor_confounds=True,
+                    moco_confounds=True,
+                    DCT_confounds=False,
+                    slice_wise=True,
+                    redo=redo
+                )
 
-                    #------------------------------------------------------------------
-                    #------ Apply denoising, HP filtering
-                    #------------------------------------------------------------------
-                    Clean_image_file=denoising.clean_images(
-                        ID=ID,
-                        func_file=moco_file,  # Find functional file,
-                        task_name=tag,
-                        run_name=run_name,
-                        confounds_file=confounds,
-                        mask_file=cord_seg_file,
-                        high_pass=0.01,
-                        low_pass= None,
-                        tag_name= "HP_nostd", #std means the data were z-scored
-                        standardize=False,#"zscore", # False if you don't want
-                        n_jobs=4,
-                        redo=redo)
+                #save the plots
+                denoising.plot_confound_design(
+                    ID=ID,
+                    confound_file=confounds.split("_slice")[0] + "_slice010_z.txt",
+                    structure="",
+                    task_name=tag,
+                    run_name=run_name,
+                    confounds_infos=confound_infos,
+                    redo=redo,
+                    verbose=verbose)
+
+                #------------------------------------------------------------------
+                #------ Apply denoising, HP filtering
+                #------------------------------------------------------------------
+                Clean_image_file=denoising.clean_images(
+                    ID=ID,
+                    func_file=moco_file,  # Find functional file,
+                    task_name=tag,
+                    run_name=run_name,
+                    confounds_file=confounds,
+                    mask_file=cord_seg_file,
+                    high_pass=0.01,
+                    low_pass= None,
+                    tag_name= "HP_nostd", #std means the data were z-scored
+                    standardize=False,#"zscore", # False if you don't want
+                    n_jobs=4,
+                    redo=redo)
 
     print(f'=== Denoising done for : {ID} ===', flush=True)
     print("=========================================", flush=True)
