@@ -20,6 +20,7 @@
 import json,sys, os, glob, re, argparse
 import nibabel as nb
 import pandas as pd
+from nilearn import image
 
 # Get the environment variable PATH_CODE
 path_code = os.path.dirname(os.path.abspath(__file__)).rsplit('/', 1)[0]
@@ -150,7 +151,7 @@ for ID_nb,ID in enumerate(IDs):
                 #------------------------------------------------------------------
                 #------ Combine all confounds together
                 #------------------------------------------------------------------
-                confound_infos={'outliers':1,'moco':2,'compcor':15}
+                confound_infos={'compcor':5} #'outliers':1 #'moco':2,
                 confounds=denoising.combine_confounds(
                     ID=ID,
                     task_name=tag,
@@ -192,6 +193,15 @@ for ID_nb,ID in enumerate(IDs):
                     standardize=False,#"zscore", # False if you don't want
                     n_jobs=4,
                     redo=redo)
+                
+                #------------------------------------------------------------------
+                #------ Apply smoothing
+                #------------------------------------------------------------------
+                smooth_imag_file=Clean_image_file.split(".")[0] + "_s.nii.gz"
+                smoothed_image=image.smooth_img(Clean_image_file, [1.5,1.5,6])
+                smoothed_image.to_filename(smooth_imag_file)
+                
+                
 
     print(f'=== Denoising done for : {ID} ===', flush=True)
     print("=========================================", flush=True)
