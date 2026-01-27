@@ -633,7 +633,7 @@ class Preprocess_Sc:
             if auto:
                 print(f">>>>> Running totalspineseg for sub-{ID}...") if verbose else None
 
-                cmd = (f"sct_deepseg spine -i {i_img} -o {o_folder}/sct_deepseg.nii.gz -qc {self.qc_dir} -qc-subject sub-{ID}")
+                cmd = (f"sct_deepseg spine -i {i_img} -o {o_folder}/{base_name}.nii.gz -qc {self.qc_dir} -qc-subject sub-{ID}")
 
             else:
                 nb = labels
