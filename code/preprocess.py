@@ -224,7 +224,7 @@ class Preprocess_Sc:
         if not os.path.exists(centerline_f + ".nii.gz") or redo_ctrl:
             if verbose:
                 print("Centerline for sub-" + ID)
-            cmd_centerline=f"sct_get_centerline -i {i_img} -o {centerline_f} -c t1 -method {method} -centerline-algo bspline -qc {self.qc_dir}/ -v 0"
+            cmd_centerline=f"sct_get_centerline -i {i_img} -o {centerline_f} -c t1 -method {method} -centerline-algo bspline -qc {self.qc_dir} -v 0"
             os.system(cmd_centerline)
 
         # --- Create mask around centerline ------------------------------------------------
@@ -362,7 +362,7 @@ class Preprocess_Sc:
         if not os.path.exists(moco_file) or redo:
             if verbose:
                 print(f">>>>> Running motion correction for sub-{ID}...")
-            cmd=f"sct_fmri_moco -i {i_img} -m {mask_img} -param {params} -ofolder {o_folder + self.structure} -x spline -g 1 -r 1 -qc {self.qc_dir}/sub-{ID}/ -qc-seg {mask_img} -v 0"
+            cmd=f"sct_fmri_moco -i {i_img} -m {mask_img} -param {params} -ofolder {o_folder + self.structure} -x spline -g 1 -r 1 -qc {self.qc_dir} -qc-subject sub-{ID} -qc-seg {mask_img} -v 0"
             os.system(cmd)
 
             # Rename output parameter files for clarity
@@ -511,12 +511,12 @@ class Preprocess_Sc:
 
             if img_type=="func":
                 if tissue==None:
-                    cmd=f"sct_deepseg sc_epi -i {i_img} -o {o_img} -qc {self.qc_dir }/sub-{ID}/ -qc-seg {mask_qc} -v 0" #segmentation
+                    cmd=f"sct_deepseg sc_epi -i {i_img} -o {o_img} -qc {self.qc_dir }/sub-{ID} -qc-subject sub-{ID} -qc-seg {mask_qc} -v 0" #segmentation
                 elif tissue=="csf":
                     cmd_propseg=f"sct_propseg -i {i_img} -c {contrast_anat} -CSF -o {o_img}" #segmentation
                     os.system(cmd_propseg) # run propseg
                     csf_mask=glob.glob(os.path.dirname(o_img) + "/*_CSF_*")[0] # filename of the CSF segmentation
-                    cmd=f"sct_qc -i {i_img} -s {csf_mask} -p sct_propseg -qc {self.qc_dir }/sub-{ID}/ -v 0" # QC report
+                    cmd=f"sct_qc -i {i_img} -s {csf_mask} -p sct_propseg -qc {self.qc_dir } -v 0" # QC report
 
             elif img_type!="func":
                 if tissue=="gm":
@@ -526,7 +526,7 @@ class Preprocess_Sc:
                     os.system(cmd_fslmaths) # substract cord and gm segmentation to obtain wm
                     cmd=f"fslmaths {o_img} -thr 0 {o_img}" # threshold the mask at 0
                 else:
-                    cmd=f"sct_deepseg spinalcord -i {i_img} -c {contrast_anat} -thr 0.01 -o {o_img} -qc {self.qc_dir}/ -qc-subject sub-{ID} -v 0" # segmentation
+                    cmd=f"sct_deepseg spinalcord -i {i_img} -c {contrast_anat} -thr 0.01 -o {o_img} -qc {self.qc_dir} -qc-subject sub-{ID} -v 0" # segmentation
 
             os.system(cmd) # run the process
 
@@ -543,9 +543,9 @@ class Preprocess_Sc:
                 if os.path.exists(o_manual):
                     if redo_qc==True:
                         if tissue==None:
-                            cmd_qc=f"sct_qc -i {i_img} -s {o_manual} -p sct_deepseg_sc -qc {self.qc_dir}/sub-{ID}/ -v 0"
+                            cmd_qc=f"sct_qc -i {i_img} -s {o_manual} -p sct_deepseg_sc -qc {self.qc_dir} -v 0"
                         elif tissue=="csf":
-                            cmd_qc=f"sct_qc -i {i_img} -s {o_manual} -p sct_propseg -qc {self.qc_dir}/sub-{ID}/ -v 0"
+                            cmd_qc=f"sct_qc -i {i_img} -s {o_manual} -p sct_propseg -qc {self.qc_dir} -v 0"
                         os.system(cmd_qc)
 
                     ## QC path
@@ -637,7 +637,8 @@ class Preprocess_Sc:
                     f"sct_deepseg spine "
                     f"-i {i_img} "
                     f"-o {o_folder} "
-                    f"-qc {self.qc_dir}/ "
+                    f"-qc {self.qc_dir}"
+                    f"-qc-subject sub-{ID}"
                 )
 
             else:
@@ -770,7 +771,7 @@ class Preprocess_Sc:
 
         # --- Run registration ---------------------------------------------------------------------------
         if not os.path.exists(warp_from_anat2PAM50) or redo:
-            cmd_coreg=f"sct_register_to_template -i {i_img} -s {seg_img} -ldisc {labels_img} -c {img_type} -param {param} -ofolder {o_folder} -qc {self.qc_dir}/"
+            cmd_coreg=f"sct_register_to_template -i {i_img} -s {seg_img} -ldisc {labels_img} -c {img_type} -param {param} -ofolder {o_folder} -qc {self.qc_dir} -qc-subject sub-{ID}"
             print(">>>>> Registration step is running for sub-" + ID) if verbose == True else None
             os.system(cmd_coreg)
 
@@ -895,7 +896,7 @@ class Preprocess_Sc:
         # --- Run registration -------------------------------------------------------------------------------
         if not os.path.exists(o_img) or redo:
             print(f">>>>> Registration step running for sub-{ID}...") if verbose else None
-            cmd_coreg=f"sct_register_multimodal -d {PAM50_t2} -dseg {PAM50_cord} -i {i_img} -iseg {i_seg} -param {param} -initwarp {initwarp} -initwarpinv {initwarpinv} -owarp {o_warp_img} -owarpinv {o_warpinv_img} -ofolder {o_folder} -x spline -qc {self.qc_dir}/sub-{ID}/ -v 0"
+            cmd_coreg=f"sct_register_multimodal -d {PAM50_t2} -dseg {PAM50_cord} -i {i_img} -iseg {i_seg} -param {param} -initwarp {initwarp} -initwarpinv {initwarpinv} -owarp {o_warp_img} -owarpinv {o_warpinv_img} -ofolder {o_folder} -x spline -qc {self.qc_dir} -v 0"
             os.system(cmd_coreg)
             os.rename(os.path.join(o_folder, f"{base_name}_reg.nii.gz"),o_img)
             if img_type=="func":
