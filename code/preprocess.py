@@ -576,115 +576,129 @@ class Preprocess_Sc:
         return o_img
 
 
+def label_vertebrae(
+    self,
+    ID=None,
+    i_img=None,
+    seg_img=None,        # kept for API compatibility (unused in auto)
+    c="t2",              # kept for API compatibility
+    initz=None,          # deprecated for totalspineseg
+    labels=range(1, 15),
+    auto=True,
+    o_folder=None,
+    ses_name="",
+    task_name="",
+    tag="",
+    redo=False,
+    verbose=True,
+):
+    """
+    Labels vertebrae using deep learning (totalspineseg) or manual labeling.
 
-    def label_vertebrae(self,ID=None,i_img=None,seg_img=None,c="t2",initz=None,labels=range(1,15),auto=True,o_folder=None,ses_name='',task_name='',tag='',redo=False,verbose=True):
+    Automatic mode now uses:
+        sct_deepseg totalspineseg
 
-        """
-        Labels vertebrae on a spinal cord image, automatically or manually.
-        Can use an existing segmentation to guide automatic labeling.
+    Manual mode remains unchanged (sct_label_utils).
 
-        References:
-        ----------
-        - https://spinalcordtoolbox.com/user_section/command-line.html#sct-label-utils
-        - https://spinalcordtoolbox.com/stable/user_section/command-line/sct_label_vertebrae.html#sct-label-vertebrae
+    Outputs:
+    --------
+    label_file : str
+        Labeled vertebrae / disc image filename.
+    """
 
-        Attributes:
-        -----------
-        ID : str
-            Participant ID (required).
-        i_img : str
-            Input anatomical image filename (required).
-        seg_img : str
-            Spinal cord segmentation image, required for auto=True.
-        c : str
-            Image contrast ("t1" or "t2", default: "t2").
-        initz : int
-            Initial z-coordinate for first vertebra label (required if auto=True).
-        labels : list or range
-            Vertebra labels to assign (required if auto=False).
-        auto : bool
-            Automatic vertebra labeling (default: True). Manual labeling if False.
-        o_folder : str
-            Output folder (default: None; input folder used if not provided).
-        ses_name : str
-            Session name ('ses-' prefix if BIDS format).
-        task_name : str
-            Task name ('task-' prefix if BIDS format).
-        tag : str
-            Additional filename specification.
-        redo : bool
-            Redo labeling step (default: False).
-        verbose : bool
-            Show messages and QC plots (default: True).
+    # --- Input checks ------------------------------------------------------------------
+    if ID is None:
+        raise Warning("Please provide participant ID, e.g., _.stc(ID='A001')")
+    if i_img is None:
+        raise Warning("Please provide input filename")
 
-        Outputs:
-        --------
-        label_file : str
-            Labeled vertebrae image filename.
-        """
+    if auto and initz is not None and verbose:
+        print("⚠️  initz is ignored when using totalspineseg")
 
-        # --- Input checks --------------------------------------------------------------------------------
-        if ID is None:
-            raise Warning("Please provide participant ID, e.g., _.stc(ID='A001')")
-        if i_img is None:
-            raise Warning("Please provide input filename")
-        if auto and seg_img is None:
-            raise Warning("Automatic labeling requires a segmentation file (seg_img)")
+    # --- Define output folder -----------------------------------------------------------
+    preprocess_dir = self.preprocessing_dir.format(ID)
 
-
-
-        # --- Define output folder and filenames ----------------------------------------------------------
-        preprocess_dir = self.preprocessing_dir.format(ID)
-
-        if o_folder is None : # gave the default folder name if not provided
-            if auto:
-                o_folder = os.path.join(preprocess_dir, "anat", "sct_label_vertebrae")
-            else:
-                o_folder = os.path.join(self.manual_dir, f"sub-{ID}", "anat")
-
-        os.makedirs(o_folder, exist_ok=True)
-
-        base_name = os.path.basename(i_img).split(".")[0]
+    if o_folder is None:
         if auto:
-            label_file = os.path.join(o_folder, f"{base_name}_seg_labeled_discs.nii.gz")
+            o_folder = os.path.join(preprocess_dir, "anat", "sct_totalspineseg")
         else:
-            label_file = os.path.join(o_folder, f"{base_name}_space-orig_label-ivd_mask.nii.gz")
+            o_folder = os.path.join(self.manual_dir, f"sub-{ID}", "anat")
 
+    os.makedirs(o_folder, exist_ok=True)
 
+    base_name = os.path.basename(i_img).split(".")[0]
 
-        # --- Run labeling ---------------------------------------------------------------------------------
-        if not os.path.exists(label_file) or redo:
-            if auto:
-                if initz is None:
-                    raise Warning("Automatic labeling requires initz: z-coordinate of one disc")
-                if seg_img is None:
-                    raise Warning("Automatic labeling requires segmentation file")
-                print(f">>>>> Running automatic vertebra labeling for sub-{ID}...") if verbose else None
-                cmd=f"sct_label_vertebrae -i {i_img} -s {seg_img} -c {c} -initz {initz} -qc {self.qc_dir}/ -o {o_folder}"
-            else:
-                nb=labels # array with label numbers
-                cmd="sct_label_utils -i " +i_img + " -o "+label_file+" -qc "+self.qc_dir+" -create-viewer " + ', '.join(map(str, nb)).replace(" ","") #1,2,3,4,5,6,7,8,9,10,11,12,13,14,15"
-                print(f">>>>> Place labels manually at the posterior tip of each inter-vertebral disc for sub-{ID}...") if verbose else None
+    if auto:
+        label_file = os.path.join(
+            o_folder, f"{base_name}_seg-vertebrae_discs.nii.gz"
+        )
+    else:
+        label_file = os.path.join(
+            o_folder, f"{base_name}_space-orig_label-ivd_mask.nii.gz"
+        )
 
-            os.system(cmd)
+    # --- Run labeling -------------------------------------------------------------------
+    if not os.path.exists(label_file) or redo:
+        if auto:
+            print(f">>>>> Running totalspineseg for sub-{ID}...") if verbose else None
 
+            cmd = (
+                f"sct_deepseg totalspineseg "
+                f"-i {i_img} "
+                f"-o {o_folder} "
+                f"-qc {self.qc_dir}/ "
+            )
 
+        else:
+            nb = labels
+            print(
+                f">>>>> Place labels manually at the posterior tip of each inter-vertebral disc "
+                f"for sub-{ID}..."
+            ) if verbose else None
 
-        # --- QC visualization -------------------------------------------------------------------------------
-        if verbose==True:
-            if auto:
-                qc_indiv_path=self.qc_dir + "/"+ self.qc_dir.split("/")[-3] +"/sub-" + ID + "/anat/sct_label_vertebrae/"
-                tag="automatic labeling"
+            cmd = (
+                "sct_label_utils "
+                f"-i {i_img} "
+                f"-o {label_file} "
+                f"-qc {self.qc_dir} "
+                f"-create-viewer "
+                + ",".join(map(str, nb))
+            )
 
-            else:
-                qc_indiv_path=self.qc_dir + "/"+ self.qc_dir.split("/")[-3] +"/sub-" + ID + "/anat/sct_label_utils/"
-                tag="manual labeling"
+        os.system(cmd)
 
-            self._plot_qc(ID=ID, ses_name=ses_name, task_name=task_name, tag=tag, qc_indiv_path=qc_indiv_path, fig_size=(5,5),alpha=0.8)
+    # --- QC visualization ---------------------------------------------------------------
+    if verbose:
+        if auto:
+            qc_indiv_path = (
+                self.qc_dir
+                + "/"
+                + self.qc_dir.split("/")[-3]
+                + f"/sub-{ID}/anat/sct_totalspineseg/"
+            )
+            tag = "automatic vertebra labeling (totalspineseg)"
+        else:
+            qc_indiv_path = (
+                self.qc_dir
+                + "/"
+                + self.qc_dir.split("/")[-3]
+                + f"/sub-{ID}/anat/sct_label_utils/"
+            )
+            tag = "manual vertebra labeling"
 
-            print(" ")
+        self._plot_qc(
+            ID=ID,
+            ses_name=ses_name,
+            task_name=task_name,
+            tag=tag,
+            qc_indiv_path=qc_indiv_path,
+            fig_size=(5, 5),
+            alpha=0.8,
+        )
 
-        return label_file
+        print(" ")
+
+    return label_file
 
     def coreg_anat2PAM50(self,ID=None,i_img=None,o_folder=None,seg_img=None,labels_img=None,img_type="t2",param=None,ses_name='',task_name='',tag='T2w',redo=False,verbose=True):
 
