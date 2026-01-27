@@ -113,7 +113,7 @@ for ID_nb, ID in enumerate(IDs):
     #------------------------------------------------------------------
     #------ Vertebral labelling
     #------------------------------------------------------------------
-    vert_labels_files=preprocess_Sc.label_vertebrae(ID=ID,
+    disc_labels_files=preprocess_Sc.label_vertebrae(ID=ID,
                                                     i_img=raw_anat,
                                                     seg_img=seg_anat_sc_file,
                                                     c="t2",
@@ -135,7 +135,7 @@ for ID_nb, ID in enumerate(IDs):
     warpT2w_PAM50_files=preprocess_Sc.coreg_anat2PAM50(ID=ID,
                                                               i_img=raw_anat,
                                                               seg_img=seg_anat_sc_final_file,
-                                                              labels_img=vert_labels_files,
+                                                              labels_img=disc_labels_files,
                                                               img_type="t2",
                                                               tag='anat',
                                                               param=param,
