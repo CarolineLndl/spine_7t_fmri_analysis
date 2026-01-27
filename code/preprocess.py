@@ -634,7 +634,7 @@ class Preprocess_Sc:
                 print(f">>>>> Running totalspineseg for sub-{ID}...") if verbose else None
 
                 cmd = (
-                    f"sct_deepseg totalspineseg "
+                    f"sct_deepseg spine "
                     f"-i {i_img} "
                     f"-o {o_folder} "
                     f"-qc {self.qc_dir}/ "

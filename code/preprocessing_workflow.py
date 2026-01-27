@@ -117,7 +117,6 @@ for ID_nb, ID in enumerate(IDs):
                                                     i_img=raw_anat,
                                                     seg_img=seg_anat_sc_file,
                                                     c="t2",
-                                                    initz=f"{z_value},{vert}",
                                                     auto=auto_vert_labels,
                                                     redo=redo,
                                                     verbose=verbose)
