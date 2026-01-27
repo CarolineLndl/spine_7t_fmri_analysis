@@ -130,7 +130,6 @@ export PATH_CODE="${PATH_PROJECT}/spine_7t_fmri_analysis"
 
 Your environment should include:
 - Python (tested with 3.10.14, but other versions could work)
-- [dcm2niix](https://github.com/rordenlab/dcm2niix) (installed automatically with the following code)
 
 Create the appropriate conda environment:
 
@@ -138,34 +137,6 @@ Create the appropriate conda environment:
 conda create --name spine_7T_env_py10 python=3.10
 conda activate spine_7T_env_py10
 pip install -r "${PATH_CODE}/config/requirements.txt"
-```
-
-### Data organization 📑
-
-### 1.3 Get data into BIDS format 🗂️
-#### Convert mri data
-The dataset downloaded from OpenNeuro is already organized in the BIDS format.
-If you have DICOM data that you wish to add to the dataset,
-use `dcm2bids` to convert the DICOMS into a BIDS dataset:
-
-```bash
-cd ${PATH_CODE}/code/
-
-dcm2bids -d "${PATH_DATA}/sourcedata/sub-$ID/mri" \
-          -p "${ID}" \
-          -c "${PATH_CODE}/config/config_bids.txt" \
-          -o "${PATH_DATA}/spine_7t_fmri_data"
-```
-
-- `${ID}` is the subject ID (e.g., 095 103)
-- For full data conversion instructions, see: `${PATH_CODE}/code/convert_data/01_convert_mriData.sh`
-
-#### Convert physio data (need to be update)
-Use `${PATH_CODE}/code/convert_data/02_convert_physioData.sh` to convert raw physio data into BIDS format.
-
-```bash
-cd "${PATH_CODE}/code/convert_data"
-bash 02_convert_physioData.sh
 ```
 
 ---
@@ -190,13 +161,13 @@ bash 02_convert_physioData.sh
 Run the pipeline:
 
 ```bash
-bash "${PATH_CODE}/code/run_all_processing.sh" --path-data "${PATH_DATA}" --path-code "${PATH_CODE}" --ids 090 101 106 --tasks motor --no-denoising
+bash "${PATH_CODE}/code/run_all_processing.sh" --path-data "${PATH_DATA}" --path-code "${PATH_CODE}" --ids "${IDs[@]}" --tasks motor --no-denoising
 ```
 
 - Runs preprocessing steps automatically with output log from STDOUT.
 - By default all the steps are rerun even if some outputs already exist. If manual corrections were made, these files will be used as input for subsequent steps.
 - If you have already setup `PATH_CODE` and `PATH_DATA`, you don't need to specify `--path-data` and `--path-code`.
-- Specify individuals to process (`--ids XXX`), the default option run preprocessing on all participants in the `participants.tsv`.
+- Specify individuals to process (`--ids 090 101 106`) or `IDs=(090 101 106)` and (`--ids "${IDs[@]}"`) , the default option run preprocessing on all participants in the `participants.tsv`.
 - Specify task to process (`--tasks` `motor` or `rest`), the default option runs preprocessing on all tasks defined in the `config_file_7t_fmri.json`
 - You can remove `--no-denoising` to run denoising after preprocessing (see section 2.2).
 
@@ -264,12 +235,12 @@ Should be run after preprocessing.
 - Runs preprocessing steps automatically with output log from STDOUT.
 - By default all the steps are rerun even if some outputs already exist.
 - If you already have setup `PATH_CODE` and `PATH_DATA`, you don't need to specify `--path-data` and `--path-code`.
-- Specify individuals to denoise (`--ids XXX`), the default option run denoising on all participants in the `participants.tsv`.
-- Specify task to denoise (`--tasks` `motor` or `rest`), the default option run denoising on all tasks defined in the `config_file_7t_fmri.json`.
+- Specify individuals to process (`--ids 090 101 106`) or `IDs=(090 101 106)` and (`--ids "${IDs[@]}"`) , the default option run preprocessing on all participants in the `participants.tsv`. Specify task to denoise (`--tasks` `motor` or `rest`), the default option run denoising on all tasks defined in the `config_file_7t_fmri.json`.
 - You can remove `--no-preprocess` to run preprocessing before denoising (see section 2.1).
 
 ```bash
-bash "${PATH_CODE}/code/run_all_processing.sh" --path-data "${PATH_DATA}" --path-code "${PATH_CODE}" --ids 090 101 106 --tasks motor --no-preprocess
+# ids(090 101 106)
+bash "${PATH_CODE}/code/run_all_processing.sh" --path-data "${PATH_DATA}" --path-code "${PATH_CODE}" --ids "${IDs[@]}" --tasks motor --no-preprocess
 
 ```
 

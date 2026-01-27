@@ -57,8 +57,11 @@ if [ "${RUN_PREPROSS}" = true ]; then
     nohup python -u ../code/preprocessing_workflow.py --path-data "${PATH_DATA}"  --ids "${IDs[@]}" "${TASKS_ARG[@]}" --redo True \
     > "nohup_preprocessing_${timestamp}.out" 2>&1 &
 
+    PID=$!
     echo "Preprocessing launched in background."
     echo "Log file: log/nohup_preprocessing_${timestamp}.out"
+    echo "To stop the process, run:"
+    echo "kill ${PID}"
 fi
 
 # --------------------------
@@ -69,7 +72,10 @@ if [ "${RUN_DENOISING}" = true ]; then
     echo "Starting denoising..."
     nohup python -u ../code/denoising_workflow.py --path-data "${PATH_DATA}" --ids "${IDs[@]}" "${TASKS_ARG[@]}" --redo True \
     > "nohup_denoising_${timestamp}.out" 2>&1 &
-
+    
+    PID=$!
     echo "Denoising launched in background."
     echo "Log file: log/nohup_denoising_${timestamp}.out"
+    echo "To stop the process, run:"
+    echo "kill ${PID}"
 fi

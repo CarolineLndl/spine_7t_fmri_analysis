@@ -205,7 +205,7 @@ class Preprocess_Sc:
         # --- Define method and output folder ----------------------------------------------
         if manual==True:
             method="viewer"
-            o_folder=self.manual_dir + f"/sub-{ID}/{ses_name}/func/{task_name}/"
+            o_folder=self.manual_dir + f"/sub-{ID}/{ses_name}/func/"
         else:
             method="optic"
             if o_folder is None : # gave the default folder name if not provided
@@ -248,7 +248,7 @@ class Preprocess_Sc:
         manual_file=self.manual_dir + "/sub-" + ID+ "/"+ ses_name+"/func/" +  os.path.basename(i_img).split(".")[0] + "_centerline.nii.gz"
 
         if os.path.exists(manual_file):
-            folder_list=glob.glob(f"{self.qc_dir}/sub-{ID}/func/{ses_name}/{task_name}/sct_get_centerline/*") #check number of folder in QC dir
+            folder_list=glob.glob(f"{self.qc_dir}/sub-{ID}/func/{task_name}/sct_get_centerline/*") #check number of folder in QC dir
             centerline_f = manual_file.split(".nii.gz")[0]
             if verbose:
                 print(f"⚠ A manual centerline file exists: {manual_file}")
@@ -498,9 +498,9 @@ class Preprocess_Sc:
         # --- Manual segmentation paths -------------------------------------------------------------------
         if img_type=="func":
             if tissue=="csf":
-                o_manual = os.path.join(self.manual_dir, f"sub-{ID}/func/{ses_name}/{task_name}/",base_name.split('mean')[0] + "CSF_seg.nii.gz")
+                o_manual = os.path.join(self.manual_dir, f"sub-{ID}/func/",base_name.split('mean')[0] + "CSF_seg.nii.gz")
             else:
-                o_manual = os.path.join(self.manual_dir, f"sub-{ID}/func/{ses_name}/{task_name}/", os.path.basename(o_img))
+                o_manual = os.path.join(self.manual_dir, f"sub-{ID}/func/", os.path.basename(o_img))
         else:
             o_manual = os.path.join(self.manual_dir, f"sub-{ID}/anat/", os.path.basename(o_img))
 
