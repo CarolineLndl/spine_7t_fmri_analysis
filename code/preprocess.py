@@ -224,7 +224,7 @@ class Preprocess_Sc:
         if not os.path.exists(centerline_f + ".nii.gz") or redo_ctrl:
             if verbose:
                 print("Centerline for sub-" + ID)
-            cmd_centerline=f"sct_get_centerline -i {i_img} -o {centerline_f} -c t1 -method {method} -centerline-algo bspline -qc {self.qc_dir} -v 0"
+            cmd_centerline=f"sct_get_centerline -i {i_img} -o {centerline_f} -c t1 -method {method} -centerline-algo bspline -qc {self.qc_dir} -qc-subject sub-{ID}-v 0"
             os.system(cmd_centerline)
 
         # --- Create mask around centerline ------------------------------------------------
