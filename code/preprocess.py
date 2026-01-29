@@ -576,21 +576,7 @@ class Preprocess_Sc:
         return o_img
 
 
-    def label_vertebrae(
-        self,
-        ID=None,
-        i_img=None,
-        seg_img=None,        # kept for API compatibility (unused in auto)
-        c="t2",              # kept for API compatibility
-        labels=range(1, 15),
-        auto=True,
-        o_folder=None,
-        ses_name="",
-        task_name="",
-        tag="",
-        redo=False,
-        verbose=True,
-    ):
+    def label_vertebrae(self, ID=None, i_img=None, seg_img=None, c="t2", labels=range(1, 15), auto=True, o_folder=None, ses_name="", task_name="", tag="", redo=False, verbose=True):
         """
         Labels vertebrae automatically (totalspineseg) or manually (labels provided in derivatives/).
 
