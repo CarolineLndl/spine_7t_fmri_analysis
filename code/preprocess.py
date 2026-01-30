@@ -535,7 +535,9 @@ class Preprocess_Sc:
         if os.path.exists(o_manual):
             o_img=o_manual
             print("/!\\ Manual segmentation file detected — using it as output.") if verbose else None
-
+            # Generate QC report
+            cmd_qc=f"sct_qc -i {i_img} -s {o_manual} -p sct_deepseg_sc -qc {self.qc_dir} -qc-subject sub-{ID} -v 0"
+            os.system(cmd_qc)
 
         # --- Generate QC plot -----------------------------------------------------------------------------
         if verbose:
@@ -649,6 +651,9 @@ class Preprocess_Sc:
         if os.path.exists(o_manual):
             o_img=o_manual
             print("/!\\ Manual segmentation file detected — using it as output.") if verbose else None
+            # Generate QC report
+            cmd_qc=f"sct_qc -i {i_img} -s {o_manual} -p sct_label_utils -qc {self.qc_dir} -qc-subject sub-{ID} -v 0"
+            os.system(cmd_qc)
 
         # --- QC visualization ---------------------------------------------------------------
         if verbose:
