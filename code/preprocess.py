@@ -614,6 +614,10 @@ class Preprocess_Sc:
                 o_folder, f"{base_name}_space-orig_label-ivd_mask.nii.gz"
             )
 
+        # --- Manual segmentation paths -------------------------------------------------------------------
+
+        o_manual = os.path.join(self.manual_dir, f"sub-{ID}/anat/", f"{base_name}_space-orig_label-ivd_mask.nii.gz")
+
         # --- Run labeling -------------------------------------------------------------------
         if not os.path.exists(label_file) or redo:
             if auto:
@@ -639,6 +643,12 @@ class Preprocess_Sc:
                 )
 
             os.system(cmd)
+
+        # --- Use manual segmentation if available ---------------------------------------------------------
+
+        if os.path.exists(o_manual):
+            o_img=o_manual
+            print("/!\\ Manual segmentation file detected — using it as output.") if verbose else None
 
         # --- QC visualization ---------------------------------------------------------------
         if verbose:
