@@ -113,17 +113,10 @@ for ID_nb, ID in enumerate(IDs):
     #------------------------------------------------------------------
     #------ Vertebral labelling
     #------------------------------------------------------------------
-
-    if auto_vert_labels:
-        id_info = participants_tsv.loc[participants_tsv['participant_id'] == ID, ['anat_disc_ref','anat_disc_ref_z']]
-        vert= id_info['anat_disc_ref'].iloc[0][-1]
-        z_value = id_info['anat_disc_ref_z'].iloc[0]
-
-    vert_labels_files=preprocess_Sc.label_vertebrae(ID=ID,
+    disc_labels_files=preprocess_Sc.label_vertebrae(ID=ID,
                                                     i_img=raw_anat,
                                                     seg_img=seg_anat_sc_file,
                                                     c="t2",
-                                                    initz=f"{z_value},{vert}",
                                                     auto=auto_vert_labels,
                                                     redo=redo,
                                                     verbose=verbose)
@@ -142,7 +135,7 @@ for ID_nb, ID in enumerate(IDs):
     warpT2w_PAM50_files=preprocess_Sc.coreg_anat2PAM50(ID=ID,
                                                               i_img=raw_anat,
                                                               seg_img=seg_anat_sc_final_file,
-                                                              labels_img=vert_labels_files,
+                                                              labels_img=disc_labels_files,
                                                               img_type="t2",
                                                               tag='anat',
                                                               param=param,

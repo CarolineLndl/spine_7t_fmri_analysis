@@ -224,7 +224,7 @@ class Preprocess_Sc:
         if not os.path.exists(centerline_f + ".nii.gz") or redo_ctrl:
             if verbose:
                 print("Centerline for sub-" + ID)
-            cmd_centerline=f"sct_get_centerline -i {i_img} -o {centerline_f} -c t1 -method {method} -centerline-algo bspline -qc {self.qc_dir}/ -v 0"
+            cmd_centerline=f"sct_get_centerline -i {i_img} -o {centerline_f} -c t1 -method {method} -centerline-algo bspline -qc {self.qc_dir} -qc-subject sub-{ID} -v 0"
             os.system(cmd_centerline)
 
         # --- Create mask around centerline ------------------------------------------------
@@ -257,7 +257,7 @@ class Preprocess_Sc:
             if manual and redo_ctrl:
                 if verbose:
                     print("Running QC for manual centerline...")
-                cmd_qc=f"sct_qc -i {i_img} -s {centerline_f}.nii.gz -p sct_get_centerline -qc {self.qc_dir} -v 0"
+                cmd_qc=f"sct_qc -i {i_img} -s {centerline_f}.nii.gz -p sct_get_centerline -qc {self.qc_dir } -qc-subject sub-{ID} -v 0"
                 os.system(cmd_qc)
 
         # --- Generate QC plot -------------------------------------------------------------
@@ -362,7 +362,7 @@ class Preprocess_Sc:
         if not os.path.exists(moco_file) or redo:
             if verbose:
                 print(f">>>>> Running motion correction for sub-{ID}...")
-            cmd=f"sct_fmri_moco -i {i_img} -m {mask_img} -param {params} -ofolder {o_folder + self.structure} -x spline -g 1 -r 1 -qc {self.qc_dir}/sub-{ID}/ -qc-seg {mask_img} -v 0"
+            cmd=f"sct_fmri_moco -i {i_img} -m {mask_img} -param {params} -ofolder {o_folder + self.structure} -x spline -g 1 -r 1 -qc {self.qc_dir} -qc-subject sub-{ID} -qc-seg {mask_img} -v 0"
             os.system(cmd)
 
             # Rename output parameter files for clarity
@@ -511,22 +511,22 @@ class Preprocess_Sc:
 
             if img_type=="func":
                 if tissue==None:
-                    cmd=f"sct_deepseg sc_epi -i {i_img} -o {o_img} -qc {self.qc_dir }/sub-{ID}/ -qc-seg {mask_qc} -v 0" #segmentation
+                    cmd=f"sct_deepseg sc_epi -i {i_img} -o {o_img} -qc {self.qc_dir } -qc-subject sub-{ID} -qc-seg {mask_qc} -v 0" #segmentation
                 elif tissue=="csf":
                     cmd_propseg=f"sct_propseg -i {i_img} -c {contrast_anat} -CSF -o {o_img}" #segmentation
                     os.system(cmd_propseg) # run propseg
                     csf_mask=glob.glob(os.path.dirname(o_img) + "/*_CSF_*")[0] # filename of the CSF segmentation
-                    cmd=f"sct_qc -i {i_img} -s {csf_mask} -p sct_propseg -qc {self.qc_dir }/sub-{ID}/ -v 0" # QC report
+                    cmd=f"sct_qc -i {i_img} -s {csf_mask} -p sct_propseg -qc {self.qc_dir } -qc-subject sub-{ID} -v 0"
 
             elif img_type!="func":
                 if tissue=="gm":
-                    cmd=f"sct_deepseg graymatter -i {i_img} -c {contrast_anat} -thr 0.01 -o {o_img} -qc {self.qc_dir} -qc-subject sub-{ID} -v 0" # segmentation
+                    cmd=f"sct_deepseg graymatter -i {i_img} -c {contrast_anat} -thr 0.01 -o {o_img} -qc {self.qc_dir } -qc-subject sub-{ID} -v 0"
                 elif tissue=="wm":
                     cmd_fslmaths=f"fslmaths {i_img} -sub {i_gm_img} {o_img}"
                     os.system(cmd_fslmaths) # substract cord and gm segmentation to obtain wm
                     cmd=f"fslmaths {o_img} -thr 0 {o_img}" # threshold the mask at 0
                 else:
-                    cmd=f"sct_deepseg spinalcord -i {i_img} -c {contrast_anat} -thr 0.01 -o {o_img} -qc {self.qc_dir}/ -qc-subject sub-{ID} -v 0" # segmentation
+                    cmd=f"sct_deepseg spinalcord -i {i_img} -c {contrast_anat} -thr 0.01 -o {o_img} -qc {self.qc_dir} -qc-subject sub-{ID} -v 0" # segmentation
 
             os.system(cmd) # run the process
 
@@ -543,9 +543,9 @@ class Preprocess_Sc:
                 if os.path.exists(o_manual):
                     if redo_qc==True:
                         if tissue==None:
-                            cmd_qc=f"sct_qc -i {i_img} -s {o_manual} -p sct_deepseg_sc -qc {self.qc_dir}/sub-{ID}/ -v 0"
+                            cmd_qc=f"sct_qc -i {i_img} -s {o_manual} -p sct_deepseg_sc -qc {self.qc_dir} -qc-subject sub-{ID} -v 0"
                         elif tissue=="csf":
-                            cmd_qc=f"sct_qc -i {i_img} -s {o_manual} -p sct_propseg -qc {self.qc_dir}/sub-{ID}/ -v 0"
+                            cmd_qc=f"sct_qc -i {i_img} -s {o_manual} -p sct_propseg -qc {self.qc_dir} -qc-subject sub-{ID} -v 0"
                         os.system(cmd_qc)
 
                     ## QC path
@@ -576,111 +576,108 @@ class Preprocess_Sc:
         return o_img
 
 
-
-    def label_vertebrae(self,ID=None,i_img=None,seg_img=None,c="t2",initz=None,labels=range(1,15),auto=True,o_folder=None,ses_name='',task_name='',tag='',redo=False,verbose=True):
-
+    def label_vertebrae(self, ID=None, i_img=None, seg_img=None, c="t2", labels=range(1, 15), auto=True, o_folder=None, ses_name="", task_name="", tag="", redo=False, verbose=True):
         """
-        Labels vertebrae on a spinal cord image, automatically or manually.
-        Can use an existing segmentation to guide automatic labeling.
-
-        References:
-        ----------
-        - https://spinalcordtoolbox.com/user_section/command-line.html#sct-label-utils
-        - https://spinalcordtoolbox.com/stable/user_section/command-line/sct_label_vertebrae.html#sct-label-vertebrae
-
-        Attributes:
-        -----------
-        ID : str
-            Participant ID (required).
-        i_img : str
-            Input anatomical image filename (required).
-        seg_img : str
-            Spinal cord segmentation image, required for auto=True.
-        c : str
-            Image contrast ("t1" or "t2", default: "t2").
-        initz : int
-            Initial z-coordinate for first vertebra label (required if auto=True).
-        labels : list or range
-            Vertebra labels to assign (required if auto=False).
-        auto : bool
-            Automatic vertebra labeling (default: True). Manual labeling if False.
-        o_folder : str
-            Output folder (default: None; input folder used if not provided).
-        ses_name : str
-            Session name ('ses-' prefix if BIDS format).
-        task_name : str
-            Task name ('task-' prefix if BIDS format).
-        tag : str
-            Additional filename specification.
-        redo : bool
-            Redo labeling step (default: False).
-        verbose : bool
-            Show messages and QC plots (default: True).
+        Labels vertebrae automatically (totalspineseg) or manually (labels provided in derivatives/).
 
         Outputs:
         --------
         label_file : str
-            Labeled vertebrae image filename.
+            Labeled vertebrae / disc image filename.
         """
 
-        # --- Input checks --------------------------------------------------------------------------------
+        # --- Input checks ------------------------------------------------------------------
         if ID is None:
             raise Warning("Please provide participant ID, e.g., _.stc(ID='A001')")
         if i_img is None:
             raise Warning("Please provide input filename")
-        if auto and seg_img is None:
-            raise Warning("Automatic labeling requires a segmentation file (seg_img)")
 
-
-
-        # --- Define output folder and filenames ----------------------------------------------------------
+        # --- Define output folder -----------------------------------------------------------
         preprocess_dir = self.preprocessing_dir.format(ID)
 
-        if o_folder is None : # gave the default folder name if not provided
+        if o_folder is None:
             if auto:
-                o_folder = os.path.join(preprocess_dir, "anat", "sct_label_vertebrae")
+                o_folder = os.path.join(preprocess_dir, "anat", "sct_deepseg_totalspineseg")
             else:
                 o_folder = os.path.join(self.manual_dir, f"sub-{ID}", "anat")
 
         os.makedirs(o_folder, exist_ok=True)
 
         base_name = os.path.basename(i_img).split(".")[0]
+
         if auto:
-            label_file = os.path.join(o_folder, f"{base_name}_seg_labeled_discs.nii.gz")
+            label_file = os.path.join(
+                o_folder, f"{base_name}_totalspineseg_discs.nii.gz"
+            )
         else:
-            label_file = os.path.join(o_folder, f"{base_name}_space-orig_label-ivd_mask.nii.gz")
+            label_file = os.path.join(
+                o_folder, f"{base_name}_space-orig_label-ivd_mask.nii.gz"
+            )
 
+        # --- Manual segmentation paths -------------------------------------------------------------------
 
+        o_manual = os.path.join(self.manual_dir, f"sub-{ID}/anat/", f"{base_name}_space-orig_label-ivd_mask.nii.gz")
 
-        # --- Run labeling ---------------------------------------------------------------------------------
+        # --- Run labeling -------------------------------------------------------------------
         if not os.path.exists(label_file) or redo:
             if auto:
-                if initz is None:
-                    raise Warning("Automatic labeling requires initz: z-coordinate of one disc")
-                if seg_img is None:
-                    raise Warning("Automatic labeling requires segmentation file")
-                print(f">>>>> Running automatic vertebra labeling for sub-{ID}...") if verbose else None
-                cmd=f"sct_label_vertebrae -i {i_img} -s {seg_img} -c {c} -initz {initz} -qc {self.qc_dir}/ -o {o_folder}"
+                print(f">>>>> Running totalspineseg for sub-{ID}...") if verbose else None
+
+                cmd = (f"sct_deepseg spine -i {i_img} -o {o_folder}/{base_name}.nii.gz -qc {self.qc_dir} -qc-subject sub-{ID}")
+
             else:
-                nb=labels # array with label numbers
-                cmd="sct_label_utils -i " +i_img + " -o "+label_file+" -qc "+self.qc_dir+" -create-viewer " + ', '.join(map(str, nb)).replace(" ","") #1,2,3,4,5,6,7,8,9,10,11,12,13,14,15"
-                print(f">>>>> Place labels manually at the posterior tip of each inter-vertebral disc for sub-{ID}...") if verbose else None
+                nb = labels
+                print(
+                    f">>>>> Place labels manually at the posterior tip of each inter-vertebral disc "
+                    f"for sub-{ID}..."
+                ) if verbose else None
+
+                cmd = (
+                    "sct_label_utils "
+                    f"-i {i_img} "
+                    f"-o {label_file} "
+                    f"-qc {self.qc_dir} "
+                    f"-qc-subject sub-{ID} "
+                    f"-create-viewer "
+                    + ",".join(map(str, nb))
+                )
 
             os.system(cmd)
 
+        # --- Use manual segmentation if available ---------------------------------------------------------
 
+        if os.path.exists(o_manual):
+            o_img=o_manual
+            print("/!\\ Manual segmentation file detected — using it as output.") if verbose else None
 
-        # --- QC visualization -------------------------------------------------------------------------------
-        if verbose==True:
+        # --- QC visualization ---------------------------------------------------------------
+        if verbose:
             if auto:
-                qc_indiv_path=self.qc_dir + "/"+ self.qc_dir.split("/")[-3] +"/sub-" + ID + "/anat/sct_label_vertebrae/"
-                tag="automatic labeling"
-
+                qc_indiv_path = (
+                    self.qc_dir
+                    + "/"
+                    + self.qc_dir.split("/")[-3]
+                    + f"/sub-{ID}/anat/sct_totalspineseg/"
+                )
+                tag = "automatic vertebra labeling (totalspineseg)"
             else:
-                qc_indiv_path=self.qc_dir + "/"+ self.qc_dir.split("/")[-3] +"/sub-" + ID + "/anat/sct_label_utils/"
-                tag="manual labeling"
+                qc_indiv_path = (
+                    self.qc_dir
+                    + "/"
+                    + self.qc_dir.split("/")[-3]
+                    + f"/sub-{ID}/anat/sct_label_utils/"
+                )
+                tag = "manual vertebra labeling"
 
-            self._plot_qc(ID=ID, ses_name=ses_name, task_name=task_name, tag=tag, qc_indiv_path=qc_indiv_path, fig_size=(5,5),alpha=0.8)
+            self._plot_qc(
+                ID=ID,
+                ses_name=ses_name,
+                task_name=task_name,
+                tag=tag,
+                qc_indiv_path=qc_indiv_path,
+                fig_size=(5, 5),
+                alpha=0.8,
+            )
 
             print(" ")
 
@@ -765,7 +762,7 @@ class Preprocess_Sc:
 
         # --- Run registration ---------------------------------------------------------------------------
         if not os.path.exists(warp_from_anat2PAM50) or redo:
-            cmd_coreg=f"sct_register_to_template -i {i_img} -s {seg_img} -ldisc {labels_img} -c {img_type} -param {param} -ofolder {o_folder} -qc {self.qc_dir}/"
+            cmd_coreg=f"sct_register_to_template -i {i_img} -s {seg_img} -ldisc {labels_img} -c {img_type} -param {param} -ofolder {o_folder} -qc {self.qc_dir} -qc-subject sub-{ID}"
             print(">>>>> Registration step is running for sub-" + ID) if verbose == True else None
             os.system(cmd_coreg)
 
@@ -890,7 +887,7 @@ class Preprocess_Sc:
         # --- Run registration -------------------------------------------------------------------------------
         if not os.path.exists(o_img) or redo:
             print(f">>>>> Registration step running for sub-{ID}...") if verbose else None
-            cmd_coreg=f"sct_register_multimodal -d {PAM50_t2} -dseg {PAM50_cord} -i {i_img} -iseg {i_seg} -param {param} -initwarp {initwarp} -initwarpinv {initwarpinv} -owarp {o_warp_img} -owarpinv {o_warpinv_img} -ofolder {o_folder} -x spline -qc {self.qc_dir}/sub-{ID}/ -v 0"
+            cmd_coreg=f"sct_register_multimodal -d {PAM50_t2} -dseg {PAM50_cord} -i {i_img} -iseg {i_seg} -param {param} -initwarp {initwarp} -initwarpinv {initwarpinv} -owarp {o_warp_img} -owarpinv {o_warpinv_img} -ofolder {o_folder} -x spline -qc {self.qc_dir} -qc-subject sub-{ID} -v 0"
             os.system(cmd_coreg)
             os.rename(os.path.join(o_folder, f"{base_name}_reg.nii.gz"),o_img)
             if img_type=="func":
