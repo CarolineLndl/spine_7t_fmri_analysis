@@ -9,6 +9,7 @@ IDs=() # empty  → process all participants
 TASKS=() # empty → process all tasks
 RUN_PREPROSS=true
 RUN_DENOISING=true
+REDO=false
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
@@ -19,7 +20,7 @@ while [[ $# -gt 0 ]]; do
         --tasks) shift; while [[ $# -gt 0 && "$1" != --* ]]; do TASKS+=("$1"); shift; done ;;
         --no-preprocess) RUN_PREPROSS=false; shift;;
         --no-denoising) RUN_DENOISING=false; shift;;
-        *) echo "Unknown argument $1"; exit 1 ;;
+        --redo) REDO=true; shift;;
     esac
 done
 
@@ -54,7 +55,7 @@ timestamp=$(date +"%Y%m%d_%H%M%S")
 
 if [ "${RUN_PREPROSS}" = true ]; then
     echo "Starting preprocessing..."
-    nohup python -u ../code/preprocessing_workflow.py --path-data "${PATH_DATA}"  --ids "${IDs[@]}" "${TASKS_ARG[@]}" --redo True \
+    nohup python -u ../code/preprocessing_workflow.py --path-data "${PATH_DATA}"  --ids "${IDs[@]}" "${TASKS_ARG[@]}" --redo "${REDO}" \
     > "nohup_preprocessing_${timestamp}.out" 2>&1 &
 
     PID=$!
@@ -70,7 +71,7 @@ fi
 
 if [ "${RUN_DENOISING}" = true ]; then
     echo "Starting denoising..."
-    nohup python -u ../code/denoising_workflow.py --path-data "${PATH_DATA}" --ids "${IDs[@]}" "${TASKS_ARG[@]}" --redo True \
+    nohup python -u ../code/denoising_workflow.py --path-data "${PATH_DATA}" --ids "${IDs[@]}" "${TASKS_ARG[@]}" --redo "${REDO}" \
     > "nohup_denoising_${timestamp}.out" 2>&1 &
     
     PID=$!
