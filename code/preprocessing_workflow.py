@@ -58,6 +58,16 @@ path_data = args.path_data
 config["raw_dir"]=path_data
 config["code_dir"]=path_code
 
+# Display parameters in print
+print("=== Preprocessing parameters ===", flush=True)
+print("Participant IDs: ", IDs, flush=True)
+print("Tasks to process: ", tasks, flush=True)
+print("Verbose: ", verbose, flush=True)
+print("Manual centerline: ", manual_centerline, flush=True)
+print("Auto vertebral labels: ", auto_vert_labels, flush=True)
+print("Redo steps: ", redo, flush=True)
+print("================================", flush=True)
+
 # Load participants info
 participants_tsv = pd.read_csv(path_code + '/config/participants.tsv', sep='\t',dtype={'participant_id': str})
 
