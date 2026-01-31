@@ -372,6 +372,11 @@ class Preprocess_Sc:
             params_tsv=o_folder +'moco_params.tsv'.split('.')[0] + task_tag + run_tag + '.tsv'
             os.rename(o_folder + 'moco_params.tsv',params_tsv )
 
+            # Re-run moco with nearest neighbor interpolation for tSNR computation
+            o_folder_nn = o_folder[:-1] + self.structure + "_nn"
+            cmd_nn=f"sct_fmri_moco -i {i_img} -m {mask_img} -param {params} -ofolder {o_folder_nn} -x nn -g 1 -r 1 -v 0"
+            os.system(cmd_nn)
+
         # --- Load and plot motion parameters ----------------------------------------------
         ## Load motion parameters
         params_tsv=o_folder +'moco_params.tsv'.split('.')[0] + task_tag + run_tag + '.tsv'
