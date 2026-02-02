@@ -23,6 +23,7 @@ while [[ $# -gt 0 ]]; do
         --no-denoising) RUN_DENOISING=false; shift;;
         --no-figures) RUN_FIGURES=false; shift;;
         --redo) REDO=true; shift;;
+      *) echo "Unknown argument $1"; exit 1 ;;
     esac
 done
 
