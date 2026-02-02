@@ -252,7 +252,6 @@ def compute_tsnr_map(fname_file, ofolder, redo, first_n_vols=None):
     if not os.path.exists(fname_tsnr) or redo == True:
         if not os.path.exists(os.path.dirname(fname_tsnr)):
             os.makedirs(os.path.dirname(fname_tsnr))
-        tsnr_func = math_img('img.mean(axis=3) / img.std(axis=3)', img=fname_file)
         nii = nib.load(fname_file)
         if first_n_vols is None:
             first_n_vols = nii.shape[3]

@@ -16,8 +16,8 @@ import sys, json, glob, os, re, shutil, argparse
 import nibabel as nib
 import pandas as pd
 from utils import compute_tsnr_map, extract_tsnr_metric
+import matplotlib.pyplot as plt
 from IPython.display import Image, display
-import numpy as np
 
 
 def main():
@@ -149,11 +149,68 @@ def main():
                     print(f"sub-{ID} task-{task} acq-{acq_name} tsnr_mean: {tsnr_mean}", flush=True)
                     df_tsnr = pd.concat([pd.DataFrame([[ID, task, acq_name, tsnr_mean]], columns=df_tsnr.columns), df_tsnr], ignore_index=True)
 
-    df_tsnr.to_csv(os.path.join(path_fig_tsnr, "tsnr_metrics.csv"), index=False)
+    fname_tsnr_metrics = os.path.join(path_fig_tsnr, "tsnr_metrics.csv")
+    df_tsnr.to_csv(fname_tsnr_metrics, index=False)
 
     # Todo: Generate figures
+    # Create metric violin plot figure
+    print("=== Generate tSNR violin plot figure ===", flush=True)
+    df_tsnr = pd.read_csv(fname_tsnr_metrics)
+    list_baseline_tsnr = []
+    list_slicewise_tsnr = []
+
+    name_baseline = [a for a in config["design_exp"]["acq_names"] if a.find("Base") != -1][0]
+    name_slicewise = [a for a in config["design_exp"]["acq_names"] if a.find("Slice") != -1][0]
+
+    for ID in IDs:
+        df_sub = df_tsnr[df_tsnr["ID"] == int(ID)]
+        print(df_sub, flush=True)
+        done = False
+        # Ordering matters here
+        tasks = ["rest", "motor"]
+        for task in tasks:
+            if "rest" in task and len(df_sub[df_sub["task"] == task]) >= 2:
+                done = True
+                df_task = df_sub[df_sub["task"] == task]
+                if len(df_task) != 2:
+                    raise RuntimeError(f"We don't have 2 tSNR metric for sub-{ID} task-{task}")
+
+                tsnr_baseline = df_task[df_task["acq"] == name_baseline]["tsnr_mean"].values
+                tsnr_slicewise = df_task[df_task["acq"] == name_slicewise]["tsnr_mean"].values
+                list_baseline_tsnr.append(tsnr_baseline[0])
+                list_slicewise_tsnr.append(tsnr_slicewise[0])
+                continue
+
+            if not done:
+                # If no rest task, do something with the motor tasks
+                print(f"No rest task found for sub-{ID}, using motor task instead", flush=True)
+
+    fname_tsnr_violin_plot = os.path.join(path_fig_tsnr, "snr_violin_plot.png")
+    create_snr_violin_plot(list_baseline_tsnr, list_slicewise_tsnr, fname_tsnr_violin_plot)
 
     print("=== Figure script End ===", flush=True)
+
+
+def create_snr_violin_plot(snr_baseline: list, snr_shim: list, fname_output: str):
+    # Create a violin plot with matplotolib showing the distribution of SNR values for baseline and shim
+    # Link corresponding values for each subject with a line
+    fig = plt.figure(figsize=(5, 5))
+    ax = fig.add_subplot(1, 1, 1)
+    data = [snr_baseline, snr_shim]
+    parts = ax.violinplot(data, showmeans=True, showmedians=True)
+    for pc in parts['bodies']:
+        pc.set_facecolor('lightblue')
+        pc.set_edgecolor('black')
+        pc.set_alpha(0.7)
+    ax.set_xticks([1, 2])
+    ax.set_xticklabels(['Baseline 2nd order shim', 'Slice-wise f0xyz shim'])
+    ax.set_ylabel('Mean tSNR for each subject')
+    # Link corresponding values for each subject with a line
+    for i in range(len(snr_baseline)):
+        ax.plot([1, 2], [snr_baseline[i], snr_shim[i]], color='gray', linestyle='--', marker='o')
+    fig.tight_layout()
+    fig.savefig(fname_output, dpi=1000)
+
 
 
 def find_moco_for_tsnr_calculation(config, ID, task, acq_name):
