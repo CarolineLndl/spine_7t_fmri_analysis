@@ -10,7 +10,7 @@ TASKS=() # empty → process all tasks
 RUN_PREPROSS=true
 RUN_DENOISING=true
 RUN_FIGURES=true
-REDO=true
+REDO=false
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
@@ -22,8 +22,7 @@ while [[ $# -gt 0 ]]; do
         --no-preprocess) RUN_PREPROSS=false; shift;;
         --no-denoising) RUN_DENOISING=false; shift;;
         --no-figures) RUN_FIGURES=false; shift;;
-        --no-overwrite) REDO=false; shift;;
-        *) echo "Unknown argument $1"; exit 1 ;;
+        --redo) REDO=true; shift;;
     esac
 done
 
