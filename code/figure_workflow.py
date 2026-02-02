@@ -71,9 +71,11 @@ def main():
 
     #------------------------------------------------------------------
     #------ Compute tSNR
+    # ------------------------------------------------------------------
+
     # On tSNR map in PAM50 space : sub-{}_task-{}_acq-{}_bold_moco_mean_coreg_in_PAM50
     # On tSNR map in Original space : sub-{}_task-{}_acq-{}_bold_moco
-    # Todo: Use moco with nearest neighbour
+    # Todo: Use nn for moco
     # Use the run with the most volumes
     # Use the same number of volumes for each tsnr calculation
     # Todo: refactor into figure.py file
@@ -103,14 +105,34 @@ def main():
                 if selected_file is None:
                     continue
 
+                # Compute tSNR map in native space
                 path_tsnr_sub_folder = os.path.join(path_fig_data, f"sub-{ID}", f"task-{task}_acq-{acq_name}")
                 print("=== Compute tSNR map ===", flush=True)
                 fname_tsnr = compute_tsnr_map(selected_file, path_tsnr_sub_folder, redo, min_vols_for_tsnr)
 
-                # Extract metrics
+                # Warp tSNR in PAM50 space
+                fname_tsnr_in_template = fname_tsnr.replace("_bold_moco_tSNR.nii.gz", "_bold_moco_tsnr_in_PAM50.nii.gz")
+                if not os.path.exists(fname_tsnr_in_template) or redo:
+                    print("=== Warp tSNR map to PAM50 space ===", flush=True)
+
+                    fname_warp_from_func_to_template = os.path.join(
+                        config["raw_dir"],
+                        config["preprocess_dir"]["main_dir"].format(ID),
+                        "func",
+                        f"task-{task}_acq-{acq_name}",
+                        "sct_register_multimodal",
+                        os.path.basename(selected_file).replace("_bold_moco.nii.gz", "_from-func_to_PAM50_mode-image_xfm.nii.gz")
+                    )
+
+                    if not os.path.exists(fname_warp_from_func_to_template):
+                        raise RuntimeError(f"Warp file not found: {fname_warp_from_func_to_template}")
+                    fname_template = os.path.join(config["code_dir"], "template", config["PAM50_t2"])
+                    cmd_coreg = f"sct_apply_transfo -i {fname_tsnr} -d {fname_template} -w {fname_warp_from_func_to_template} -o {fname_tsnr_in_template} -x nn"
+                    os.system(cmd_coreg)
+
+                # Extract metrics from native space
                 print("=== Extract tSNR metrics ===", flush=True)
                 if fname_tsnr is not None:
-                    # Todo use nn mask moco
                     fname_mask = os.path.join(
                         config["raw_dir"],
                         config["preprocess_dir"]["main_dir"].format(ID),
@@ -128,8 +150,6 @@ def main():
                     df_tsnr = pd.concat([pd.DataFrame([[ID, task, acq_name, tsnr_mean]], columns=df_tsnr.columns), df_tsnr], ignore_index=True)
 
     df_tsnr.to_csv(os.path.join(path_fig_tsnr, "tsnr_metrics.csv"), index=False)
-
-    # Todo: Compute tSNR map in PAM50 space
 
     # Todo: Generate figures
 
