@@ -382,9 +382,8 @@ class Preprocess_Sc:
         ## Load motion parameters
         params_tsv=o_folder +'moco_params.tsv'.split('.')[0] + task_tag + run_tag + '.tsv'
         data=pd.read_csv(params_tsv, delimiter='\t')
-        params_txt=params_tsv.split('.')[0] + '.txt'
+        params_txt = os.path.splitext(params_tsv)[0] + '.txt'
         data.to_csv(params_txt,index=False, header=None)
-        params_txt=params_tsv.split('.')[0] + '.txt'
         params_data=pd.read_csv(params_txt, delimiter=',', header=None)
 
         ## Plot moco parameters
@@ -398,8 +397,9 @@ class Preprocess_Sc:
         if verbose:
             plt.show()
 
-        if not os.path.exists(params_txt.split(".")[0] + ".pdf") or redo==True:
-            plt.savefig(params_txt.split(".")[0] + ".pdf") # save the plot
+        params_pdf = os.path.splitext(params_txt)[0] + '.pdf'
+        if not os.path.exists(params_pdf) or redo==True:
+            plt.savefig(params_pdf) # save the plot
             plt.close()
 
         # --- Generate QC plot -------------------------------------------------------------
