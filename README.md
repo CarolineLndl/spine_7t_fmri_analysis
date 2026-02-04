@@ -122,7 +122,7 @@ export PATH_CODE="${PATH_PROJECT}/spine_7t_fmri_analysis"
 
 #### External dependencies
 
-- [Spinal Cord Toolbox v7.1](https://spinalcordtoolbox.com/en/latest/user_section/installation.html)
+- [Spinal Cord Toolbox v7.2](https://spinalcordtoolbox.com/en/latest/user_section/installation.html)
 - [FSL](https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FslInstallation)
 - [Conda](https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html)
 
