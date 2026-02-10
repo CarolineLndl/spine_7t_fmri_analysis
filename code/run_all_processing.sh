@@ -9,6 +9,7 @@ IDs=() # empty  → process all participants
 TASKS=() # empty → process all tasks
 RUN_PREPROSS=true
 RUN_DENOISING=true
+RUN_FIRSTLEVEL=false
 REDO=false
 
 # Parse arguments
@@ -20,6 +21,7 @@ while [[ $# -gt 0 ]]; do
         --tasks) shift; while [[ $# -gt 0 && "$1" != --* ]]; do TASKS+=("$1"); shift; done ;;
         --no-preprocess) RUN_PREPROSS=false; shift;;
         --no-denoising) RUN_DENOISING=false; shift;;
+        --firstlevel) RUN_FIRSTLEVEL=true; shift;;
         --redo) REDO=true; shift;;
     esac
 done
@@ -77,6 +79,22 @@ if [ "${RUN_DENOISING}" = true ]; then
     PID=$!
     echo "Denoising launched in background."
     echo "Log file: log/nohup_denoising_${timestamp}.out"
+    echo "To stop the process, run:"
+    echo "kill ${PID}"
+fi
+
+# --------------------------
+# Run first level analysis
+# --------------------------
+
+if [ "${RUN_FIRSTLEVEL}" = true ]; then
+    echo "Starting first level analysis..."
+    nohup python -u ../code/firstlevel_workflow.py --path-data "${PATH_DATA}" --ids "${IDs[@]}" "${TASKS_ARG[@]}" --redo "${REDO}" \
+    > "nohup_firstlevel_${timestamp}.out" 2>&1 &
+    
+    PID=$!
+    echo "First level analysis launched in background."
+    echo "Log file: log/nohup_firstlevel_${timestamp}.out"
     echo "To stop the process, run:"
     echo "kill ${PID}"
 fi
