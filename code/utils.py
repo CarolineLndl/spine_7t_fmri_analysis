@@ -6,12 +6,12 @@ import json, glob
 from scipy.stats import  iqr
 from pathlib import Path
 from datetime import datetime
+import warnings
 
 # Nilearn imports ----------------------------------------------------------
 from nilearn import image
-from nilearn.image import math_img,smooth_img
-from nilearn.input_data import NiftiMasker
-
+from nilearn.image import smooth_img
+from nilearn.maskers import NiftiMasker
 
 def tmean_img(ID=None,i_img=None,o_img=None,redo=False,verbose=False):
         
@@ -232,7 +232,7 @@ def standardize(i_img=None,o_folder=None,json_files=None,mask_img=None,tag="",re
                 json.dump(infos, f) # save info
                     
 
-def compute_tsnr_map(fname_file, ofolder, redo, first_n_vols=None):
+def compute_tsnr_map(fname_file, ofolder, redo, first_n_vols=None, smooth=False):
     """
     Attributes:
     ----------
@@ -261,13 +261,15 @@ def compute_tsnr_map(fname_file, ofolder, redo, first_n_vols=None):
         tsnr = np.mean(data, axis=3) / np.std(data, axis=3)
         nii_tsnr = nib.Nifti1Image(tsnr, affine=nii.affine, header=nii.header)
 
-        nii_tsnr_smooth = smooth_img(nii_tsnr, fwhm=[3, 3, 6])
+        if smooth:
+            nii_tsnr_smooth = smooth_img(nii_tsnr, fwhm=[3, 3, 6])
+
         nii_tsnr_smooth.to_filename(fname_tsnr)
 
     return fname_tsnr
 
 
-def extract_tsnr_metric(fname_file, fname_mask):
+def extract_mean_within_mask(fname_file, fname_mask):
     """
     Attributes:
     ----------
@@ -280,7 +282,10 @@ def extract_tsnr_metric(fname_file, fname_mask):
     # select the mask
     masker_stc = NiftiMasker(mask_img=fname_mask, smoothing_fwhm=None, standardize=False, detrend=False)
     # mask the image
-    tSNR_masked=masker_stc.fit_transform(fname_file)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        tSNR_masked = masker_stc.fit_transform(fname_file)
+    # Todo: does computing the mean exclude masked voxels
     # calculate the mean value
     mean_tSNR_masked=np.mean(tSNR_masked)
 
@@ -309,12 +314,13 @@ def tSNR(ID=None,i_img=None,o_dir=None,mask=None,warp_img=None,structure='spinal
         if redo==True:
             os.remove(o_txt) 
     if not os.path.exists(o_txt):
-        mean_tSNR_masked = extract_tsnr_metric(img_tSNR, mask)
+        mean_tSNR_masked = extract_mean_within_mask(img_tSNR, mask)
             
         with open(o_txt, 'a') as f:  # 'a' mode for appending to the file
             f.write(f"{mean_tSNR_masked}\n")  # Write the
 
     return o_txt, img_tSNR
+
 
 def get_latest_dir(base_dir):
     """
