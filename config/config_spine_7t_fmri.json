@@ -3,7 +3,6 @@
 
 "PAM50_cord":"PAM50_cord_c1t4.nii.gz",
 "PAM50_t2":"PAM50_t2_c1t4.nii.gz",
-"PAM50_csf":"PAM50_cs_c1t4f.nii.gz",
 "structures":["spinalcord"],
 
 "design_exp":{"ses_nb":1,
