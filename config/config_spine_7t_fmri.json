@@ -1,8 +1,8 @@
 {"derivatives_dir":"derivatives/",
 "manual_dir":"derivatives/manual/",
 
-"PAM50_cord":"PAM50_cord_c1t4.nii.gz",
-"PAM50_t2":"PAM50_t2_c1t4.nii.gz",
+"PAM50_cord":"PAM50_cord.nii.gz",
+"PAM50_t2":"PAM50_t2.nii.gz",
 "structures":["spinalcord"],
 
 "design_exp":{"ses_nb":1,
