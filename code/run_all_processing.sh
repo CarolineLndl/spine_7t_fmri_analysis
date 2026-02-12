@@ -7,8 +7,8 @@ PATH_DATA="$PATH_DATA" #Defaults from environment
 PATH_CODE="$PATH_CODE" #Defaults from environment
 IDs=() # empty  → process all participants
 TASKS=() # empty → process all tasks
-RUN_PREPROSS=true
-RUN_DENOISING=true
+RUN_PREPROSS=false
+RUN_DENOISING=false
 RUN_FIRSTLEVEL=false
 REDO=false
 
@@ -19,12 +19,20 @@ while [[ $# -gt 0 ]]; do
         --path-code) PATH_CODE="$2"; shift 2 ;;
         --ids) shift; while [[ $# -gt 0 && "$1" != --* ]]; do IDs+=("$1"); shift; done ;;
         --tasks) shift; while [[ $# -gt 0 && "$1" != --* ]]; do TASKS+=("$1"); shift; done ;;
-        --no-preprocess) RUN_PREPROSS=false; shift;;
-        --no-denoising) RUN_DENOISING=false; shift;;
+        --preprocess) RUN_PREPROSS=true; shift;;
+        --denoising) RUN_DENOISING=true; shift;;
         --firstlevel) RUN_FIRSTLEVEL=true; shift;;
         --redo) REDO=true; shift;;
     esac
 done
+
+if [ "${RUN_PREPROSS}" = false ] && \
+   [ "${RUN_DENOISING}" = false ] && \
+   [ "${RUN_FIRSTLEVEL}" = false ]; then
+    echo "ERROR: No processing step selected."
+    echo "Use --preprocess, --denoising, and/or --firstlevel"
+    exit 1
+fi
 
 # Show participants
 [ ${#IDs[@]} -eq 0 ] && echo "No specific IDs provided: processing all participants" \
