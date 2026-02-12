@@ -786,6 +786,11 @@ class Preprocess_Sc:
             cmd_template = f"sct_warp_template -d {i_img} -w {warp_from_PAM502anat} -s 1 -ofolder {template_folder} -a 0 -s 0"
             os.system(cmd_template)
 
+        else:
+            print("/!\\ Warping field detected — using it") if verbose else None
+            # Generate QC report
+            cmd_qc=f"sct_qc -i {i_img} -s {seg_img} -p sct_register_to_template -d {os.path.join(o_folder, 'template2anat.nii.gz')} -qc {self.qc_dir} -qc-subject sub-{ID} -v 0"
+            os.system(cmd_qc)
 
         # --- QC visualization ---------------------------------------------------------------------------
         if verbose:
@@ -904,6 +909,11 @@ class Preprocess_Sc:
             if img_type=="func":
                 os.rename(glob.glob(o_folder+  "PAM50_t2_*reg.nii.gz")[0],o_folder+  "PAM50_t2_reg" + run_tag + ".nii.gz")
 
+        else:
+            print("/!\\ Registration detected — using it") if verbose else None
+            # Generate QC report
+            cmd_qc=f"sct_qc -i {i_img} -s {i_seg} -p sct_register_multimodal -d {os.path.join(o_folder, 'PAM50_t2_reg' + run_tag + '.nii.gz')} -qc {self.qc_dir} -qc-subject sub-{ID} -v 0"
+            os.system(cmd_qc)
 
         if verbose:
             qc_indiv_path = os.path.join(self.qc_dir, f"sub-{ID}", ses_name, "func", task_name, "sct_register_multimodal", "sct_register_multimodal")
