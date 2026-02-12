@@ -140,7 +140,7 @@ for ID_nb, ID in enumerate(IDs):
 
     manual_seg_file=f'{manual_dir}/sub-{ID}/anat/' + os.path.basename(seg_anat_sc_file)
     seg_anat_sc_final_file=manual_seg_file if os.path.exists(manual_seg_file) else seg_anat_sc_file
-    param = "step=1,type=seg,algo=centermassrot:step=2,type=im,algo=syn,iter=5,slicewise=1,metric=CC,smooth=0"
+    param = "step=1,type=seg,algo=centermassrot"
 
     warpT2w_PAM50_files=preprocess_Sc.coreg_anat2PAM50(ID=ID,
                                                               i_img=raw_anat,
@@ -149,7 +149,7 @@ for ID_nb, ID in enumerate(IDs):
                                                               img_type="t2",
                                                               tag='anat',
                                                               param=param,
-                                                              redo=redo,
+                                                              redo=True,
                                                               verbose=verbose)
 
     print(f'=== Registration anat to PAM50 : Done {ID} ===', flush=True)
