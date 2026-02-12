@@ -48,6 +48,10 @@ def main():
     config["raw_dir"] = path_data
     config["code_dir"] = path_code
 
+    for task_available in config['design_exp']['task_names']:
+        if task_available not in config['design_exp']['task_names']:
+            raise ValueError(f"All tasks need to be run to generate the figure")
+
     # Load participants info
     participants_tsv = pd.read_csv(os.path.join(path_code, 'config', 'participants.tsv'), sep='\t',dtype={'participant_id': str})
 

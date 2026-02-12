@@ -243,3 +243,22 @@ bash "${PATH_CODE}/code/run_all_processing.sh" --path-data "${PATH_DATA}" --path
 ```
 
 ### 2.3 First-level Analysis (TBD) 📈
+
+
+### 2.4 Figures  🧹
+
+Should be run after the first level analysis.
+
+#### Description of the figure steps
+- **I. tSNR calculation:** to regressed out the residual motion effects, we extracted slice-wise motion parameters from the moco files generated during the motion correction step.
+
+#### Run figures
+- Runs figure generation steps automatically with output log from STDOUT.
+- By default, the steps are not rerun if some outputs already exist.
+- If you already have setup `PATH_CODE` and `PATH_DATA`, you don't need to specify `--path-data` and `--path-code`.
+- Specify individuals to process (`--ids 090 101 106`) or `IDs=(090 101 106)` and (`--ids "${IDs[@]}"`), the default option runs on all participants in the `participants.tsv`. Both tasks need to be used to generate the figures.
+
+```bash
+bash "${PATH_CODE}/code/run_all_processing.sh" --path-data "${PATH_DATA}" --path-code "${PATH_CODE}" --ids "${IDs[@]}" --figures
+
+```
