@@ -86,7 +86,6 @@ def main():
     # Todo: Use nn for moco
     # Use the run with the most volumes
     # Use the same number of volumes for each tsnr calculation
-    # Todo: refactor into figure.py file
     #------------------------------------------------------------------
     print("=== Compute tSNR map on longest moco neighbour run ===", flush=True)
     fname_tsnr_metrics = os.path.join(path_fig_tsnr, "tsnr_metrics.csv")

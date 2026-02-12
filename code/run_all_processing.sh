@@ -92,11 +92,11 @@ fi
 if [ "${RUN_FIRSTLEVEL}" = true ]; then
     echo "Starting first level analysis..."
     nohup python -u ../code/firstlevel_workflow.py --path-data "${PATH_DATA}" --ids "${IDs[@]}" "${TASKS_ARG[@]}" --redo "${REDO}" \
-    > "nohup_firstlevel_${timestamp}.out" 2>&1 &
+    > "nohup_firstlevel_${timestamp}.txt" 2>&1 &
 
     PID=$!
     echo "First level analysis launched in background."
-    echo "Log file: log/nohup_firstlevel_${timestamp}.out"
+    echo "Log file: log/nohup_firstlevel_${timestamp}.txt"
     echo "To stop the process, run:"
     echo "kill ${PID}"
 fi

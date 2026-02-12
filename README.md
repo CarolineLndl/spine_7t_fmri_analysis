@@ -250,7 +250,7 @@ bash "${PATH_CODE}/code/run_all_processing.sh" --path-data "${PATH_DATA}" --path
 Should be run after the first level analysis.
 
 #### Description of the figure steps
-- **I. tSNR calculation:** to regressed out the residual motion effects, we extracted slice-wise motion parameters from the moco files generated during the motion correction step.
+- **I. tSNR** Average tSNR maps in the PAM50 template are computed and averaged across participants. Average tSNR in for each participant is also extracted in its native space. 
 
 #### Run figures
 - Runs figure generation steps automatically with output log from STDOUT.
