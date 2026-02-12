@@ -217,7 +217,6 @@ bash "${PATH_CODE}/code/run_all_processing.sh" --path-data "${PATH_DATA}" --path
 
 
 ##### ‼️ What we want to try to improve
-> - **I. Motion correction:** try different parameters for the mask size, or different reference images (mean functional, middle volume, etc).
 > - **IV. Registration to template:** check if the parameters for the registration are ok.
 
 ### 2.2 Denoising  🧹
@@ -244,4 +243,20 @@ bash "${PATH_CODE}/code/run_all_processing.sh" --path-data "${PATH_DATA}" --path
 
 ```
 
-### 2.3 First-level Analysis (TBD) 📈
+### 2.3 First-level Analysis 📈
+Should be run after preprocessing and denoising.
+
+#### Description of the first-level analysis
+- **I. Run first level GLM:** to estimate the activation maps for each condition of interest (e.g., motor task vs rest) using the events files and the denoised functional data. The design matrix includes the conditions of interest.
+- **II. Normalize the resulting stat maps to PAM50 template space:** to allow for group-level analyses, we normalized the resulting stat maps to the PAM50 template space using the warps generated during the preprocessing step.
+
+#### Run first-level analysis
+- If you already have setup `PATH_CODE` and `PATH_DATA`, you don't need to specify `--path-data` and `--path-code`.
+- Specify individuals to process (`--ids 090 101 106`) or `IDs=(090 101 106)` and (`--ids "${IDs[@]}"`) , the default option run preprocessing on all participants in the `participants.tsv`. Specify task to analyse (`--tasks` `motor`), the default option run denoising on all tasks defined in the `config_file_7t_fmri.json` but for this protocol you shoul specify motor task only.
+- You add `--firstlevel` to run first level analysis.
+
+```bash
+# ids(090 101 106)
+bash "${PATH_CODE}/code/run_all_processing.sh" --path-data "${PATH_DATA}" --path-code "${PATH_CODE}" --ids "${IDs[@]}" --tasks motor --firstlevel
+
+```
