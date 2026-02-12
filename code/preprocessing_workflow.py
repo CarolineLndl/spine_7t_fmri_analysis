@@ -149,7 +149,7 @@ for ID_nb, ID in enumerate(IDs):
                                                               img_type="t2",
                                                               tag='anat',
                                                               param=param,
-                                                              redo=True,
+                                                              redo=redo,
                                                               verbose=verbose)
 
     print(f'=== Registration anat to PAM50 : Done {ID} ===', flush=True)
@@ -231,16 +231,16 @@ for ID_nb, ID in enumerate(IDs):
                 #------------------------------------------------------------------
                 #------ Registration in PAM50
                 #------------------------------------------------------------------
-                param="step=1,type=seg,algo=slicereg,metric=MeanSquares,smooth=2:step=2,type=im,algo=syn,metric=CC,iter=3,slicewise=1"
+                param="step=1,type=seg,algo=centermass"
                 func2PAM50_dir=preprocess_Sc.coreg_img2PAM50(ID=ID,
                                                              i_img=moco_mean_f,
                                                              i_seg=seg_func_sc_file,
                                                              task_name=tag,
                                                              run_name=run_name,
-                                                             initwarp=warpT2w_PAM50_files[1],
-                                                             initwarpinv=warpT2w_PAM50_files[0],
+                                                             initwarp=warpT2w_PAM50_files[0],
+                                                             initwarpinv=warpT2w_PAM50_files[1],
                                                              param=param,
-                                                             redo=redo,
+                                                             redo=True, # TODO JCA: remove it after debugging
                                                              verbose=verbose)
 
                 print(f'=== Func registration : Done  {ID} {tag} {run_name} ===')
