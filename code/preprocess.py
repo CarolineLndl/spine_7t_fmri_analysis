@@ -383,7 +383,8 @@ class Preprocess_Sc:
         params_tsv=o_folder +'moco_params.tsv'.split('.')[0] + task_tag + run_tag + '.tsv'
         data=pd.read_csv(params_tsv, delimiter='\t')
         params_txt = os.path.splitext(params_tsv)[0] + '.txt'
-        data.to_csv(params_txt,index=False, header=None)
+        if not os.path.exists(params_txt) or redo:
+            data.to_csv(params_txt,index=False, header=None)
         params_data=pd.read_csv(params_txt, delimiter=',', header=None)
 
         ## Plot moco parameters
@@ -403,14 +404,12 @@ class Preprocess_Sc:
             plt.close()
 
         # --- Generate QC plot -------------------------------------------------------------
-        if verbose:
-            diff_XY = np.abs(np.diff(params_data[0])) # Calculate Framewise displacement (abs difference of displacement between each volumes)
-            meandiff=[np.mean(diff_XY)]
-            print(f"sub-{ID} Diff_XY: " + str(round(meandiff[0],3)) + " mm")
-
-            if not os.path.exists(o_folder + self.structure+'FD_mean.txt') or redo==True:
+        diff_XY = np.abs(np.diff(params_data[0])) # Calculate Framewise displacement (abs difference of displacement between each volumes)
+        meandiff=[np.mean(diff_XY)]
+        if not os.path.exists(o_folder + self.structure+'FD_mean.txt') or redo==True:
                 np.savetxt(o_folder +self.structure+ 'FD_mean.txt', [meandiff]) # save the mean framewise displacement
-
+        if verbose:
+            print(f"sub-{ID} Diff_XY: " + str(round(meandiff[0],3)) + " mm")
             qc_indiv_path = f"{self.qc_dir}/sub-{ID}/func/{ses_name}/{task_name}/sct_fmri_moco/sct_fmri_moco/"
             qc_indiv_dir=utils.get_latest_dir(base_dir=qc_indiv_path)
 
