@@ -151,7 +151,7 @@ for ID_nb,ID in enumerate(IDs):
                 #------------------------------------------------------------------
                 #------ Combine all confounds together
                 #------------------------------------------------------------------
-                confound_infos={'compcor':5} #'outliers':1 #'moco':2,
+                confound_infos={'outliers':1,'moco':2,'compcor':5} #'outliers':1 #'moco':2,
                 confounds=denoising.combine_confounds(
                     ID=ID,
                     task_name=tag,
