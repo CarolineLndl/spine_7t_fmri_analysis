@@ -38,6 +38,8 @@
 
 "first_level":{"dir":"derivatives/processing/first_level/sub-{}/"},
 
+"figures_dir":{"main_dir":"derivatives/processing/figures/"},
+
  "acq_params":{"TR":"",
 "physio_frq":400,
 "physio_json_exists":true}

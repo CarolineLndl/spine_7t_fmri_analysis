@@ -6,15 +6,12 @@ import json, glob
 from scipy.stats import  iqr
 from pathlib import Path
 from datetime import datetime
+import warnings
 
 # Nilearn imports ----------------------------------------------------------
 from nilearn import image
-from nilearn.image import math_img,smooth_img
-from nilearn.input_data import NiftiMasker
-
-
-
-
+from nilearn.image import smooth_img
+from nilearn.maskers import NiftiMasker
 
 def tmean_img(ID=None,i_img=None,o_img=None,redo=False,verbose=False):
         
@@ -52,6 +49,7 @@ def tmean_img(ID=None,i_img=None,o_img=None,redo=False,verbose=False):
             print("fsleyes " + o_img)
             
         return o_img
+
 
 def group_mean_img(IDs=None,i_dir=None,o_dir=None,prefix_tag='',suffix_tag="",tag='',remove_4d=True,redo=False,verbose=False):
         
@@ -126,7 +124,8 @@ def group_mean_img(IDs=None,i_dir=None,o_dir=None,prefix_tag='',suffix_tag="",ta
         
             
         return o_img_mean
-    
+
+
 def unzip_file(i_file,o_folder=None,ext=".nii",zip_file=False, redo=False,verbose=False):
         '''
         unzip the file to match with SPM
@@ -185,7 +184,8 @@ def unzip_file(i_file,o_folder=None,ext=".nii",zip_file=False, redo=False,verbos
         
             
         return output_file
-    
+
+
 def standardize(i_img=None,o_folder=None,json_files=None,mask_img=None,tag="",redo=False,verbose=False):
 
         '''
@@ -232,6 +232,66 @@ def standardize(i_img=None,o_folder=None,json_files=None,mask_img=None,tag="",re
                 json.dump(infos, f) # save info
                     
 
+def compute_tsnr_map(fname_file, ofolder, redo, first_n_vols=None, smooth=False):
+    """
+    Attributes:
+    ----------
+    fname_file: Filename of the input 4D NIfTI file to compute tSNR from
+    ofolder: Output folder name
+    redo: Overwrite existing tSNR file if True
+    first_n_vols: If specified, only use the first n volumes to compute tSNR
+
+    Returns:
+        str: Filename of the tSNR NIfTI file
+    """
+    if not os.path.exists(fname_file):
+        return
+
+    fname_tsnr= os.path.join(ofolder, os.path.basename(fname_file).split(".")[0] + "_tSNR.nii.gz")
+    # compute tSNR *******************************************************************************
+    if not os.path.exists(fname_tsnr) or redo == True:
+        if not os.path.exists(os.path.dirname(fname_tsnr)):
+            os.makedirs(os.path.dirname(fname_tsnr))
+        nii = nib.load(fname_file)
+        if first_n_vols is None:
+            first_n_vols = nii.shape[3]
+        if first_n_vols > nii.shape[3]:
+            raise ValueError(f"first_n_vols ({first_n_vols}) is greater than the number of volumes in the file ({nii.shape[3]})")
+        data = nii.get_fdata()[:, :, :, :first_n_vols]
+        tsnr = np.mean(data, axis=3) / np.std(data, axis=3)
+        nii_tsnr = nib.Nifti1Image(tsnr, affine=nii.affine, header=nii.header)
+
+        if smooth:
+            nii_tsnr_smooth = smooth_img(nii_tsnr, fwhm=[3, 3, 6])
+
+        nii_tsnr_smooth.to_filename(fname_tsnr)
+
+    return fname_tsnr
+
+
+def extract_mean_within_mask(fname_file, fname_mask):
+    """
+    Attributes:
+    ----------
+    fname_file: Filename of the input 4D NIfTI file to compute tSNR from
+    fname_mask: Filename of the input 3D NIfTI file mask to compute tSNR metric within
+
+    Returns:
+        float: Mean tSNR value within the mask
+    """
+    # select the mask
+    masker_stc = NiftiMasker(mask_img=fname_mask, smoothing_fwhm=None, standardize=False, detrend=False)
+    # mask the image
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        tSNR_masked = masker_stc.fit_transform(fname_file)
+    # Todo: does computing the mean exclude masked voxels
+    # calculate the mean value
+    mean_tSNR_masked=np.mean(tSNR_masked)
+
+    return mean_tSNR_masked
+
+
 def tSNR(ID=None,i_img=None,o_dir=None,mask=None,warp_img=None,structure='spinalcord',redo=False):
     '''
         This function calculate the tSNR within the brain or spinal cord
@@ -246,32 +306,21 @@ def tSNR(ID=None,i_img=None,o_dir=None,mask=None,warp_img=None,structure='spinal
     
     '''
 
-    img_tSNR= o_dir + "sub-"+ ID +"/" + os.path.basename(i_img).split(".")[0] + "_tSNR.nii.gz"
-    # compute tSNR *******************************************************************************
-    if not os.path.exists(img_tSNR) or redo==True:
-        if not os.path.exists(os.path.dirname(img_tSNR)):
-            os.mkdir(os.path.dirname(img_tSNR))
-        tsnr_func= math_img('img.mean(axis=3) / img.std(axis=3)', img=i_img)
-        tsnr_func_smooth = smooth_img(tsnr_func, fwhm=[3,3,6])
-        tsnr_func_smooth.to_filename(img_tSNR)
+    img_tSNR = compute_tsnr_map(i_img, o_dir, redo)
 
     # extract value inside the mask
     o_txt=o_dir + "sub-"+ ID +"/" +os.path.basename(i_img).split(".")[0] + "mean.txt" 
     if os.path.exists(o_txt):
         if redo==True:
             os.remove(o_txt) 
-    if not os.path.exists(o_txt):  
-        masker_stc = NiftiMasker(mask_img=mask,smoothing_fwhm=None,standardize=False,detrend=False) # select the mask
-        tSNR_masked=masker_stc.fit_transform(img_tSNR) # mask the image
-        mean_tSNR_masked=np.mean(tSNR_masked) # calculate the mean value
+    if not os.path.exists(o_txt):
+        mean_tSNR_masked = extract_mean_within_mask(img_tSNR, mask)
             
         with open(o_txt, 'a') as f:  # 'a' mode for appending to the file
             f.write(f"{mean_tSNR_masked}\n")  # Write the
 
-        
-    
-            
     return o_txt, img_tSNR
+
 
 def get_latest_dir(base_dir):
     """

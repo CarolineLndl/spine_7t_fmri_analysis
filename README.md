@@ -161,15 +161,14 @@ pip install -r "${PATH_CODE}/config/requirements.txt"
 Run the pipeline:
 
 ```bash
-bash "${PATH_CODE}/code/run_all_processing.sh" --path-data "${PATH_DATA}" --path-code "${PATH_CODE}" --ids "${IDs[@]}" --tasks motor --no-denoising
+bash "${PATH_CODE}/code/run_all_processing.sh" --path-data "${PATH_DATA}" --path-code "${PATH_CODE}" --ids "${IDs[@]}" --tasks motor --preprocess
 ```
 
 - Runs preprocessing steps automatically with output log from STDOUT.
-- By default all the steps are rerun even if some outputs already exist. If manual corrections were made, these files will be used as input for subsequent steps.
+- By default all the steps will not be rerun if some outputs already exist. If manual corrections were made, these files will be used as input for subsequent steps. Use --redo to force rerunning all the steps even if some outputs already exist.
 - If you have already setup `PATH_CODE` and `PATH_DATA`, you don't need to specify `--path-data` and `--path-code`.
 - Specify individuals to process (`--ids 090 101 106`) or `IDs=(090 101 106)` and (`--ids "${IDs[@]}"`) , the default option run preprocessing on all participants in the `participants.tsv`.
 - Specify task to process (`--tasks` `motor` or `rest`), the default option runs preprocessing on all tasks defined in the `config_file_7t_fmri.json`
-- You can remove `--no-denoising` to run denoising after preprocessing (see section 2.2).
 
 > [!WARNING]  
 > Each step manually modified will imply that all subsequent steps need to be re-run.
@@ -232,14 +231,13 @@ Should be run after preprocessing.
 
 #### Run denoising
 - Runs preprocessing steps automatically with output log from STDOUT.
-- By default all the steps are rerun even if some outputs already exist.
+- By default, the steps are not rerun if some outputs already exist.
 - If you already have setup `PATH_CODE` and `PATH_DATA`, you don't need to specify `--path-data` and `--path-code`.
 - Specify individuals to process (`--ids 090 101 106`) or `IDs=(090 101 106)` and (`--ids "${IDs[@]}"`) , the default option run preprocessing on all participants in the `participants.tsv`. Specify task to denoise (`--tasks` `motor` or `rest`), the default option run denoising on all tasks defined in the `config_file_7t_fmri.json`.
-- You can remove `--no-preprocess` to run preprocessing before denoising (see section 2.1).
 
 ```bash
 # ids(090 101 106)
-bash "${PATH_CODE}/code/run_all_processing.sh" --path-data "${PATH_DATA}" --path-code "${PATH_CODE}" --ids "${IDs[@]}" --tasks motor --no-preprocess
+bash "${PATH_CODE}/code/run_all_processing.sh" --path-data "${PATH_DATA}" --path-code "${PATH_CODE}" --ids "${IDs[@]}" --tasks motor --denoising
 
 ```
 
@@ -258,5 +256,24 @@ Should be run after preprocessing and denoising.
 ```bash
 # ids(090 101 106)
 bash "${PATH_CODE}/code/run_all_processing.sh" --path-data "${PATH_DATA}" --path-code "${PATH_CODE}" --ids "${IDs[@]}" --tasks motor --firstlevel
+
+```
+
+
+### 2.4 Figures  🧹
+
+Should be run after the first level analysis.
+
+#### Description of the figure steps
+- **I. tSNR** Average tSNR maps in the PAM50 template are computed and averaged across participants. Average tSNR in for each participant is also extracted in its native space. 
+
+#### Run figures
+- Runs figure generation steps automatically with output log from STDOUT.
+- By default, the steps are not rerun if some outputs already exist.
+- If you already have setup `PATH_CODE` and `PATH_DATA`, you don't need to specify `--path-data` and `--path-code`.
+- Specify individuals to process (`--ids 090 101 106`) or `IDs=(090 101 106)` and (`--ids "${IDs[@]}"`), the default option runs on all participants in the `participants.tsv`. Both tasks need to be used to generate the figures.
+
+```bash
+bash "${PATH_CODE}/code/run_all_processing.sh" --path-data "${PATH_DATA}" --path-code "${PATH_CODE}" --ids "${IDs[@]}" --figures
 
 ```
