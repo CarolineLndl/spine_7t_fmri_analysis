@@ -222,15 +222,13 @@ class Preprocess_Sc:
 
         # --- Compute centerline -----------------------------------------------------------
         if not os.path.exists(centerline_f + ".nii.gz") or redo_ctrl:
-            if verbose:
-                print("Centerline for sub-" + ID)
+            print("Centerline for sub-" + ID)
             cmd_centerline=f"sct_get_centerline -i {i_img} -o {centerline_f} -c t1 -method {method} -centerline-algo bspline -qc {self.qc_dir} -qc-subject sub-{ID} -v 0"
             os.system(cmd_centerline)
 
         # --- Create mask around centerline ------------------------------------------------
         if not os.path.exists(mask_f) or redo_mask:
-            if verbose:
-                print("Create a mask for sub-" + ID)
+            print("Create a mask for sub-" + ID)
             cmd_mask=f"sct_create_mask -i {i_img} -p centerline,{centerline_f}.nii.gz -size {radius_size} -o {mask_f} -v 0"
             os.system(cmd_mask)
 
@@ -250,13 +248,11 @@ class Preprocess_Sc:
         if os.path.exists(manual_file):
             folder_list=glob.glob(f"{self.qc_dir}/sub-{ID}/func/{task_name}/sct_get_centerline/*") #check number of folder in QC dir
             centerline_f = manual_file.split(".nii.gz")[0]
-            if verbose:
-                print(f"⚠ A manual centerline file exists: {manual_file}")
-                print("The manual centerline is prioritized. Remove it to use the automatic version.")
+            print(f"⚠ A manual centerline file exists: {manual_file}")
+            print("The manual centerline is prioritized. Remove it to use the automatic version.")
 
             if manual and redo_ctrl:
-                if verbose:
-                    print("Running QC for manual centerline...")
+                print("Running QC for manual centerline...")
                 cmd_qc=f"sct_qc -i {i_img} -s {centerline_f}.nii.gz -p sct_get_centerline -qc {self.qc_dir } -qc-subject sub-{ID} -v 0"
                 os.system(cmd_qc)
 
@@ -355,13 +351,11 @@ class Preprocess_Sc:
         # --- Define motion correction parameters -----------------------------------------
         if params is None:
             params = 'poly=0,smooth=1,metric=MeanSquares,gradStep=1,sampling=0.2'
-            if verbose:
-                print(f"Using default motion correction parameters: {params}")
+            print(f"Using default motion correction parameters: {params}")
 
         # --- Run motion correction --------------------------------------------------------
         if not os.path.exists(moco_file) or redo:
-            if verbose:
-                print(f">>>>> Running motion correction for sub-{ID}...")
+            print(f">>>>> Running motion correction for sub-{ID}...")
             cmd=f"sct_fmri_moco -i {i_img} -m {mask_img} -param {params} -ofolder {o_folder + self.structure} -x spline -g 1 -r 1 -qc {self.qc_dir} -qc-subject sub-{ID} -qc-seg {mask_img} -v 0"
             os.system(cmd)
 
@@ -512,7 +506,7 @@ class Preprocess_Sc:
 
         # --- Run segmentation ----------------------------------------------------------------------------
         if not os.path.exists(o_img) or redo:
-            print(f">>>>> Segmentation is running for {img_type} image of sub-{ID}...") if verbose else None
+            print(f">>>>> Segmentation is running for {img_type} image of sub-{ID}...")
 
             if img_type=="func":
                 if tissue==None:
@@ -539,7 +533,7 @@ class Preprocess_Sc:
 
         if os.path.exists(o_manual):
             o_img=o_manual
-            print("/!\\ Manual segmentation file detected — using it as output.") if verbose else None
+            print("/!\\ Manual segmentation file detected — using it as output.")
             # Generate QC report
             cmd_qc=f"sct_qc -i {i_img} -s {o_manual} -p sct_deepseg_sc -qc {self.qc_dir} -qc-subject sub-{ID} -v 0"
             os.system(cmd_qc)
@@ -628,7 +622,7 @@ class Preprocess_Sc:
         # --- Run labeling -------------------------------------------------------------------
         if not os.path.exists(label_file) or redo:
             if auto:
-                print(f">>>>> Running totalspineseg for sub-{ID}...") if verbose else None
+                print(f">>>>> Running totalspineseg for sub-{ID}...")
 
                 cmd = (f"sct_deepseg spine -i {i_img} -o {o_folder}/{base_name}.nii.gz -qc {self.qc_dir} -qc-subject sub-{ID}")
 
@@ -637,7 +631,7 @@ class Preprocess_Sc:
                 print(
                     f">>>>> Place labels manually at the posterior tip of each inter-vertebral disc "
                     f"for sub-{ID}..."
-                ) if verbose else None
+                )
 
                 cmd = (
                     "sct_label_utils "
@@ -655,7 +649,7 @@ class Preprocess_Sc:
 
         if os.path.exists(o_manual):
             o_img=o_manual
-            print("/!\\ Manual segmentation file detected — using it as output.") if verbose else None
+            print("/!\\ Manual segmentation file detected — using it as output.")
             # Generate QC report
             cmd_qc=f"sct_qc -i {i_img} -s {o_manual} -p sct_label_utils -qc {self.qc_dir} -qc-subject sub-{ID} -v 0"
             os.system(cmd_qc)
@@ -761,19 +755,19 @@ class Preprocess_Sc:
         # --- Use manual segmentation if available ---------------------------------------------------------
         manual_seg = os.path.join(self.manual_dir, f"sub-{ID}", ses_name, "anat", os.path.basename(seg_img))
         if os.path.exists(manual_seg):
-            print("Segmentation file will be the manually corrected file") if verbose else None
+            print("Segmentation file will be the manually corrected file")
             seg_img = manual_seg
 
          # --- Use manual labels if available ---------------------------------------------------------
         manual_labels = glob.glob(os.path.join(self.manual_dir, f"sub-{ID}", ses_name, "anat", "*label-ivd_mask.nii.gz"))
         if manual_labels:
-            print("Labels file will be the manually corrected file") if verbose else None
+            print("Labels file will be the manually corrected file")
             labels_img = manual_labels[0]
 
         # --- Run registration ---------------------------------------------------------------------------
         if not os.path.exists(warp_from_anat2PAM50) or redo:
             cmd_coreg=f"sct_register_to_template -i {i_img} -s {seg_img} -ldisc {labels_img} -c {img_type} -param {param} -ofolder {o_folder} -qc {self.qc_dir} -qc-subject sub-{ID}"
-            print(">>>>> Registration step is running for sub-" + ID) if verbose == True else None
+            print(">>>>> Registration step is running for sub-" + ID)
             os.system(cmd_coreg)
 
             # Rename warping fields for consistency
@@ -786,7 +780,7 @@ class Preprocess_Sc:
             os.system(cmd_template)
 
         else:
-            print("/!\\ Warping field detected — using it") if verbose else None
+            print("/!\\ Warping field detected — using it")
             # Generate QC report
             cmd_qc=f"sct_qc -i {i_img} -s {seg_img} -p sct_register_to_template -d {os.path.join(o_folder, 'template2anat.nii.gz')} -qc {self.qc_dir} -qc-subject sub-{ID} -v 0"
             os.system(cmd_qc)
@@ -900,7 +894,7 @@ class Preprocess_Sc:
 
         # --- Run registration -------------------------------------------------------------------------------
         if not os.path.exists(o_img) or redo:
-            print(f">>>>> Registration step running for sub-{ID}...") if verbose else None
+            print(f">>>>> Registration step running for sub-{ID}...")
             cmd_coreg=f"sct_register_multimodal -i {PAM50_t2} -iseg {PAM50_cord} -d {i_img} -dseg {i_seg} -param {param} -initwarp {initwarp} -initwarpinv {initwarpinv} -owarp {o_warp_img} -owarpinv {o_warpinv_img} -ofolder {o_folder} -x spline -qc {self.qc_dir} -qc-subject sub-{ID} -v 0"
             os.system(cmd_coreg)
             os.rename(os.path.join(o_folder, f"{base_name}_reg.nii.gz"),o_img)
@@ -908,7 +902,7 @@ class Preprocess_Sc:
                 os.rename(glob.glob(o_folder+  "PAM50_t2_*reg.nii.gz")[0],o_folder+  "PAM50_t2_reg" + run_tag + ".nii.gz")
 
         else:
-            print("/!\\ Registration detected — using it") if verbose else None
+            print("/!\\ Registration detected — using it")
             # Generate QC report
             cmd_qc=f"sct_qc -i {i_img} -s {i_seg} -p sct_register_multimodal -d {os.path.join(o_folder, 'PAM50_t2_reg' + run_tag + '.nii.gz')} -qc {self.qc_dir} -qc-subject sub-{ID} -v 0"
             os.system(cmd_qc)
@@ -1013,8 +1007,7 @@ class Preprocess_Sc:
 
         else:
 
-            if verbose:
-                print("Tranformation was already applied put redo=True to redo that step")
+            print("Tranformation was already applied put redo=True to redo that step")
 
         return o_imgs
 
