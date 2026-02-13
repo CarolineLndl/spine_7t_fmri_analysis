@@ -231,7 +231,7 @@ for ID_nb, ID in enumerate(IDs):
                 #------------------------------------------------------------------
                 #------ Registration in PAM50
                 #------------------------------------------------------------------
-                param="step=1,type=seg,algo=centermass"
+                param="step=1,type=seg,algo=centermass:step=2,type=seg,algo=bsplinesyn,metric=CC,iter=10,smooth=1,slicewise=1"
                 func2PAM50_dir=preprocess_Sc.coreg_img2PAM50(ID=ID,
                                                              i_img=moco_mean_f,
                                                              i_seg=seg_func_sc_file,
@@ -244,7 +244,6 @@ for ID_nb, ID in enumerate(IDs):
                                                              verbose=verbose)
 
                 print(f'=== Func registration : Done  {ID} {tag} {run_name} ===')
-
 
     print(f'=== Preprocessing done for : {ID} ===', flush=True)
     print("=========================================", flush=True)
