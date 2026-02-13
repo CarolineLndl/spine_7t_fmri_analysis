@@ -140,7 +140,7 @@ for ID_nb, ID in enumerate(IDs):
 
     manual_seg_file=f'{manual_dir}/sub-{ID}/anat/' + os.path.basename(seg_anat_sc_file)
     seg_anat_sc_final_file=manual_seg_file if os.path.exists(manual_seg_file) else seg_anat_sc_file
-    param = "step=1,type=seg,algo=centermassrot:step=2,type=im,algo=syn,iter=5,slicewise=1,metric=CC,smooth=0"
+    param = "step=1,type=seg,algo=centermassrot"
 
     warpT2w_PAM50_files=preprocess_Sc.coreg_anat2PAM50(ID=ID,
                                                               i_img=raw_anat,
@@ -231,20 +231,19 @@ for ID_nb, ID in enumerate(IDs):
                 #------------------------------------------------------------------
                 #------ Registration in PAM50
                 #------------------------------------------------------------------
-                param="step=1,type=seg,algo=slicereg,metric=MeanSquares,smooth=2:step=2,type=im,algo=syn,metric=CC,iter=3,slicewise=1"
+                param="step=1,type=seg,algo=centermass:step=2,type=seg,algo=bsplinesyn,metric=CC,iter=10,smooth=1,slicewise=1"
                 func2PAM50_dir=preprocess_Sc.coreg_img2PAM50(ID=ID,
                                                              i_img=moco_mean_f,
                                                              i_seg=seg_func_sc_file,
                                                              task_name=tag,
                                                              run_name=run_name,
-                                                             initwarp=warpT2w_PAM50_files[1],
-                                                             initwarpinv=warpT2w_PAM50_files[0],
+                                                             initwarp=warpT2w_PAM50_files[0],
+                                                             initwarpinv=warpT2w_PAM50_files[1],
                                                              param=param,
-                                                             redo=redo,
+                                                             redo=True, # TODO JCA: remove it after debugging
                                                              verbose=verbose)
 
                 print(f'=== Func registration : Done  {ID} {tag} {run_name} ===')
-
 
     print(f'=== Preprocessing done for : {ID} ===', flush=True)
     print("=========================================", flush=True)

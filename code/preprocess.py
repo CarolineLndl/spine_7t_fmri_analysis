@@ -892,17 +892,16 @@ class Preprocess_Sc:
 
         os.makedirs(o_folder, exist_ok=True)
 
-
         # --- Output filenames -----------------------------------------------------------------------------
         base_name = os.path.basename(i_img).split('.')[0]
         o_img = os.path.join(o_folder, f"{base_name}_coreg_in_PAM50.nii.gz")
-        o_warpinv_img = os.path.join(o_folder, f"sub-{ID}{task_tag}{run_tag}_from-PAM50_to_{img_type}_mode-image_xfm.nii.gz")
-        o_warp_img = os.path.join(o_folder, f"sub-{ID}{task_tag}{run_tag}_from-{img_type}_to_PAM50_mode-image_xfm.nii.gz")
+        o_warp_img = os.path.join(o_folder, f"sub-{ID}{task_tag}{run_tag}_from-PAM50_to_{img_type}_mode-image_xfm.nii.gz")
+        o_warpinv_img = os.path.join(o_folder, f"sub-{ID}{task_tag}{run_tag}_from-{img_type}_to_PAM50_mode-image_xfm.nii.gz")
 
         # --- Run registration -------------------------------------------------------------------------------
         if not os.path.exists(o_img) or redo:
             print(f">>>>> Registration step running for sub-{ID}...") if verbose else None
-            cmd_coreg=f"sct_register_multimodal -d {PAM50_t2} -dseg {PAM50_cord} -i {i_img} -iseg {i_seg} -param {param} -initwarp {initwarp} -initwarpinv {initwarpinv} -owarp {o_warp_img} -owarpinv {o_warpinv_img} -ofolder {o_folder} -x spline -qc {self.qc_dir} -qc-subject sub-{ID} -v 0"
+            cmd_coreg=f"sct_register_multimodal -i {PAM50_t2} -iseg {PAM50_cord} -d {i_img} -dseg {i_seg} -param {param} -initwarp {initwarp} -initwarpinv {initwarpinv} -owarp {o_warp_img} -owarpinv {o_warpinv_img} -ofolder {o_folder} -x spline -qc {self.qc_dir} -qc-subject sub-{ID} -v 0"
             os.system(cmd_coreg)
             os.rename(os.path.join(o_folder, f"{base_name}_reg.nii.gz"),o_img)
             if img_type=="func":
