@@ -505,7 +505,7 @@ class Preprocess_Sc:
 
 
         # --- Run segmentation ----------------------------------------------------------------------------
-        if not os.path.exists(o_img) or redo:
+        if not (os.path.exists(o_img) or os.path.exists(o_manual) or redo):
             print(f">>>>> Segmentation is running for {img_type} image of sub-{ID}...")
 
             if img_type=="func":
@@ -620,7 +620,7 @@ class Preprocess_Sc:
         o_manual = os.path.join(self.manual_dir, f"sub-{ID}/anat/", f"{base_name}_space-orig_label-ivd_mask.nii.gz")
 
         # --- Run labeling -------------------------------------------------------------------
-        if not os.path.exists(label_file) or redo:
+        if not (os.path.exists(label_file) or os.path.exists(o_manual) or redo):
             if auto:
                 print(f">>>>> Running totalspineseg for sub-{ID}...")
 
