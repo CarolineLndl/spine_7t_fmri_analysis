@@ -93,7 +93,7 @@ for ID_nb,ID in enumerate(IDs):
                 warp_file=glob.glob(os.path.join(preprocessing_dir.format(ID), config["preprocess_dir"]["func_coreg"].format(tag), config["preprocess_f"]["func_warp"].format(ID,tag,run_name)))[0]
                 events_file=glob.glob(os.path.join(config["raw_dir"], f'sub-{ID}', 'func', f'sub-{ID}_{tag}_*events.tsv'))[0]
                 
-                
+                #I. Run first level GLM
                 stat_maps=postprocess.run_first_level_glm(ID=ID,
                                                           i_img=denoised_fmri,
                                                           events_file=events_file,
@@ -103,6 +103,7 @@ for ID_nb,ID in enumerate(IDs):
                                                           redo=True,
                                                           verbose=True)
 
+                #II. Normalize the resulting stat maps to PAM50 template space
                 Norm_files=[]
                 for i, contrast in enumerate(stat_maps):
                     Norm_files.append(preprocess_Sc.apply_warp(

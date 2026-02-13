@@ -29,6 +29,14 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+if [ "${RUN_PREPROSS}" = false ] && \
+   [ "${RUN_DENOISING}" = false ] && \
+   [ "${RUN_FIRSTLEVEL}" = false ]; then
+    echo "ERROR: No processing step selected."
+    echo "Use --preprocess, --denoising, and/or --firstlevel"
+    exit 1
+fi
+
 # Show participants
 [ ${#IDs[@]} -eq 0 ] && echo "No specific IDs provided: processing all participants" \
                      || echo "Processing participants: ${IDs[*]}"
