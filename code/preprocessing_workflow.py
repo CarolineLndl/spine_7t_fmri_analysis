@@ -240,7 +240,7 @@ for ID_nb, ID in enumerate(IDs):
                                                              initwarp=warpT2w_PAM50_files[0],
                                                              initwarpinv=warpT2w_PAM50_files[1],
                                                              param=param,
-                                                             redo=True, # TODO JCA: remove it after debugging
+                                                             redo=redo,
                                                              verbose=verbose)
 
                 print(f'=== Func registration : Done  {ID} {tag} {run_name} ===')
