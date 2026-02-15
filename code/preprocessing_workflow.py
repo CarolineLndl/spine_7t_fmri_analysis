@@ -172,76 +172,105 @@ for ID_nb, ID in enumerate(IDs):
                 else:
                     run_name=""
 
-                #------------------------------------------------------------------
-                #------ Create mask around the cord for moco
-                #------------------------------------------------------------------
-                o_img=o_dir +  os.path.basename(func_file).split(".")[0] + "_tmean.nii.gz"
-                mean_func_f=utils.tmean_img(ID=ID,i_img=func_file,o_img=o_img,verbose=False)
-                ctrl_sc_file, mask_sc_file=preprocess_Sc.moco_mask(ID=ID,
-                                                                       i_img=mean_func_f,
-                                                                       radius_size=25,
-                                                                       task_name=tag,
-                                                                       manual=manual_centerline,
-                                                                       redo_ctrl=redo,
-                                                                       redo_mask=redo,
-                                                                       verbose=verbose)
+                if task_name == 'motor':
+                    #------------------------------------------------------------------
+                    #------ Create mask around the cord for moco
+                    #------------------------------------------------------------------
+                    o_img=o_dir +  os.path.basename(func_file).split(".")[0] + "_tmean.nii.gz"
+                    mean_func_f=utils.tmean_img(ID=ID,i_img=func_file,o_img=o_img,verbose=False)
+                    ctrl_sc_file, mask_sc_file=preprocess_Sc.moco_mask(ID=ID,
+                                                                        i_img=mean_func_f,
+                                                                        radius_size=25,
+                                                                        task_name=tag,
+                                                                        manual=manual_centerline,
+                                                                        redo_ctrl=redo,
+                                                                        redo_mask=redo,
+                                                                        verbose=verbose)
 
-                print(mask_sc_file)
-                print(f'=== Moco masks : Done  {ID} {tag} {run_name} ===', flush=True)
+                    print(mask_sc_file)
+                    print(f'=== Moco masks : Done  {ID} {tag} {run_name} ===', flush=True)
 
-                #------------------------------------------------------------------
-                #------ Run moco
-                #------------------------------------------------------------------
-                params = 'poly=0,smooth=1,metric=MeanSquares,gradStep=1,sampling=0.2'
-                moco_f,moco_mean_f,qc_dir=preprocess_Sc.moco(ID=ID,
-                                                               i_img=func_file,
-                                                               mask_img=mask_sc_file,
-                                                               task_name=tag,
-                                                               run_name=run_name,
-                                                               params=params,
-                                                               verbose=verbose,
-                                                               redo=redo)
+                    #------------------------------------------------------------------
+                    #------ Run moco
+                    #------------------------------------------------------------------
+                    params = 'poly=0,smooth=1,metric=MeanSquares,gradStep=1,sampling=0.2'
+                    moco_f,moco_mean_f,qc_dir=preprocess_Sc.moco(ID=ID,
+                                                                i_img=func_file,
+                                                                mask_img=mask_sc_file,
+                                                                task_name=tag,
+                                                                run_name=run_name,
+                                                                params=params,
+                                                                verbose=verbose,
+                                                                redo=redo)
 
-                print(f'=== Moco : Done  {ID} {tag} {run_name} ===', flush=True)
+                    print(f'=== Moco : Done  {ID} {tag} {run_name} ===', flush=True)
 
-                #------------------------------------------------------------------
-                #------ Run func cord and CSF segmentation
-                #------------------------------------------------------------------
-                # Cord segmentation
-                seg_func_sc_file=preprocess_Sc.segmentation(ID=ID,
-                                                             i_img=moco_mean_f,
-                                                             task_name=tag,
-                                                             img_type="func",
-                                                             mask_qc=mask_sc_file,
-                                                             redo=redo,
-                                                             redo_qc=redo, # should be true if you have done manual correction
-                                                             verbose=verbose)
-                # csf segmentation
-                preprocess_Sc.segmentation(ID=ID,
-                                           i_img=moco_mean_f,
-                                           task_name=tag,contrast_anat="t2s",
-                                           img_type="func",
-                                           tissue="csf",
-                                           redo_qc=redo, # should be true if you have done manual correction
-                                           redo=redo,
-                                           verbose=verbose)
+                    #------------------------------------------------------------------
+                    #------ Run func cord and CSF segmentation
+                    #------------------------------------------------------------------
+                    # Cord segmentation
+                    seg_func_sc_file=preprocess_Sc.segmentation(ID=ID,
+                                                                i_img=moco_mean_f,
+                                                                task_name=tag,
+                                                                img_type="func",
+                                                                mask_qc=mask_sc_file,
+                                                                redo=redo,
+                                                                redo_qc=redo, # should be true if you have done manual correction
+                                                                verbose=verbose)
+                    # csf segmentation
+                    preprocess_Sc.segmentation(ID=ID,
+                                            i_img=moco_mean_f,
+                                            task_name=tag,contrast_anat="t2s",
+                                            img_type="func",
+                                            tissue="csf",
+                                            redo_qc=redo, # should be true if you have done manual correction
+                                            redo=redo,
+                                            verbose=verbose)
 
-                print(f'=== Func segmentation : Done  {ID} {tag} {run_name} ===', flush=True)
+                    print(f'=== Func segmentation : Done  {ID} {tag} {run_name} ===', flush=True)
 
-                #------------------------------------------------------------------
-                #------ Registration in PAM50
-                #------------------------------------------------------------------
-                param="step=1,type=seg,algo=centermass:step=2,type=seg,algo=bsplinesyn,metric=CC,iter=10,smooth=1,slicewise=1"
-                func2PAM50_dir=preprocess_Sc.coreg_img2PAM50(ID=ID,
-                                                             i_img=moco_mean_f,
-                                                             i_seg=seg_func_sc_file,
-                                                             task_name=tag,
-                                                             run_name=run_name,
-                                                             initwarp=warpT2w_PAM50_files[0],
-                                                             initwarpinv=warpT2w_PAM50_files[1],
-                                                             param=param,
-                                                             redo=redo,
-                                                             verbose=verbose)
+                    #------------------------------------------------------------------
+                    #------ Registration in PAM50
+                    #------------------------------------------------------------------
+                    param="step=1,type=seg,algo=centermass:step=2,type=seg,algo=bsplinesyn,metric=CC,iter=10,smooth=1,slicewise=1"
+                    func2PAM50_dir=preprocess_Sc.coreg_img2PAM50(ID=ID,
+                                                                i_img=moco_mean_f,
+                                                                i_seg=seg_func_sc_file,
+                                                                task_name=tag,
+                                                                run_name=run_name,
+                                                                initwarp=warpT2w_PAM50_files[0],
+                                                                initwarpinv=warpT2w_PAM50_files[1],
+                                                                param=param,
+                                                                redo=redo,
+                                                                verbose=verbose)
+
+                else:
+                    # For other tasks (eg: rest), we will use the motor fMRI scan as a reference for creating the moco mask, 
+                    # as a target for moco, and for segmentation and registration to PAM50.
+                    # See discussion: https://github.com/CarolineLndl/spine_7t_fmri_analysis/issues/64
+                    ref_tag = "task-motor_acq-" + acq_name
+                    # reference func file has _tmean as a suffix, and is located under the ref_tag folder. If there are multiple runs, select the first one
+                    try:
+                        ref_func_file = glob.glob(os.path.join(preprocessing_dir.format(ID), "func", ref_tag, f"sub-{ID}_{ref_tag}_*bold_tmean.nii.gz"))[0]
+                        print(f'=== Using {ref_func_file} as reference for moco ===', flush=True)
+                    except IndexError:
+                        print(f'No reference file found for {ref_tag} in raw data.', flush=True)
+                    # Reference mask file is located under ref_tag/sct_get_centerline. If there are multiple runs, select the first one
+                    try:
+                        ref_mask_file = glob.glob(os.path.join(preprocessing_dir.format(ID), "func", ref_tag, "sct_get_centerline", f"sub-{ID}_{ref_tag}_*tmean_mask.nii.gz"))[0]
+                        print(f'=== Using {ref_mask_file} as reference mask for moco ===', flush=True)
+                    except IndexError:
+                        print(f'No reference mask file found for {ref_tag} in raw data.', flush=True)
+                    # Run moco using the motor scan as reference, and using the same mask as for the motor scan
+                    moco_f,moco_mean_f,qc_dir=preprocess_Sc.moco(ID=ID,
+                                                                i_img=func_file,
+                                                                mask_img=ref_mask_file,
+                                                                task_name=tag,
+                                                                run_name=run_name,
+                                                                params=params,
+                                                                verbose=verbose,
+                                                                redo=redo)
+                    
 
                 print(f'=== Func registration : Done  {ID} {tag} {run_name} ===')
 
