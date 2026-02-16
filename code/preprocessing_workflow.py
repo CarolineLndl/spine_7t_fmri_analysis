@@ -162,6 +162,7 @@ for ID_nb, ID in enumerate(IDs):
             json_f=glob.glob(os.path.expandvars(config["raw_dir"]) + f'/sub-{ID}/func/sub-{ID}_{tag}_*bold.json')
             raw_func=glob.glob(os.path.expandvars(config["raw_dir"]) + f'/sub-{ID}/func/sub-{ID}_{tag}_*bold.nii.gz')
             o_dir=preprocessing_dir.format(ID)+  "/func/" +tag + '/'
+            params_moco = 'poly=0,smooth=1,metric=MeanSquares,gradStep=1,sampling=0.2'
 
             for func_file in raw_func:
                 # Check run number if multiple run exists
@@ -193,13 +194,12 @@ for ID_nb, ID in enumerate(IDs):
                     #------------------------------------------------------------------
                     #------ Run moco
                     #------------------------------------------------------------------
-                    params = 'poly=0,smooth=1,metric=MeanSquares,gradStep=1,sampling=0.2'
                     moco_f,moco_mean_f,qc_dir=preprocess_Sc.moco(ID=ID,
                                                                 i_img=func_file,
                                                                 mask_img=mask_sc_file,
                                                                 task_name=tag,
                                                                 run_name=run_name,
-                                                                params=params,
+                                                                params=params_moco,
                                                                 verbose=verbose,
                                                                 redo=redo)
 
@@ -240,7 +240,7 @@ for ID_nb, ID in enumerate(IDs):
                                                                 run_name=run_name,
                                                                 initwarp=warpT2w_PAM50_files[0],
                                                                 initwarpinv=warpT2w_PAM50_files[1],
-                                                                param=param,
+                                                                param=params_moco,
                                                                 redo=redo,
                                                                 verbose=verbose)
 
@@ -268,10 +268,9 @@ for ID_nb, ID in enumerate(IDs):
                                                                 ref_img=ref_func_file,
                                                                 task_name=tag,
                                                                 run_name=run_name,
-                                                                params=params,
+                                                                params=params_moco,
                                                                 verbose=verbose,
                                                                 redo=redo)
-                    
 
                 print(f'=== Func registration : Done  {ID} {tag} {run_name} ===')
 
