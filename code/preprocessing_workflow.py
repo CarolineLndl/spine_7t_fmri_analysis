@@ -265,6 +265,7 @@ for ID_nb, ID in enumerate(IDs):
                     moco_f,moco_mean_f,qc_dir=preprocess_Sc.moco(ID=ID,
                                                                 i_img=func_file,
                                                                 mask_img=ref_mask_file,
+                                                                ref_img=ref_func_file,
                                                                 task_name=tag,
                                                                 run_name=run_name,
                                                                 params=params,

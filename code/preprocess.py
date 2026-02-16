@@ -271,7 +271,7 @@ class Preprocess_Sc:
 
 
 
-    def moco(self,ID=None,i_img=None,mask_img=None,o_folder=None,params=None,ses_name='',task_name='',run_name="",redo=False,verbose=True):
+    def moco(self,ID=None,i_img=None,mask_img=None,ref_img=None,o_folder=None,params=None,ses_name='',task_name='',run_name="",redo=False,verbose=True):
 
         """
         This function performs motion correction on functional (fMRI) images using a mask around the spinal cord.
@@ -289,6 +289,8 @@ class Preprocess_Sc:
             Input filename of the 4D functional images (default: None; an error will be raised if not provided).
         mask_img : str
             Filename of the binary mask used to restrict voxels considered by the registration metric (default: None; an error will be raised if not provided).
+        ref_img : str
+            Reference image for motion correction (default: None; if not provided, the first volume of the input image is used).
         o_folder : str
             Output folder (default: None; if not provided, the input folder will be used).
         params : str
@@ -357,6 +359,8 @@ class Preprocess_Sc:
         if not os.path.exists(moco_file) or redo:
             print(f">>>>> Running motion correction for sub-{ID}...")
             cmd=f"sct_fmri_moco -i {i_img} -m {mask_img} -param {params} -ofolder {o_folder + self.structure} -x spline -g 1 -r 1 -qc {self.qc_dir} -qc-subject sub-{ID} -qc-seg {mask_img} -v 0"
+            if ref_img is not None:
+                cmd += f" -ref {ref_img}"
             os.system(cmd)
 
             # Rename output parameter files for clarity
