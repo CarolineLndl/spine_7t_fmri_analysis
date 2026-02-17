@@ -393,14 +393,14 @@ class Preprocess_Sc:
             plt.show()
 
         params_pdf = os.path.splitext(params_txt)[0] + '.pdf'
-        if not os.path.exists(params_pdf) or redo==True:
+        if not os.path.exists(params_pdf) or redo:
             plt.savefig(params_pdf) # save the plot
             plt.close()
 
         # --- Generate QC plot -------------------------------------------------------------
         diff_XY = np.abs(np.diff(params_data[0])) # Calculate Framewise displacement (abs difference of displacement between each volumes)
         meandiff=[np.mean(diff_XY)]
-        if not os.path.exists(o_folder + self.structure+'FD_mean.txt') or redo==True:
+        if not os.path.exists(o_folder + self.structure+'FD_mean.txt') or redo:
                 np.savetxt(o_folder +self.structure+ 'FD_mean.txt', [meandiff]) # save the mean framewise displacement
         if verbose:
             print(f"sub-{ID} Diff_XY: " + str(round(meandiff[0],3)) + " mm")
@@ -503,9 +503,8 @@ class Preprocess_Sc:
         else:
             o_manual = os.path.join(self.manual_dir, f"sub-{ID}/anat/", os.path.basename(o_img))
 
-
         # --- Run segmentation ----------------------------------------------------------------------------
-        if not (os.path.exists(o_img) or os.path.exists(o_manual) or redo):
+        if not (os.path.exists(o_img) or os.path.exists(o_manual)) or redo:
             print(f">>>>> Segmentation is running for {img_type} image of sub-{ID}...")
 
             if img_type=="func":
@@ -560,7 +559,6 @@ class Preprocess_Sc:
                         qc_indiv_path = f"{self.qc_dir}/sub-{ID}/func/{ses_name}/{task_name}/sct_fmri_moco/sct_deepseg/"
                     else:
                         qc_indiv_path = f"{self.qc_dir}/sub-{ID}/func/{ses_name}/{task_name}/sct_fmri_moco/sct_propseg/"
-
 
             else:
                 if redo_qc and os.path.exists(o_manual):
@@ -620,7 +618,7 @@ class Preprocess_Sc:
         o_manual = os.path.join(self.manual_dir, f"sub-{ID}/anat/", f"{base_name}_space-orig_label-ivd_mask.nii.gz")
 
         # --- Run labeling -------------------------------------------------------------------
-        if not (os.path.exists(label_file) or os.path.exists(o_manual) or redo):
+        if not (os.path.exists(label_file) or os.path.exists(o_manual)) or redo:
             if auto:
                 print(f">>>>> Running totalspineseg for sub-{ID}...")
 
