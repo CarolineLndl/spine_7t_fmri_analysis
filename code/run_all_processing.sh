@@ -75,6 +75,8 @@ if [ "${RUN_PREPROSS}" = true ]; then
     echo "Log file: log/nohup_preprocessing_${timestamp}.txt"
     echo "To stop the process, run:"
     echo "kill ${PID}"
+    wait ${PID}
+    echo "Finished preprocessing!"
 fi
 
 # --------------------------
@@ -91,6 +93,8 @@ if [ "${RUN_DENOISING}" = true ]; then
     echo "Log file: log/nohup_denoising_${timestamp}.txt"
     echo "To stop the process, run:"
     echo "kill ${PID}"
+    wait ${PID}
+    echo "Finished denoising!"
 fi
 
 # --------------------------
@@ -107,6 +111,8 @@ if [ "${RUN_FIRSTLEVEL}" = true ]; then
     echo "Log file: log/nohup_firstlevel_${timestamp}.txt"
     echo "To stop the process, run:"
     echo "kill ${PID}"
+    wait ${PID}
+    echo "Finished first level analysis!"
 fi
 
 # --------------------------
@@ -123,4 +129,6 @@ if [ "${RUN_FIGURES}" = true ]; then
     echo "Log file: log/nohup_figures_${timestamp}.txt"
     echo "To stop the process, run:"
     echo "kill ${PID}"
+    wait ${PID}
+    echo "Finished figure generation!"
 fi
