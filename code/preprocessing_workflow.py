@@ -29,13 +29,13 @@ import pandas as pd
 from IPython.display import Image, display
 
 # get path of the parent location of this file, and go up one level
-path_code = os.path.dirname(os.path.abspath(__file__)).rsplit('/', 1)[0]
-sys.path.append(path_code + "/code/") # Change this line according to your directory
+path_code = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(os.path.join(path_code, "code"))  # Change this line according to your directory
 from preprocess import Preprocess_main, Preprocess_Sc
 import utils
 
-with open(path_code + '/config/config_spine_7t_fmri.json') as config_file:
-    config = json.load(config_file) # load config file should be open first and the path inside modified
+with open(os.path.join(path_code, "config", "config_spine_7t_fmri.json")) as config_file:
+    config = json.load(config_file)  # load config file should be open first and the path inside modified
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--ids", nargs='+', default=[""])
@@ -53,10 +53,10 @@ verbose = args.verbose.lower() == "true"
 manual_centerline = args.manual_centerline.lower() == "true"
 auto_vert_labels = args.auto_vert_labels.lower() == "true"
 redo = args.redo.lower() == "true"
-path_data = args.path_data
+path_data = os.path.abspath(args.path_data)
 
-config["raw_dir"]=path_data
-config["code_dir"]=path_code
+config["raw_dir"] = path_data
+config["code_dir"] = path_code
 
 # Display parameters in print
 print("=== Preprocessing parameters ===", flush=True)
@@ -69,7 +69,7 @@ print("Redo steps: ", redo, flush=True)
 print("================================", flush=True)
 
 # Load participants info
-participants_tsv = pd.read_csv(path_code + '/config/participants.tsv', sep='\t',dtype={'participant_id': str})
+participants_tsv = pd.read_csv(os.path.join(path_code,'config', 'participants.tsv'), sep='\t',dtype={'participant_id': str})
 
 new_IDs=[]
 if IDs == [""]:
@@ -81,12 +81,12 @@ if tasks != [""]:
     config["design_exp"]["task_names"] = tasks
 
 #Initialize codes
-Preprocess_main=Preprocess_main(config, IDs=IDs) # initialize the function
-preprocess_Sc=Preprocess_Sc(config, IDs=IDs) # initialize the function
-ses_name=""
+Preprocess_main = Preprocess_main(config, IDs=IDs) # initialize the function
+preprocess_Sc = Preprocess_Sc(config, IDs=IDs) # initialize the function
+ses_name = ""
 
 # initialize directories
-preprocessing_dir = os.path.join(config["raw_dir"], os.path.expandvars(config["preprocess_dir"]["main_dir"]))
+preprocessing_dir = os.path.join(config["raw_dir"], config["preprocess_dir"]["main_dir"])
 derivatives_dir = os.path.join(config["raw_dir"], config["derivatives_dir"])
 manual_dir = os.path.join(config["raw_dir"], config["manual_dir"])
 
@@ -102,7 +102,6 @@ for ID_nb, ID in enumerate(IDs):
     print("", flush=True)
     print(f'=== Preprocessing start for :  {ID} ===', flush=True)
 
-
     #---------------Anat preprocessing ---------------------------------------------------
     raw_anat = glob.glob(os.path.join(preprocessing_dir.format(ID), "anat", config["preprocess_f"]["anat_raw"].format(ID,"*")))[0]
 
@@ -110,7 +109,7 @@ for ID_nb, ID in enumerate(IDs):
     #------ Segmentation of the anatomical image
     #------------------------------------------------------------------
 
-    seg_anat_sc_file=preprocess_Sc.segmentation(ID=ID,
+    seg_anat_sc_file = preprocess_Sc.segmentation(ID=ID,
                                                 i_img=raw_anat,
                                                 img_type="anat",
                                                 contrast_anat="t2",
@@ -123,7 +122,7 @@ for ID_nb, ID in enumerate(IDs):
     #------------------------------------------------------------------
     #------ Vertebral labelling
     #------------------------------------------------------------------
-    disc_labels_files=preprocess_Sc.label_vertebrae(ID=ID,
+    disc_labels_files = preprocess_Sc.label_vertebrae(ID=ID,
                                                     i_img=raw_anat,
                                                     seg_img=seg_anat_sc_file,
                                                     c="t2",
@@ -138,11 +137,11 @@ for ID_nb, ID in enumerate(IDs):
     #------ Registration in PAM50
     #------------------------------------------------------------------
 
-    manual_seg_file=f'{manual_dir}/sub-{ID}/anat/' + os.path.basename(seg_anat_sc_file)
-    seg_anat_sc_final_file=manual_seg_file if os.path.exists(manual_seg_file) else seg_anat_sc_file
+    manual_seg_file = os.path.join(f"{manual_dir}", f"sub-{ID}", "anat", os.path.basename(seg_anat_sc_file))
+    seg_anat_sc_final_file = manual_seg_file if os.path.exists(manual_seg_file) else seg_anat_sc_file
     param = "step=1,type=seg,algo=centermassrot"
 
-    warpT2w_PAM50_files=preprocess_Sc.coreg_anat2PAM50(ID=ID,
+    warpT2w_PAM50_files = preprocess_Sc.coreg_anat2PAM50(ID=ID,
                                                               i_img=raw_anat,
                                                               seg_img=seg_anat_sc_final_file,
                                                               labels_img=disc_labels_files,
@@ -158,10 +157,10 @@ for ID_nb, ID in enumerate(IDs):
     #------ Select func data
     for task_name in config["design_exp"]["task_names"]:
         for acq_name in config["design_exp"]["acq_names"]:
-            tag="task-" + task_name + "_acq-" + acq_name
-            json_f=glob.glob(os.path.expandvars(config["raw_dir"]) + f'/sub-{ID}/func/sub-{ID}_{tag}_*bold.json')
-            raw_func=glob.glob(os.path.expandvars(config["raw_dir"]) + f'/sub-{ID}/func/sub-{ID}_{tag}_*bold.nii.gz')
-            o_dir=preprocessing_dir.format(ID)+  "/func/" +tag + '/'
+            tag = "task-" + task_name + "_acq-" + acq_name
+            json_f = glob.glob(os.path.join(config["raw_dir"], f"sub-{ID}", "func", f"sub-{ID}_{tag}_*bold.json"))
+            raw_func = glob.glob(os.path.join(config["raw_dir"], f"sub-{ID}", "func", f"sub-{ID}_{tag}_*bold.nii.gz"))
+            o_dir = os.path.join(preprocessing_dir.format(ID),  "func", tag)
 
             for func_file in raw_func:
                 # Check run number if multiple run exists
@@ -170,14 +169,14 @@ for ID_nb, ID in enumerate(IDs):
                     run_name=match.group(1)
                     print(run_name)
                 else:
-                    run_name=""
+                    run_name = ""
 
                 #------------------------------------------------------------------
                 #------ Create mask around the cord for moco
                 #------------------------------------------------------------------
-                o_img=o_dir +  os.path.basename(func_file).split(".")[0] + "_tmean.nii.gz"
-                mean_func_f=utils.tmean_img(ID=ID,i_img=func_file,o_img=o_img,verbose=False)
-                ctrl_sc_file, mask_sc_file=preprocess_Sc.moco_mask(ID=ID,
+                o_img = os.path.join(o_dir, os.path.basename(func_file).split(".")[0] + "_tmean.nii.gz")
+                mean_func_f = utils.tmean_img(ID=ID,i_img=func_file,o_img=o_img,verbose=False)
+                ctrl_sc_file, mask_sc_file = preprocess_Sc.moco_mask(ID=ID,
                                                                        i_img=mean_func_f,
                                                                        radius_size=25,
                                                                        task_name=tag,
@@ -193,7 +192,7 @@ for ID_nb, ID in enumerate(IDs):
                 #------ Run moco
                 #------------------------------------------------------------------
                 params = 'poly=0,smooth=1,metric=MeanSquares,gradStep=1,sampling=0.2'
-                moco_f,moco_mean_f,qc_dir=preprocess_Sc.moco(ID=ID,
+                moco_f,moco_mean_f,qc_dir = preprocess_Sc.moco(ID=ID,
                                                                i_img=func_file,
                                                                mask_img=mask_sc_file,
                                                                task_name=tag,
@@ -208,7 +207,7 @@ for ID_nb, ID in enumerate(IDs):
                 #------ Run func cord and CSF segmentation
                 #------------------------------------------------------------------
                 # Cord segmentation
-                seg_func_sc_file=preprocess_Sc.segmentation(ID=ID,
+                seg_func_sc_file = preprocess_Sc.segmentation(ID=ID,
                                                              i_img=moco_mean_f,
                                                              task_name=tag,
                                                              img_type="func",
@@ -231,8 +230,8 @@ for ID_nb, ID in enumerate(IDs):
                 #------------------------------------------------------------------
                 #------ Registration in PAM50
                 #------------------------------------------------------------------
-                param="step=1,type=seg,algo=centermass:step=2,type=seg,algo=bsplinesyn,metric=CC,iter=10,smooth=1,slicewise=1"
-                func2PAM50_dir=preprocess_Sc.coreg_img2PAM50(ID=ID,
+                param = "step=1,type=seg,algo=centermass:step=2,type=seg,algo=bsplinesyn,metric=CC,iter=10,smooth=1,slicewise=1"
+                func2PAM50_dir = preprocess_Sc.coreg_img2PAM50(ID=ID,
                                                              i_img=moco_mean_f,
                                                              i_seg=seg_func_sc_file,
                                                              task_name=tag,
