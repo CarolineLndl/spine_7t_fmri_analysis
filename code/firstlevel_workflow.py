@@ -20,7 +20,7 @@ import nibabel as nib
 import numpy as np
 
 # Get the environment variable PATH_CODE
-path_code = os.path.dirname(os.path.abspath(__file__)).rsplit('/', 1)[0]
+path_code = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 with open(path_code + '/config/config_spine_7t_fmri.json') as config_file: # the notebook should be in 'xx/notebook/' folder #config_proprio
     config = json.load(config_file) # load config file should be open first and the path inside modified
@@ -100,11 +100,14 @@ for ID_nb,ID in enumerate(IDs):
                 denoised_fmri=glob.glob(os.path.join(denoising_dir.format(ID ), tag, config["denoising"]["denoised_dir"],"*"+run_name+"*_nostd_s.nii.gz"))[0]
                 
                 # Select manual seg if exists
-                mask_file=glob.glob(os.path.join(preprocessing_dir.format(ID), config["preprocess_dir"]["func_seg"].format(tag), config["preprocess_f"]["func_seg"].format(ID,tag,run_name)))[0]
-                manual_seg_file=f'{manual_dir}/sub-{ID}/func/' + os.path.basename(mask_file)
-                mask_final_file=manual_seg_file if os.path.exists(manual_seg_file) else mask_file
-                print(mask_final_file)
-               
+                mask_file_list = glob.glob(os.path.join(preprocessing_dir.format(ID), config["preprocess_dir"]["func_seg"].format(tag), config["preprocess_f"]["func_seg"].format(ID,tag,run_name)))
+                mask_file = mask_file_list[0] if len(mask_file_list) > 0 else None
+                manual_seg_file_list = glob.glob(os.path.join(f"{manual_dir}", f"sub-{ID}", "func", config["preprocess_f"]["func_seg"].format(ID,tag,run_name)))
+                manual_seg_file = manual_seg_file_list[0] if len(manual_seg_file_list) > 0 else ""
+                mask_final_file = manual_seg_file if os.path.exists(manual_seg_file) else mask_file
+                if mask_final_file is None:
+                    raise RuntimeError(f"No mask file found for subject {ID}, task {tag}, run {run_name}. Please check the preprocessing outputs and manual corrections.")
+
                 warp_file=glob.glob(os.path.join(preprocessing_dir.format(ID), config["preprocess_dir"]["func_coreg"].format(tag), config["preprocess_f"]["func_warp"].format(ID,tag,run_name)))[0]
                 events_file=glob.glob(os.path.join(config["raw_dir"], f'sub-{ID}', 'func', f'sub-{ID}_{tag}_*events.tsv'))[0]
                 
@@ -115,7 +118,7 @@ for ID_nb,ID in enumerate(IDs):
                 stat_maps=postprocess.run_first_level_glm(ID=ID,
                                                           i_img=denoised_fmri,
                                                           events_file=events_file,
-                                                          mask_file=mask_file,
+                                                          mask_file=mask_final_file,
                                                           task_name=tag,
                                                           run_name=run_name,
                                                           redo=True,
@@ -130,7 +133,7 @@ for ID_nb,ID in enumerate(IDs):
                     
                     fname_thr_img=stat_maps[i].split(".")[0] +f"_{corr_type}_{str(alpha)[2:]}_{str(cluster)}cluster.nii.gz"
                     
-                    if not os.path.exists("fname_thr_img") or redo:
+                    if not os.path.exists(fname_thr_img) or redo:
                         thresholded_map, threshold = threshold_stats_img(stat_maps[i],
                                                                         alpha=alpha,
                                                                         height_control=corr_type,

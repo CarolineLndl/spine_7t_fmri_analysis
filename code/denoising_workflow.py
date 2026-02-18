@@ -23,7 +23,7 @@ import pandas as pd
 from nilearn import image
 
 # Get the environment variable PATH_CODE
-path_code = os.path.dirname(os.path.abspath(__file__)).rsplit('/', 1)[0]
+path_code = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 with open(path_code + '/config/config_spine_7t_fmri.json') as config_file: # the notebook should be in 'xx/notebook/' folder #config_proprio
     config = json.load(config_file) # load config file should be open first and the path inside modified
@@ -122,17 +122,27 @@ for ID_nb,ID in enumerate(IDs):
                 #------------------------------------------------------------------
                 #------ Compute compcor
                 #------------------------------------------------------------------
-                cord_seg_file = glob.glob(os.path.join(preprocessing_dir.format(ID) + config["preprocess_dir"]["func_seg"].format(tag) + config["preprocess_f"]["func_seg"].format(ID,tag,run_name)))[0]
-                manual_cord_file=os.path.join(manual_dir, f"sub-{ID}", "func",tag, os.path.basename(cord_seg_file))
-                csf_seg_file = glob.glob(os.path.join(preprocessing_dir.format(ID) + config["preprocess_dir"]["func_csf_seg"].format(tag) + config["preprocess_f"]["func_csf"].format(ID,tag,run_name)))[0]
-                manual_csf_file=os.path.join(manual_dir, f"sub-{ID}", "func",tag, os.path.basename(csf_seg_file))
+                cord_seg_file_list = glob.glob(os.path.join(preprocessing_dir.format(ID) + config["preprocess_dir"]["func_seg"].format(tag) + config["preprocess_f"]["func_seg"].format(ID,tag,run_name)))
+                cord_seg_file = cord_seg_file_list[0] if len(cord_seg_file_list) > 0 else None
+                manual_cord_file_list = glob.glob(os.path.join(manual_dir, f"sub-{ID}", "func", config["preprocess_f"]["func_seg"].format(ID,tag,run_name)))
+                manual_cord_file = manual_cord_file_list[0] if len(manual_cord_file_list) > 0 else ""
+
+                csf_seg_file_list = glob.glob(os.path.join(preprocessing_dir.format(ID) + config["preprocess_dir"]["func_csf_seg"].format(tag) + config["preprocess_f"]["func_csf"].format(ID,tag,run_name)))
+                csf_seg_file = csf_seg_file_list[0] if len(csf_seg_file_list) > 0 else None
+                manual_csf_file_list = glob.glob(os.path.join(manual_dir, f"sub-{ID}", "func", config["preprocess_f"]["func_csf"].format(ID,tag,run_name)))
+                manual_csf_file = manual_csf_file_list[0] if len(manual_csf_file_list) > 0 else ""
 
                 # Check if manual file exits
                 if os.path.exists(manual_cord_file):
                     cord_seg_file = manual_cord_file
+                if cord_seg_file is None:
+                    raise RuntimeError(f"No cord segmentation file found for participant {ID}, task {tag}, run {run_name}. Please check the preprocessing step and the manual corrections.")
 
                 if os.path.exists(manual_csf_file):
                     csf_seg_file = manual_csf_file
+                if csf_seg_file is None:
+                    raise RuntimeError(f"No CSF segmentation file found for participant {ID}, task {tag}, run {run_name}. Please check the preprocessing step and the manual corrections.")
+
 
                 # Run compcor / DCT
                 compcor_out, DCT_out = denoising.confounds_ts(
