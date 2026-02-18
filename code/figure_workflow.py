@@ -7,9 +7,9 @@
 # ### Project: acdc_spine_7T
 # ____________________________________________________
 
-#------------------------------------------------------------------
-#------ Initialization
-#------------------------------------------------------------------
+# ------------------------------------------------------------------
+# ------ Initialization
+# ------------------------------------------------------------------
 # Imports
 import sys, json, glob, os, re, shutil, argparse
 
@@ -34,7 +34,7 @@ def main():
     args = parser.parse_args()
 
     # get path of the parent location of this file, and go up one level
-    path_code = os.path.dirname(os.path.abspath(__file__)).rsplit('/', 1)[0]
+    path_code = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     fname_config = os.path.join(path_code, 'config', 'config_spine_7t_fmri.json')
     with open(fname_config) as config_file:
         config = json.load(config_file)  # load config file should be open first and the path inside modified
@@ -53,9 +53,10 @@ def main():
             raise ValueError(f"All tasks need to be run to generate the figure")
 
     # Load participants info
-    participants_tsv = pd.read_csv(os.path.join(path_code, 'config', 'participants.tsv'), sep='\t',dtype={'participant_id': str})
+    participants_tsv = pd.read_csv(os.path.join(path_code, 'config', 'participants.tsv'), sep='\t',
+                                   dtype={'participant_id': str})
 
-    new_IDs=[]
+    new_IDs = []
     if IDs == [""]:
         for ID in participants_tsv["participant_id"]:
             new_IDs.append(ID)
@@ -64,10 +65,9 @@ def main():
     if tasks != [""]:
         config["design_exp"]["task_names"] = tasks
 
-
-    #------------------------------------------------------------------
-    #------ Figures
-    #------------------------------------------------------------------
+    # ------------------------------------------------------------------
+    # ------ Figures
+    # ------------------------------------------------------------------
     print("=== Figure script Start ===", flush=True)
     print("Participant(s) included : ", IDs, flush=True)
     print("===================================", flush=True)
@@ -77,8 +77,8 @@ def main():
     path_fig_tsnr = os.path.join(path_main_fig, "tsnr")
     path_fig_data = os.path.join(path_fig_tsnr, "data")
 
-    #------------------------------------------------------------------
-    #------ Compute tSNR
+    # ------------------------------------------------------------------
+    # ------ Compute tSNR
     # ------------------------------------------------------------------
 
     # On tSNR map in PAM50 space : sub-{}_task-{}_acq-{}_bold_moco_mean_coreg_in_PAM50
@@ -86,80 +86,93 @@ def main():
     # Todo: Use nn for moco
     # Use the run with the most volumes
     # Use the same number of volumes for each tsnr calculation
-    #------------------------------------------------------------------
+    # ------------------------------------------------------------------
     print("=== Compute tSNR map on longest moco neighbour run ===", flush=True)
     fname_tsnr_metrics = os.path.join(path_fig_tsnr, "tsnr_metrics.csv")
     fname_template = os.path.join(config["code_dir"], "template", config["PAM50_t2"])
-    if not os.path.exists(fname_tsnr_metrics) or redo:
+    df_tsnr = pd.DataFrame(columns=["ID", "task", "acq", "tsnr_mean"])
 
-        df_tsnr = pd.DataFrame(columns=["ID", "task", "acq", "tsnr_mean"])
+    # Find the minimum number of volumes across all runs to standardize tSNR calculation
+    min_vols_for_tsnr = 1000
+    for ID in IDs:
+        for task in config["design_exp"]["task_names"]:
+            for acq_name in config["design_exp"]["acq_names"]:
+                selected_file = find_moco_for_tsnr_calculation(config, ID, task, acq_name)
+                if selected_file is None:
+                    continue
+                n_vols = nib.load(selected_file).shape[3]
+                if n_vols < min_vols_for_tsnr:
+                    min_vols_for_tsnr = n_vols
 
-        # Find the minimum number of volumes across all runs to standardize tSNR calculation
-        min_vols_for_tsnr = 1000
-        for ID in IDs:
-            for task in config["design_exp"]["task_names"]:
-                for acq_name in config["design_exp"]["acq_names"]:
-                    selected_file = find_moco_for_tsnr_calculation(config, ID, task, acq_name)
-                    if selected_file is None:
-                        continue
-                    n_vols = nib.load(selected_file).shape[3]
-                    if n_vols < min_vols_for_tsnr:
-                        min_vols_for_tsnr = n_vols
+    print(f"Minimum number of volumes across all runs: {min_vols_for_tsnr}", flush=True)
+    # Minimum number of volumes across all runs: 30 (2026-01-28)
+    # Compute_tsnr
+    for ID in IDs:
+        for task in config["design_exp"]["task_names"]:
+            for acq_name in config["design_exp"]["acq_names"]:
+                tag = "task-" + task + "_acq-" + acq_name
 
-        print(f"Minimum number of volumes across all runs: {min_vols_for_tsnr}", flush=True)
-        # Minimum number of volumes across all runs: 30 (2026-01-28)
-        # Compute_tsnr
-        for ID in IDs:
-            for task in config["design_exp"]["task_names"]:
-                for acq_name in config["design_exp"]["acq_names"]:
-                    selected_file = find_moco_for_tsnr_calculation(config, ID, task, acq_name)
-                    if selected_file is None:
-                        continue
+                selected_file = find_moco_for_tsnr_calculation(config, ID, task, acq_name)
+                if selected_file is None:
+                    continue
 
-                    # Compute tSNR map in native space
-                    path_tsnr_sub_folder = os.path.join(path_fig_data, f"sub-{ID}", f"task-{task}_acq-{acq_name}")
-                    fname_tsnr = compute_tsnr_map(selected_file, path_tsnr_sub_folder, redo, min_vols_for_tsnr)
+                # Compute tSNR map in native space
+                path_tsnr_sub_folder = os.path.join(path_fig_data, f"sub-{ID}", f"task-{task}_acq-{acq_name}")
+                fname_tsnr = compute_tsnr_map(selected_file, path_tsnr_sub_folder, redo, min_vols_for_tsnr)
 
-                    # Warp tSNR in PAM50 space
-                    fname_tsnr_in_template = fname_tsnr.replace("_bold_moco_tSNR.nii.gz", "_bold_moco_tsnr_in_PAM50.nii.gz")
-                    if not os.path.exists(fname_tsnr_in_template) or redo:
-                        print("=== Warp tSNR map to PAM50 space ===", flush=True)
+                # Warp tSNR in PAM50 space
+                fname_tsnr_in_template = fname_tsnr.replace("_bold_moco_tSNR.nii.gz", "_bold_moco_tsnr_in_PAM50.nii.gz")
+                if not os.path.exists(fname_tsnr_in_template) or redo:
+                    print("=== Warp tSNR map to PAM50 space ===", flush=True)
 
-                        fname_warp_from_func_to_template = os.path.join(
-                            config["raw_dir"],
-                            config["preprocess_dir"]["main_dir"].format(ID),
-                            "func",
-                            f"task-{task}_acq-{acq_name}",
-                            "sct_register_multimodal",
-                            os.path.basename(selected_file).replace("_bold_moco.nii.gz", "_from-func_to_PAM50_mode-image_xfm.nii.gz")
-                        )
+                    fname_warp_from_func_to_template = os.path.join(
+                        config["raw_dir"],
+                        config["preprocess_dir"]["main_dir"].format(ID),
+                        "func",
+                        f"task-{task}_acq-{acq_name}",
+                        "sct_register_multimodal",
+                        os.path.basename(selected_file).replace("_bold_moco.nii.gz",
+                                                                "_from-func_to_PAM50_mode-image_xfm.nii.gz")
+                    )
 
-                        if not os.path.exists(fname_warp_from_func_to_template):
-                            raise RuntimeError(f"Warp file not found: {fname_warp_from_func_to_template}")
+                    if not os.path.exists(fname_warp_from_func_to_template):
+                        raise RuntimeError(f"Warp file not found: {fname_warp_from_func_to_template}")
 
-                        cmd_coreg = f"sct_apply_transfo -i {fname_tsnr} -d {fname_template} -w {fname_warp_from_func_to_template} -o {fname_tsnr_in_template} -x nn"
-                        os.system(cmd_coreg)
+                    cmd_coreg = f"sct_apply_transfo -i {fname_tsnr} -d {fname_template} -w {fname_warp_from_func_to_template} -o {fname_tsnr_in_template} -x nn"
+                    os.system(cmd_coreg)
 
-                    # Extract metrics from native space
-                    if fname_tsnr is not None:
-                        fname_mask = os.path.join(
-                            config["raw_dir"],
-                            config["preprocess_dir"]["main_dir"].format(ID),
-                            "func",
-                            f"task-{task}_acq-{acq_name}",
-                            "sct_deepseg",
-                            os.path.basename(selected_file).replace("_bold_moco.nii.gz", "_bold_moco_mean_seg.nii.gz")
-                        )
+                # Extract metrics from native space
+                if fname_tsnr is not None:
+                    fname_mask = os.path.join(
+                        config["raw_dir"],
+                        config["preprocess_dir"]["main_dir"].format(ID),
+                        "func",
+                        f"task-{task}_acq-{acq_name}",
+                        "sct_deepseg",
+                        os.path.basename(selected_file).replace("_bold_moco.nii.gz", "_bold_moco_mean_seg.nii.gz")
+                    )
 
-                        if not os.path.exists(fname_mask):
-                            raise RuntimeError(f"Mask file not found: {fname_mask}")
+                    fname_mask_manual = os.path.join(config["raw_dir"],
+                                                     config["manual_dir"],
+                                                     f"sub-{ID}",
+                                                     "func",
+                                                     os.path.basename(selected_file).replace("_bold_moco.nii.gz",
+                                                                                             "_bold_moco_mean_seg.nii.gz"))
 
-                        tsnr_mean = extract_mean_within_mask(fname_tsnr, fname_mask)
-                        if len(df_tsnr) == 0:
-                            df_tsnr = pd.DataFrame([[ID, task, acq_name, tsnr_mean]], columns=df_tsnr.columns)
-                        df_tsnr = pd.concat([pd.DataFrame([[ID, task, acq_name, tsnr_mean]], columns=df_tsnr.columns), df_tsnr], ignore_index=True)
+                    if os.path.exists(fname_mask_manual):
+                        fname_mask = fname_mask_manual
 
-        df_tsnr.to_csv(fname_tsnr_metrics, index=False)
+                    if not os.path.exists(fname_mask):
+                        raise RuntimeError(f"Mask file not found: {fname_mask}")
+
+                    tsnr_mean = extract_mean_within_mask(fname_tsnr, fname_mask)
+                    if len(df_tsnr) == 0:
+                        df_tsnr = pd.DataFrame([[ID, task, acq_name, tsnr_mean]], columns=df_tsnr.columns)
+                    df_tsnr = pd.concat(
+                        [pd.DataFrame([[ID, task, acq_name, tsnr_mean]], columns=df_tsnr.columns), df_tsnr],
+                        ignore_index=True)
+
+    df_tsnr.to_csv(fname_tsnr_metrics, index=False)
 
     print("=== Generate tSNR violin plot figure ===", flush=True)
     name_baseline = [a for a in config["design_exp"]["acq_names"] if a.find("Base") != -1][0]
@@ -200,7 +213,6 @@ def main():
     fig = plt.figure(constrained_layout=True, figsize=(7, 5))
     gs_main = gridspec.GridSpec(1, 3, figure=fig, width_ratios=[0.08, 1, 1])
 
-    # fname_tsnr_violin_plot = os.path.join(path_fig_tsnr, "snr_violin_plot.png")
     create_tsnr_violin_plot(fig, gs_main[2], list_baseline_tsnr, list_slicewise_tsnr)
 
     print("=== Generate tSNR in PAM50 figure ===", flush=True)
@@ -214,107 +226,111 @@ def main():
     fname_tsnr_baseline_avg = os.path.join(path_fig_tsnr, "data", "tsnr_baseline_avg_in_PAM50.nii.gz")
     fname_tsnr_slicewise_avg = os.path.join(path_fig_tsnr, "data", "tsnr_slicewise_avg_in_PAM50.nii.gz")
 
-    if not os.path.exists(fname_tsnr_baseline_avg) or not os.path.exists(fname_tsnr_slicewise_avg) or redo:
-        for ID in IDs:
-            tasks = ["rest", "motor"]
-            done = False
-            for task in tasks:
-                if task == "rest":
-                    path_task_baseline = os.path.join(
-                        path_fig_data,
-                        f"sub-{ID}",
-                        f"task-{task}_acq-{name_baseline}")
-                    if not os.path.exists(path_task_baseline):
-                        continue
-                    done = True
-                    fname_tsnr_in_template_baseline = os.path.join(
-                        path_task_baseline,
-                        f"sub-{ID}_task-{task}_acq-{name_baseline}*_bold_moco_tsnr_in_PAM50.nii.gz"
-                    )
-                    if len(glob.glob(fname_tsnr_in_template_baseline)) != 1:
-                        raise RuntimeError(f"0 or more than 1 tSNR in template files found: {glob.glob(fname_tsnr_in_template_baseline)}")
-                    fname_tsnr_in_template_baseline = glob.glob(fname_tsnr_in_template_baseline)[0]
+    for ID in IDs:
+        tasks = ["rest", "motor"]
+        done = False
+        for task in tasks:
+            if task == "rest":
+                path_task_baseline = os.path.join(
+                    path_fig_data,
+                    f"sub-{ID}",
+                    f"task-{task}_acq-{name_baseline}")
+                if not os.path.exists(path_task_baseline):
+                    continue
+                done = True
+                fname_tsnr_in_template_baseline = os.path.join(
+                    path_task_baseline,
+                    f"sub-{ID}_task-{task}_acq-{name_baseline}*_bold_moco_tsnr_in_PAM50.nii.gz"
+                )
+                if len(glob.glob(fname_tsnr_in_template_baseline)) != 1:
+                    raise RuntimeError(
+                        f"0 or more than 1 tSNR in template files found: {glob.glob(fname_tsnr_in_template_baseline)}")
+                fname_tsnr_in_template_baseline = glob.glob(fname_tsnr_in_template_baseline)[0]
 
-                    path_task_slicewise = os.path.join(
-                        path_fig_data,
-                        f"sub-{ID}",
-                        f"task-{task}_acq-{name_slicewise}")
-                    fname_tsnr_in_template_slicewise = os.path.join(
-                        path_task_slicewise,
-                        f"sub-{ID}_task-{task}_acq-{name_slicewise}*_bold_moco_tsnr_in_PAM50.nii.gz"
-                    )
-                    if len(glob.glob(fname_tsnr_in_template_slicewise)) != 1:
-                        raise RuntimeError(f"0 or more than 1 tSNR in template files found: {glob.glob(fname_tsnr_in_template_slicewise)}")
-                    fname_tsnr_in_template_slicewise = glob.glob(fname_tsnr_in_template_slicewise)[0]
+                path_task_slicewise = os.path.join(
+                    path_fig_data,
+                    f"sub-{ID}",
+                    f"task-{task}_acq-{name_slicewise}")
+                fname_tsnr_in_template_slicewise = os.path.join(
+                    path_task_slicewise,
+                    f"sub-{ID}_task-{task}_acq-{name_slicewise}*_bold_moco_tsnr_in_PAM50.nii.gz"
+                )
+                if len(glob.glob(fname_tsnr_in_template_slicewise)) != 1:
+                    raise RuntimeError(
+                        f"0 or more than 1 tSNR in template files found: {glob.glob(fname_tsnr_in_template_slicewise)}")
+                fname_tsnr_in_template_slicewise = glob.glob(fname_tsnr_in_template_slicewise)[0]
 
-                    nii_baseline = nib.load(fname_tsnr_in_template_baseline)
-                    data_tsnr_baseline += nii_baseline.get_fdata()
-                    nii_slicewise = nib.load(fname_tsnr_in_template_slicewise)
-                    data_tsnr_slicewise += nii_slicewise.get_fdata()
-                    data_count_subjects_baseline += np.array(nii_baseline.get_fdata() > 0).astype(int)
-                    data_count_subjects_slicewise += np.array(nii_slicewise.get_fdata() > 0).astype(int)
+                nii_baseline = nib.load(fname_tsnr_in_template_baseline)
+                data_tsnr_baseline += nii_baseline.get_fdata()
+                nii_slicewise = nib.load(fname_tsnr_in_template_slicewise)
+                data_tsnr_slicewise += nii_slicewise.get_fdata()
+                data_count_subjects_baseline += np.array(nii_baseline.get_fdata() > 0).astype(int)
+                data_count_subjects_slicewise += np.array(nii_slicewise.get_fdata() > 0).astype(int)
 
-                if not done:
-                    print(f"No rest task found for sub-{ID}, using motor task instead", flush=True)
-                    # Todo: If no rest task, use the motor task, we could use the volumes at rest during the motor task
-                    # This is only relevant for acqs 93, 94, 95, 96
-                    path_task_baseline = os.path.join(
-                        path_fig_data,
-                        f"sub-{ID}",
-                        f"task-{task}_acq-{name_baseline}")
-                    if not os.path.exists(path_task_baseline):
-                        warnings.warn(f"No motor task found for sub-{ID}, we need it to compute the tSNR figure")
-                        continue
-                    done = True
-                    fname_tsnr_in_template_baseline = os.path.join(
-                        path_task_baseline,
-                        f"sub-{ID}_task-{task}_acq-{name_baseline}*_bold_moco_tsnr_in_PAM50.nii.gz"
-                    )
-                    if len(glob.glob(fname_tsnr_in_template_baseline)) != 1:
-                        raise RuntimeError(f"0 or more than 1 tSNR in template files found: {glob.glob(fname_tsnr_in_template_baseline)}")
-                    fname_tsnr_in_template_baseline = glob.glob(fname_tsnr_in_template_baseline)[0]
+            if not done:
+                print(f"No rest task found for sub-{ID}, using motor task instead", flush=True)
+                # Todo: If no rest task, use the motor task, we could use the volumes at rest during the motor task
+                # This is only relevant for acqs 93, 94, 95, 96
+                path_task_baseline = os.path.join(
+                    path_fig_data,
+                    f"sub-{ID}",
+                    f"task-{task}_acq-{name_baseline}")
+                if not os.path.exists(path_task_baseline):
+                    warnings.warn(f"No motor task found for sub-{ID}, we need it to compute the tSNR figure")
+                    continue
+                done = True
+                fname_tsnr_in_template_baseline = os.path.join(
+                    path_task_baseline,
+                    f"sub-{ID}_task-{task}_acq-{name_baseline}*_bold_moco_tsnr_in_PAM50.nii.gz"
+                )
+                if len(glob.glob(fname_tsnr_in_template_baseline)) != 1:
+                    raise RuntimeError(
+                        f"0 or more than 1 tSNR in template files found: {glob.glob(fname_tsnr_in_template_baseline)}")
+                fname_tsnr_in_template_baseline = glob.glob(fname_tsnr_in_template_baseline)[0]
 
-                    path_task_slicewise = os.path.join(
-                        path_fig_data,
-                        f"sub-{ID}",
-                        f"task-{task}_acq-{name_slicewise}")
-                    fname_tsnr_in_template_slicewise = os.path.join(
-                        path_task_slicewise,
-                        f"sub-{ID}_task-{task}_acq-{name_slicewise}*_bold_moco_tsnr_in_PAM50.nii.gz"
-                    )
-                    if len(glob.glob(fname_tsnr_in_template_slicewise)) != 1:
-                        raise RuntimeError(
-                            f"0 or more than 1 tSNR in template files found: {glob.glob(fname_tsnr_in_template_slicewise)}")
-                    fname_tsnr_in_template_slicewise = glob.glob(fname_tsnr_in_template_slicewise)[0]
+                path_task_slicewise = os.path.join(
+                    path_fig_data,
+                    f"sub-{ID}",
+                    f"task-{task}_acq-{name_slicewise}")
+                fname_tsnr_in_template_slicewise = os.path.join(
+                    path_task_slicewise,
+                    f"sub-{ID}_task-{task}_acq-{name_slicewise}*_bold_moco_tsnr_in_PAM50.nii.gz"
+                )
+                if len(glob.glob(fname_tsnr_in_template_slicewise)) != 1:
+                    raise RuntimeError(
+                        f"0 or more than 1 tSNR in template files found: {glob.glob(fname_tsnr_in_template_slicewise)}")
+                fname_tsnr_in_template_slicewise = glob.glob(fname_tsnr_in_template_slicewise)[0]
 
-                    nii_baseline = nib.load(fname_tsnr_in_template_baseline)
-                    data_tsnr_baseline += nii_baseline.get_fdata()
-                    nii_slicewise = nib.load(fname_tsnr_in_template_slicewise)
-                    data_tsnr_slicewise += nii_slicewise.get_fdata()
-                    data_count_subjects_baseline += np.array(nii_baseline.get_fdata() > 0).astype(int)
-                    data_count_subjects_slicewise += np.array(nii_slicewise.get_fdata() > 0).astype(int)
+                nii_baseline = nib.load(fname_tsnr_in_template_baseline)
+                data_tsnr_baseline += nii_baseline.get_fdata()
+                nii_slicewise = nib.load(fname_tsnr_in_template_slicewise)
+                data_tsnr_slicewise += nii_slicewise.get_fdata()
+                data_count_subjects_baseline += np.array(nii_baseline.get_fdata() > 0).astype(int)
+                data_count_subjects_slicewise += np.array(nii_slicewise.get_fdata() > 0).astype(int)
         # Average
-        data_tsnr_baseline_avg = np.divide(data_tsnr_baseline, data_count_subjects_baseline, where=data_count_subjects_baseline != 0)
-        data_tsnr_slicewise_avg = np.divide(data_tsnr_slicewise, data_count_subjects_slicewise, where=data_count_subjects_slicewise != 0)
+        data_tsnr_baseline_avg = np.divide(data_tsnr_baseline, data_count_subjects_baseline,
+                                           where=data_count_subjects_baseline != 0)
+        data_tsnr_slicewise_avg = np.divide(data_tsnr_slicewise, data_count_subjects_slicewise,
+                                            where=data_count_subjects_slicewise != 0)
 
-        nii_tsnr_baseline_avg = nib.Nifti1Image(data_tsnr_baseline_avg, affine=nii_template.affine, header=nii_template.header)
+        nii_tsnr_baseline_avg = nib.Nifti1Image(data_tsnr_baseline_avg, affine=nii_template.affine,
+                                                header=nii_template.header)
         nib.save(nii_tsnr_baseline_avg, fname_tsnr_baseline_avg)
 
-        nii_tsnr_slicewise_avg = nib.Nifti1Image(data_tsnr_slicewise_avg, affine=nii_template.affine, header=nii_template.header)
+        nii_tsnr_slicewise_avg = nib.Nifti1Image(data_tsnr_slicewise_avg, affine=nii_template.affine,
+                                                 header=nii_template.header)
         nib.save(nii_tsnr_slicewise_avg, fname_tsnr_slicewise_avg)
 
     nii_tsnr_baseline_avg = nib.load(fname_tsnr_baseline_avg)
     nii_tsnr_slicewise_avg = nib.load(fname_tsnr_slicewise_avg)
 
     fname_tsnr_baseline_avg_smooth = os.path.join(path_fig_tsnr, "data", "tsnr_baseline_avg_smooth_in_PAM50.nii.gz")
-    if not os.path.exists(fname_tsnr_baseline_avg_smooth) or redo:
-        nii_tsnr_baseline_avg_smooth = smooth_img(nii_tsnr_baseline_avg, fwhm=[2, 2, 4])
-        nib.save(nii_tsnr_baseline_avg_smooth, fname_tsnr_baseline_avg_smooth)
+    nii_tsnr_baseline_avg_smooth = smooth_img(nii_tsnr_baseline_avg, fwhm=[2, 2, 4])
+    nib.save(nii_tsnr_baseline_avg_smooth, fname_tsnr_baseline_avg_smooth)
 
     fname_tsnr_slicewise_avg_smooth = os.path.join(path_fig_tsnr, "data", "tsnr_slicewise_avg_smooth_in_PAM50.nii.gz")
-    if not os.path.exists(fname_tsnr_slicewise_avg_smooth) or redo:
-        nii_tsnr_slicewise_avg_smooth = smooth_img(nii_tsnr_slicewise_avg, fwhm=[2, 2, 4])
-        nib.save(nii_tsnr_slicewise_avg_smooth, fname_tsnr_slicewise_avg_smooth)
+    nii_tsnr_slicewise_avg_smooth = smooth_img(nii_tsnr_slicewise_avg, fwhm=[2, 2, 4])
+    nib.save(nii_tsnr_slicewise_avg_smooth, fname_tsnr_slicewise_avg_smooth)
 
     nii_tsnr_baseline_avg_smooth = nib.load(fname_tsnr_baseline_avg_smooth)
     nii_tsnr_slicewise_avg_smooth = nib.load(fname_tsnr_slicewise_avg_smooth)
@@ -330,9 +346,10 @@ def main():
         os.system(cmd)
     nii_outline = nib.load(fname_template_seg_outline)
 
-    # fname_tsnr_template_plot = os.path.join(path_fig_tsnr, "tsnr_template_plot.png")
-    create_tsnr_template_plot(fig, gs_main[1], nii_tsnr_baseline_avg_smooth, nii_tsnr_slicewise_avg_smooth, nii_template, nii_outline)
-    fig.suptitle("A) Average tSNR map (n=15)              B) tSNR accross participants", fontsize=12, fontweight='bold', x=0.52)
+    create_tsnr_template_plot(fig, gs_main[1], nii_tsnr_baseline_avg_smooth, nii_tsnr_slicewise_avg_smooth,
+                              nii_template, nii_outline)
+    fig.suptitle(f"A) Average tSNR map (n={len(IDs)})              B) tSNR accross participants", fontsize=12, fontweight='bold',
+                 x=0.52)
     fname_output = os.path.join(path_fig_tsnr, "tsnr_plot.png")
     fig.savefig(fname_output, dpi=1000)
 
@@ -340,14 +357,14 @@ def main():
 
 
 def create_tsnr_template_plot(fig, gs, nii_baseline, nii_slicewise, nii_template, nii_cord_outline):
-
     axial_slice = 244
     axial_left_bound = 47
     axial_right_bound = 95
     axial_bot_bound = 53
     axial_top_bound = 89
 
-    axial_outline = nii_cord_outline.get_fdata()[axial_left_bound:axial_right_bound, axial_bot_bound:axial_top_bound, axial_slice]
+    axial_outline = nii_cord_outline.get_fdata()[axial_left_bound:axial_right_bound, axial_bot_bound:axial_top_bound,
+                    axial_slice]
     axial_cord_outline_nan = np.full_like(axial_outline, np.nan)
     axial_cord_outline_nan[axial_outline > 0.5] = 1
 
@@ -362,20 +379,22 @@ def create_tsnr_template_plot(fig, gs, nii_baseline, nii_slicewise, nii_template
 
     cor_template_slice = nii_template.get_fdata()[cor_left_bound:cor_right_bound, cor_slice, :]
     cor_baseline_slice = np.full_like(cor_template_slice, np.nan)
-    cor_baseline_slice[:, cor_bot_bound:cor_top_bound] = nii_baseline.get_fdata()[cor_left_bound:cor_right_bound, cor_slice, cor_bot_bound:cor_top_bound]
+    cor_baseline_slice[:, cor_bot_bound:cor_top_bound] = nii_baseline.get_fdata()[cor_left_bound:cor_right_bound,
+                                                         cor_slice, cor_bot_bound:cor_top_bound]
     cor_baseline_slice = cor_baseline_slice[:, cor_templ_bot:cor_templ_top]
 
     cor_slicewise_slice = np.full_like(cor_template_slice, np.nan)
-    cor_slicewise_slice[:, cor_bot_bound:cor_top_bound] = nii_slicewise.get_fdata()[cor_left_bound:cor_right_bound, cor_slice, cor_bot_bound:cor_top_bound]
+    cor_slicewise_slice[:, cor_bot_bound:cor_top_bound] = nii_slicewise.get_fdata()[cor_left_bound:cor_right_bound,
+                                                          cor_slice, cor_bot_bound:cor_top_bound]
     cor_slicewise_slice = cor_slicewise_slice[:, cor_templ_bot:cor_templ_top]
 
     cor_template_slice = cor_template_slice[:, cor_templ_bot:cor_templ_top]
 
-    spinal_levels = {5: range(300, 333),   # C5
-                     6: range(269, 300),   # C6
-                     7: range(238, 269),   # C7
-                     8: range(206, 238),   # C8
-                     9: range(172, 206),   # T1
+    spinal_levels = {5: range(300, 333),  # C5
+                     6: range(269, 300),  # C6
+                     7: range(238, 269),  # C7
+                     8: range(206, 238),  # C8
+                     9: range(172, 206),  # T1
                      10: range(135, 172)}  # T2
     data_spinal_levels = np.full_like(cor_template_slice, 0, dtype=int)
     for level, range_ in spinal_levels.items():
@@ -389,21 +408,27 @@ def create_tsnr_template_plot(fig, gs, nii_baseline, nii_slicewise, nii_template
     axs = gs_1.subplots()
     axs[0, 0].imshow(np.rot90(cor_template_slice), cmap='gray')
     im1 = axs[0, 0].imshow(np.rot90(cor_baseline_slice), vmin=vmin, vmax=vmax, cmap='turbo')
-    axs[0, 0].hlines(hline, xmin=0, xmax=cor_right_bound - cor_left_bound - 1, color='black', linestyle='--', linewidth=1)
+    axs[0, 0].hlines(hline, xmin=0, xmax=cor_right_bound - cor_left_bound - 1, color='black', linestyle='--',
+                     linewidth=1)
     axs[0, 0].axis('off')
     axs[0, 0].set_aspect('equal', adjustable='box')
     axs[0, 0].set_title('Baseline\n2nd order shim', fontsize=10)
     axs[0, 1].imshow(np.rot90(cor_template_slice), cmap='gray')
     axs[0, 1].imshow(np.rot90(cor_slicewise_slice), vmin=vmin, vmax=vmax, cmap='turbo')
-    axs[0, 1].hlines(hline, xmin=0, xmax=cor_right_bound - cor_left_bound - 1, color='black', linestyle='--', linewidth=1)
+    axs[0, 1].hlines(hline, xmin=0, xmax=cor_right_bound - cor_left_bound - 1, color='black', linestyle='--',
+                     linewidth=1)
     axs[0, 1].axis('off')
     axs[0, 1].set_aspect('equal', adjustable='box')
     axs[0, 1].set_title('Slice-wise\nf0xyz shim', fontsize=10)
-    axs[1, 0].imshow(np.rot90(nii_baseline.get_fdata()[axial_left_bound:axial_right_bound, axial_bot_bound:axial_top_bound, axial_slice]), vmin=vmin, vmax=vmax, cmap='turbo')
+    axs[1, 0].imshow(np.rot90(
+        nii_baseline.get_fdata()[axial_left_bound:axial_right_bound, axial_bot_bound:axial_top_bound, axial_slice]),
+                     vmin=vmin, vmax=vmax, cmap='turbo')
     axs[1, 0].imshow(np.rot90(axial_cord_outline_nan), vmin=0, vmax=1, cmap='grey', alpha=0.75)
     axs[1, 0].axis('off')
     axs[1, 0].set_aspect('equal', adjustable='box')
-    axs[1, 1].imshow(np.rot90(nii_slicewise.get_fdata()[axial_left_bound:axial_right_bound, axial_bot_bound:axial_top_bound, axial_slice]), vmin=vmin, vmax=vmax, cmap='turbo')
+    axs[1, 1].imshow(np.rot90(
+        nii_slicewise.get_fdata()[axial_left_bound:axial_right_bound, axial_bot_bound:axial_top_bound, axial_slice]),
+                     vmin=vmin, vmax=vmax, cmap='turbo')
     axs[1, 1].imshow(np.rot90(axial_cord_outline_nan), vmin=0, vmax=1, cmap='grey', alpha=0.75)
     axs[1, 1].axis('off')
     axs[1, 1].set_aspect('equal', adjustable='box')
@@ -414,13 +439,19 @@ def create_tsnr_template_plot(fig, gs, nii_baseline, nii_slicewise, nii_template
 
     # Add orientation labels on the left axial slice and on the left coronal
     text_fontsize = 10
-    axs[1, 0].text(0.08, 0.5, 'L', color='white', fontsize=text_fontsize, fontweight='bold', ha='center', va='center', transform=axs[1, 0].transAxes)
-    axs[1, 0].text(0.92, 0.5, 'R', color='white', fontsize=text_fontsize, fontweight='bold', ha='center', va='center', transform=axs[1, 0].transAxes)
-    axs[1, 0].text(0.5, 0.1, 'A', color='white', fontsize=text_fontsize, fontweight='bold', ha='center', va='center', transform=axs[1, 0].transAxes)
-    axs[1, 0].text(0.5, 0.9, 'P', color='white', fontsize=text_fontsize, fontweight='bold', ha='center', va='center', transform=axs[1, 0].transAxes)
+    axs[1, 0].text(0.08, 0.5, 'L', color='white', fontsize=text_fontsize, fontweight='bold', ha='center', va='center',
+                   transform=axs[1, 0].transAxes)
+    axs[1, 0].text(0.92, 0.5, 'R', color='white', fontsize=text_fontsize, fontweight='bold', ha='center', va='center',
+                   transform=axs[1, 0].transAxes)
+    axs[1, 0].text(0.5, 0.1, 'A', color='white', fontsize=text_fontsize, fontweight='bold', ha='center', va='center',
+                   transform=axs[1, 0].transAxes)
+    axs[1, 0].text(0.5, 0.9, 'P', color='white', fontsize=text_fontsize, fontweight='bold', ha='center', va='center',
+                   transform=axs[1, 0].transAxes)
 
-    axs[0, 0].text(-0.1, 0, 'L', color='black', fontsize=text_fontsize, fontweight='bold', ha='center', va='bottom', transform=axs[0, 0].transAxes)
-    axs[0, 0].text(1.1, 0, 'R', color='black', fontsize=text_fontsize, fontweight='bold', ha='center', va='bottom', transform=axs[0, 0].transAxes)
+    axs[0, 0].text(-0.1, 0, 'L', color='black', fontsize=text_fontsize, fontweight='bold', ha='center', va='bottom',
+                   transform=axs[0, 0].transAxes)
+    axs[0, 0].text(1.1, 0, 'R', color='black', fontsize=text_fontsize, fontweight='bold', ha='center', va='bottom',
+                   transform=axs[0, 0].transAxes)
 
     # Add spinal level labels on the left of the coronal slices
     l, b, w, h = axs[0, 0].get_position(False).bounds
@@ -443,7 +474,8 @@ def create_tsnr_template_plot(fig, gs, nii_baseline, nii_slicewise, nii_template
     ax_spl.spines['right'].set_visible(False)
     ax_spl.set_yticks([cor_template_slice.shape[1] - (np.mean(spinal_levels[i]) - cor_templ_bot) for i in range(5, 11)])
     ax_spl.set_yticklabels(['C5', 'C6', 'C7', 'C8', 'T1', 'T2'])
-    ax_spl.tick_params(axis='y', which='both', bottom=False, top=False, left=False, right=False, labelcolor='grey', labelsize=8)
+    ax_spl.tick_params(axis='y', which='both', bottom=False, top=False, left=False, right=False, labelcolor='grey',
+                       labelsize=8)
     ax_spl.set_ylabel('Spinal levels', fontsize=8, color='grey')
     ax_spl.set_aspect('auto', adjustable='datalim')
     ax_spl.set_label('Spinal levels')

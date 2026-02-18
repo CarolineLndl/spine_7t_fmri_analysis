@@ -262,9 +262,9 @@ def compute_tsnr_map(fname_file, ofolder, redo, first_n_vols=None, smooth=False)
         nii_tsnr = nib.Nifti1Image(tsnr, affine=nii.affine, header=nii.header)
 
         if smooth:
-            nii_tsnr_smooth = smooth_img(nii_tsnr, fwhm=[3, 3, 6])
+            nii_tsnr = smooth_img(nii_tsnr, fwhm=[3, 3, 6])
 
-        nii_tsnr_smooth.to_filename(fname_tsnr)
+        nii_tsnr.to_filename(fname_tsnr)
 
     return fname_tsnr
 
