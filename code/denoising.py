@@ -168,7 +168,7 @@ class Denoising:
                     if not os.path.exists(output_moco_file):
                         np.savetxt(output_moco_file, moco_brain)
 
-                if os.path.exists(output_moco_file) and redo==False and verbose==True:
+                if os.path.exists(output_moco_file) and not redo and verbose:
                     print("Brain moco params were already extracted please, put redo=True to recalculate it")
 
                 # create a dataframe with volume value for each slice as we do not have the slice wise motion corrected parameters
@@ -195,7 +195,7 @@ class Denoising:
 
                     np.savetxt(output_moco_file, moco_value)
 
-                if os.path.exists(output_moco_file) and redo==False and verbose==True:
+                if os.path.exists(output_moco_file) and not redo and verbose:
                     print("Spinal cord moco params were already extracted please, put redo=True to recalculate it")
 
         else:
@@ -254,16 +254,21 @@ class Denoising:
         task_tag="" if task_name=="" else "_" + task_name
         run_tag="" if run_name=="" else "_" + run_name
 
-        if i_img==None:
+        if i_img is None:
             i_img=glob.glob(self.preproc_dir.format(ID)+ '/' + self.config["preprocess_dir"]["func_moco"].format(task_name) + self.config["preprocess_f"]["func_moco"].format(ID,task_tag,run_tag))[0]
 
-        if mask_file==None:
-            mask_file=glob.glob(self.preproc_dir.format(ID) + self.config["preprocess_dir"]["func_seg"].format(task_name) + self.config["preprocess_f"]["func_seg"].format(ID,task_tag,run_tag))[0]
+        if mask_file is None:
+            mask_file_list = glob.glob(self.preproc_dir.format(ID) + self.config["preprocess_dir"]["func_seg"].format(task_name) + self.config["preprocess_f"]["func_seg"].format(ID, task_tag, run_tag))
+            mask_file = mask_file_list[0] if len(mask_file_list) > 0 else None
 
             # check if a manual segmentation file exists
-            manual_mask_file = os.path.join(self.manual_dir, f"sub-{ID}", ses_name, "func",task_name, os.path.basename(mask_file))
+            manual_mask_file_list = glob.glob(os.path.join(self.manual_dir, f"sub-{ID}", ses_name, "func", self.config["preprocess_f"]["func_seg"].format(ID, task_tag, run_tag)))
+            manual_mask_file = manual_mask_file_list[0] if len(manual_mask_file_list) > 0 else ""
             if os.path.exists(manual_mask_file):
                 mask_file = manual_mask_file
+
+            if mask_file is None:
+                raise RuntimeError('No mask file found for this participant, task and run, please provide a mask file or check the preprocessing outputs')
 
         # --- Define output file --------------------------------------------------------
         if output_file==None:
@@ -275,7 +280,7 @@ class Denoising:
         # --- Run outliers calculation --------------------------------------------------------
         cmd_fsl="fsl_motion_outliers -i "+i_img+" -o "+output_file+ ".txt —m "+mask_file+ " --nomoco --dvars -p "+output_file + ".png "
 
-        if not os.path.exists(output_file +".txt") or redo==True:
+        if not os.path.exists(output_file + ".txt") or redo:
             if verbose:
                 print("----------------------------------------------------------")
                 print("Compute outliers estimation: " + ID + " : " + task_name + " " + run_name)
@@ -342,7 +347,7 @@ class Denoising:
             if copy==True: # copy the file in an other folder if copy==True
                 if output_dir is None:
                     raise(Exception('output_dir should be list of directories'))
-                if not os.path.exists(output_dir+os.path.basename(physio_file_tsv[0])) or redo ==True:
+                if not os.path.exists(output_dir+os.path.basename(physio_file_tsv[0])) or redo:
                     output=shutil.copyfile(physio_file_tsv[0], output_dir+ '/'+os.path.basename(physio_file_tsv[0])) # copy the file in an other folder
                     print('Physio file has been copy here : ' + output)
                 else:
@@ -368,7 +373,7 @@ class Denoising:
                 input_resp_json=glob.glob(input_dir + '/*'+ run_tag +'*respiratory*.json')[0]
                 input_puls_json=glob.glob(input_dir + '/*'+ run_tag +'*cardiac*.json')[0]
 
-                if not os.path.exists(output_dir+ '/'+os.path.basename(input_resp)) or redo ==True:
+                if not os.path.exists(output_dir+ '/'+os.path.basename(input_resp)) or redo:
                     output_resp=shutil.copyfile(input_resp, output_dir+ '/'+os.path.basename(input_resp))
                     shutil.copyfile(input_resp_json, output_dir+ '/'+os.path.basename(input_resp_json))
                     output_puls=shutil.copyfile(input_puls, output_dir+ '/'+os.path.basename(input_puls))
@@ -394,7 +399,7 @@ class Denoising:
                 if output_dir is None:
                         raise(Exception('output_dir should be list of directories'))
 
-                if not os.path.exists(output_dir+os.path.basename(input_resp)) or redo ==True:
+                if not os.path.exists(output_dir+os.path.basename(input_resp)) or redo:
                     output_resp=shutil.copyfile(input_resp, output_dir+ '/'+ os.path.basename(input_resp)) # copy the file in an other folder
                     output_puls=shutil.copyfile(input_puls, output_dir+ '/'+os.path.basename(input_puls))
                     #output_trig=shutil.copyfile(input_trig, output_dir+ '/'+os.path.basename(input_trig))
@@ -415,7 +420,7 @@ class Denoising:
             if copy==True:# copy the file in an other folder if copy==True
                 if output_dir is None:
                     raise(Exception('output_dir should be list of directories'))
-                if not os.path.exists(physio_file_mat[0]) or redo ==True:
+                if not os.path.exists(physio_file_mat[0]) or redo:
                     output=shutil.copyfile(physio_file_mat[0], output_dir+ '/'+os.path.basename(physio_file_mat[0])) # copy the file in an other folder
                     print('Physio file has been copy here : ' + output)
                 else:
@@ -529,7 +534,7 @@ class Denoising:
 
         if verbose==True:
             plt.show()
-        if not os.path.exists(output_file) or redo==True:
+        if not os.path.exists(output_file) or redo:
             plt.savefig(output_file, dpi=300, bbox_inches = 'tight')
             plt.close()
 
@@ -952,12 +957,12 @@ class Denoising:
         ax.set_xlabel('Confounds',fontsize = 12)
 
         if verbose:
-            if not os.path.exists(confound_file.split('.')[0]+'.png') or redo==True:
+            if not os.path.exists(confound_file.split('.')[0]+'.png') or redo:
                 plt.savefig(confound_file.split('.')[0]+'.png')
             plt.show()
 
         else:
-            if not os.path.exists(confound_file.split('.')[0]+'.png') or redo==True:
+            if not os.path.exists(confound_file.split('.')[0]+'.png') or redo:
                 plt.savefig(confound_file.split('.')[0]+'.png')
             plt.close(fig)
 
@@ -995,7 +1000,7 @@ class Denoising:
         physio_dir=self.denoising_dir.format(ID) + '/'+task_name+ '/'+ self.config["denoising"]["denoised_dir"].format(ID) +'/'+ structure  # output directory
         output_main_file= physio_dir +os.path.basename(func_file.split('.')[0] + "_"+tag_name+ '.nii.gz')
 
-        if not os.path.exists(output_main_file) or redo==True:
+        if not os.path.exists(output_main_file) or redo:
             if verbose==True:
                 print("----------------------------------------------------------")
                 print("Denoising fMRI data for participant: " + ID + " : " + task_name + " " + run_name)
@@ -1013,7 +1018,7 @@ class Denoising:
                 output_file=f'{physio_dir}/{structure}/tmp{run_name}/' +os.path.basename(func_file.split('.')[0] + "_"+tag_name+ output_tag+'.nii.gz')
 
 
-                if not os.path.exists(output_file) or redo==True:
+                if not os.path.exists(output_file) or redo:
                     mask_img=nib.load(mask_file) # load the mask image
                     if slice_wise:
                         func_slice=func_img.slicer[:,:,slice_nb:slice_nb+1,:] # cropped func slices
@@ -1062,7 +1067,7 @@ class Denoising:
 
     def standardize(self,input_files,output_files,json_files=None,mask_files=None,redo=False):
         #demean and standardized the signal by the std
-        if not os.path.exists(input_files[0]) or redo==True:
+        if not os.path.exists(input_files[0]) or redo:
             for file_nb in range(0,len(input_files)):
                 timeseries=nib.load(input_files[file_nb]).get_fdata() # extract Time series dats
                 signals= timeseries.reshape(-1, timeseries.shape[-1]).T # reshape timeseries (nb_volumes, nb_voxels)

@@ -31,9 +31,10 @@ done
 
 if [ "${RUN_PREPROSS}" = false ] && \
    [ "${RUN_DENOISING}" = false ] && \
-   [ "${RUN_FIRSTLEVEL}" = false ]; then
+   [ "${RUN_FIRSTLEVEL}" = false ] && \
+   [ "${RUN_FIGURES}" = false ]; then
     echo "ERROR: No processing step selected."
-    echo "Use --preprocess, --denoising, and/or --firstlevel"
+    echo "Use --preprocess, --denoising, --firstlevel and/or --figures"
     exit 1
 fi
 
@@ -75,6 +76,8 @@ if [ "${RUN_PREPROSS}" = true ]; then
     echo "Log file: log/nohup_preprocessing_${timestamp}.txt"
     echo "To stop the process, run:"
     echo "kill ${PID}"
+    wait ${PID}
+    echo "Finished preprocessing!"
 fi
 
 # --------------------------
@@ -91,6 +94,8 @@ if [ "${RUN_DENOISING}" = true ]; then
     echo "Log file: log/nohup_denoising_${timestamp}.txt"
     echo "To stop the process, run:"
     echo "kill ${PID}"
+    wait ${PID}
+    echo "Finished denoising!"
 fi
 
 # --------------------------
@@ -107,6 +112,8 @@ if [ "${RUN_FIRSTLEVEL}" = true ]; then
     echo "Log file: log/nohup_firstlevel_${timestamp}.txt"
     echo "To stop the process, run:"
     echo "kill ${PID}"
+    wait ${PID}
+    echo "Finished first level analysis!"
 fi
 
 # --------------------------
@@ -123,4 +130,6 @@ if [ "${RUN_FIGURES}" = true ]; then
     echo "Log file: log/nohup_figures_${timestamp}.txt"
     echo "To stop the process, run:"
     echo "kill ${PID}"
+    wait ${PID}
+    echo "Finished figure generation!"
 fi
