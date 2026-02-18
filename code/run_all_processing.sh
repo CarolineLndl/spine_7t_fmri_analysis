@@ -31,9 +31,10 @@ done
 
 if [ "${RUN_PREPROSS}" = false ] && \
    [ "${RUN_DENOISING}" = false ] && \
-   [ "${RUN_FIRSTLEVEL}" = false ]; then
+   [ "${RUN_FIRSTLEVEL}" = false ] && \
+   [ "${RUN_FIGURES}" = false ]; then
     echo "ERROR: No processing step selected."
-    echo "Use --preprocess, --denoising, and/or --firstlevel"
+    echo "Use --preprocess, --denoising, --firstlevel and/or --figures"
     exit 1
 fi
 
