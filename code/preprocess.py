@@ -1053,3 +1053,61 @@ class Preprocess_Sc:
         plt.title(f'sub-{ID} {ses_name} {task_name} {tag} overlay QC')
         plt.axis('off')
         plt.show()
+
+
+def copy_segmentation_from_ref_tag(ID, tag, ref_tag, manual_dir, preprocessing_dir):
+    # If manual file exists for the rest task, do nothing
+    fname_manual_seg_list = glob.glob(os.path.join(manual_dir, f"sub-{ID}", "func", f"sub-{ID}_{tag}_*seg.nii.gz"))
+    has_manual_seg = len(fname_manual_seg_list) > 0
+    if has_manual_seg:
+        print(f'=== Manual segmentation file already exists for {ID} {tag}, skipping copy of segmentation file ===',
+              flush=True)
+    else:
+        # We need to copy either the manual segmentation file if it exists for the motor task, or the
+        # automatic segmentation file if it doesn't
+        fname_ref_manual_seg_list = glob.glob(
+            os.path.join(manual_dir, f"sub-{ID}", "func", f"sub-{ID}_{ref_tag}_*seg.nii.gz"))
+        fname_ref_auto_seg_list = glob.glob(os.path.join(preprocessing_dir.format(ID), "func", ref_tag, "sct_deepseg",
+                                                         f"sub-{ID}_{ref_tag}_*bold_moco_mean_seg.nii.gz"))
+        fname_ref_seg_dest = os.path.join(preprocessing_dir.format(ID), "func", tag, "sct_deepseg",
+                                          f"sub-{ID}_{tag}_bold_moco_mean_seg.nii.gz")
+        if len(fname_ref_manual_seg_list) > 0:
+            fname_ref_seg = sorted(fname_ref_manual_seg_list)[0]
+            print(f'=== Copying manual segmentation file from {ref_tag} to {tag} for {ID} ===', flush=True)
+        elif len(fname_ref_auto_seg_list) > 0:
+            fname_ref_seg = sorted(fname_ref_auto_seg_list)[0]
+            print(f'=== Copying automatic segmentation file from {ref_tag} to {tag} for {ID} ===', flush=True)
+        else:
+            raise RuntimeError(
+                f'No segmentation file found for {ref_tag} in either manual or automatic folders for {ID}. Cannot copy segmentation file to {tag}.')
+
+        if not os.path.exists(os.path.dirname(fname_ref_seg_dest)):
+            os.makedirs(os.path.dirname(fname_ref_seg_dest))
+
+        shutil.copy(fname_ref_seg, fname_ref_seg_dest)
+
+
+def copy_warping_fields_from_ref_tag(ID, tag, ref_tag, preprocessing_dir):
+    fname_ref_warp_from_func_list = glob.glob(
+        os.path.join(preprocessing_dir.format(ID), "func", ref_tag, "sct_register_multimodal",
+                     f"sub-{ID}_{ref_tag}_*from-func_to_PAM50_mode-image_xfm.nii.gz"))
+    fname_ref_warp_from_pam50_list = glob.glob(
+        os.path.join(preprocessing_dir.format(ID), "func", ref_tag, "sct_register_multimodal",
+                     f"sub-{ID}_{ref_tag}_*from-PAM50_to_func_mode-image_xfm.nii.gz"))
+    if len(fname_ref_warp_from_func_list) == 0 or len(fname_ref_warp_from_pam50_list) == 0:
+        raise RuntimeError(f'No warping fields found for {ref_tag} in {ID}. Cannot copy warping fields to {tag}.')
+
+    fname_ref_warp_from_func = sorted(fname_ref_warp_from_func_list)[0]
+    fname_ref_warp_from_pam50 = sorted(fname_ref_warp_from_pam50_list)[0]
+    fname_ref_warp_from_func_dest = os.path.join(preprocessing_dir.format(ID), "func", tag, "sct_register_multimodal",
+                                                 f"sub-{ID}_{tag}_from-func_to_PAM50_mode-image_xfm.nii.gz")
+    fname_ref_warp_from_pam50_dest = os.path.join(preprocessing_dir.format(ID), "func", tag, "sct_register_multimodal",
+                                                  f"sub-{ID}_{tag}_from-PAM50_to_func_mode-image_xfm.nii.gz")
+
+    print(f'=== Copying warping fields from {ref_tag} to {tag} for {ID} ===', flush=True)
+
+    if not os.path.exists(os.path.dirname(fname_ref_warp_from_func_dest)):
+        os.makedirs(os.path.dirname(fname_ref_warp_from_func_dest))
+
+    shutil.copy(fname_ref_warp_from_func, fname_ref_warp_from_func_dest)
+    shutil.copy(fname_ref_warp_from_pam50, fname_ref_warp_from_pam50_dest)
