@@ -42,7 +42,7 @@ def main():
     config["code_dir"] = path_code
 
     for task_available in config['design_exp']['task_names']:
-        if task_available not in config['design_exp']['task_names']:
+        if task_available not in tasks and tasks != [""]:
             raise ValueError(f"All tasks need to be run to generate the figure")
 
     # Load participants info
@@ -67,8 +67,8 @@ def main():
     print("")
 
     # TSNR figure
-    # fig_tsnr = FigureTSNR(config, IDs, redo)
-    # fig_tsnr.create_figure()
+    fig_tsnr = FigureTSNR(config, IDs, redo)
+    fig_tsnr.create_figure()
 
     # EPI comparison figure
     fig_epi_comparison = FigureEpiComparison(config, IDs, redo)
