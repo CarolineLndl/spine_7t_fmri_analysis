@@ -157,3 +157,10 @@ class Postprocess_main:
                 results.to_filename(stat_maps[i])
         
         return stat_maps
+
+    def run_second_level_glm(self, ID=None, i_img=None,events_file=None,mask_file=None,task_name=None,run_name=None,contrasts = ["trial_RH-rest", "trial_RH", "rest"],smoothing_fwhm=1.5,verbose=True,redo=False):
+
+        # Add in this function the code to run the second level GLM across participants for a specific task and contrast. 
+        # test nilearn: https://nilearn.github.io/stable/modules/generated/nilearn.glm.second_level.SecondLevelModel.html
+        # vs: fsl randomise: https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/Randomise/UserGuide
+        pass
