@@ -171,7 +171,7 @@ class FigureTSNR:
 
         return list_baseline_tsnr, list_slicewise_tsnr
 
-    def create_tsnr_figure(self):
+    def create_figure(self):
         print("=== Generate tSNR violin plot figure ===", flush=True)
 
         self._generate_tsnr_maps_and_csv()
@@ -510,3 +510,17 @@ def find_moco_for_tsnr_calculation(config, ID, task, acq_name):
                 max_volumes = n_volumes
                 selected_file = f
     return selected_file
+
+
+class FigureEpiComparison:
+    def __init__(self, config, IDs, redo):
+        self.IDs = IDs
+        self.config = config
+        self.redo = redo
+
+        self.path_main_fig = os.path.join(config["raw_dir"], config["figures_dir"]["main_dir"])
+        self.path_fig_epi_comparison = os.path.join(self.path_main_fig, "epi_comparison")
+        self.path_fig_data = os.path.join(self.path_fig_epi_comparison, "data")
+
+    def create_figure(self):
+        print("=== Create EPI comparison figure ===", flush=True)

@@ -14,7 +14,7 @@
 import json, os, argparse
 
 import pandas as pd
-from figure import FigureTSNR, find_moco_for_tsnr_calculation
+from figure import FigureTSNR, FigureEpiComparison
 
 
 def main():
@@ -67,8 +67,12 @@ def main():
     print("")
 
     # TSNR figure
-    fig_tsnr = FigureTSNR(config, IDs, redo)
-    fig_tsnr.create_tsnr_figure()
+    # fig_tsnr = FigureTSNR(config, IDs, redo)
+    # fig_tsnr.create_figure()
+
+    # EPI comparison figure
+    fig_epi_comparison = FigureEpiComparison(config, IDs, redo)
+    fig_epi_comparison.create_figure()
 
     print("=== Figure script End ===", flush=True)
 
