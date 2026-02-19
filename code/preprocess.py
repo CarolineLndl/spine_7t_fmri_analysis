@@ -1065,8 +1065,7 @@ def copy_segmentation_from_ref_tag(ID, tag, ref_tag, manual_dir, preprocessing_d
     else:
         # We need to copy either the manual segmentation file if it exists for the motor task, or the
         # automatic segmentation file if it doesn't
-        fname_ref_manual_seg_list = glob.glob(
-            os.path.join(manual_dir, f"sub-{ID}", "func", f"sub-{ID}_{ref_tag}_*seg.nii.gz"))
+        fname_ref_manual_seg_list = glob.glob(os.path.join(manual_dir, f"sub-{ID}", "func", f"sub-{ID}_{ref_tag}_*bold_moco_mean_seg.nii.gz"))
         fname_ref_auto_seg_list = glob.glob(os.path.join(preprocessing_dir.format(ID), "func", ref_tag, "sct_deepseg",
                                                          f"sub-{ID}_{ref_tag}_*bold_moco_mean_seg.nii.gz"))
         fname_ref_seg_dest = os.path.join(preprocessing_dir.format(ID), "func", tag, "sct_deepseg",
