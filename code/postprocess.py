@@ -7,6 +7,8 @@ import nibabel as nib
 import matplotlib.pyplot as plt
 from nilearn.plotting import plot_design_matrix
 from nilearn.glm.first_level import FirstLevelModel
+from nilearn.glm.second_level import SecondLevelModel
+
 from preprocess import Preprocess_main, Preprocess_Sc
 
 #####################################################
@@ -34,6 +36,7 @@ class Postprocess_main:
         self.raw_dir = os.path.join(self.config["raw_dir"])  # directory of the raw data
         self.derivatives_dir = os.path.join(self.config["raw_dir"], self.config["derivatives_dir"])  # directory of the derivatives data
         self.first_level_dir = os.path.join(self.config["raw_dir"], self.config["first_level"]["dir"])  # directory of the derivatives data
+        self.second_level_dir = os.path.join(self.config["raw_dir"], self.config["second_level"]["dir"])  # directory of the second-level analysis data
         self.manual_dir = os.path.join(self.config["raw_dir"], self.config["manual_dir"])  # directory of the manual corrections
 
         # Create directories -------------------------------------------------------------------------------------
@@ -54,7 +57,7 @@ class Postprocess_main:
 
 
 
-    def run_first_level_glm(self, ID=None, i_img=None,events_file=None,mask_file=None,task_name=None,run_name=None,contrasts = ["trial_RH-rest", "trial_RH", "rest"],smoothing_fwhm=1.5,verbose=True,redo=False):
+    def run_first_level_glm(self, ID=None, i_fname=None,events_file=None,mask_file=None,task_name=None,run_name=None,contrasts = ["trial_RH-rest", "trial_RH", "rest"],smoothing_fwhm=1.5,verbose=True,redo=False):
         """
         Run first-level GLM for a specific subject and task.
 
@@ -62,7 +65,7 @@ class Postprocess_main:
         ----------
         ID : str
             Participant ID (e.g., "093")
-        i_img : str
+        i_fname : str
             Filename of the input fMRI image (4D NIfTI file)
         events_file : str
             Filename of the events TSV file
@@ -86,7 +89,7 @@ class Postprocess_main:
         # --- Input validation -------------------------------------------------------------
         if ID is None:
             raise ValueError("Please provide the participant ID (e.g., _.stc(ID='A001')).")
-        if i_img is None:
+        if i_fname is None:
             raise ValueError("Please provide the filename of the input image.")
         if events_file is None:
             raise ValueError("Please provide the filename of the events TSV file.")
@@ -108,7 +111,7 @@ class Postprocess_main:
         tr = json_data.get("RepetitionTime")
 
         # Load fMRI image
-        img = nib.load(i_img)
+        img = nib.load(i_fname)
         n_scans = img.shape[3]
         frame_times = np.arange(n_scans) * tr
 
@@ -128,7 +131,7 @@ class Postprocess_main:
                 mask_img=mask_file
             )
 
-            fmri_glm = model.fit(i_img, events=df_events)
+            fmri_glm = model.fit(i_fname, events=df_events)
 
             # Plot design matrix 
             design_mat = fmri_glm.design_matrices_[0]
@@ -143,7 +146,7 @@ class Postprocess_main:
             if verbose:
                 print(f"First-level results already exist for sub-{ID} {task_name} {run_name}. Skipping computation.")
         
-        # Compute contrasts and save
+        # --- Compute contrasts and save -----------------------------------------------------------
         stat_maps=[]
         for i, contrast in enumerate(contrasts):
             if smoothing_fwhm is not None:
@@ -158,9 +161,28 @@ class Postprocess_main:
         
         return stat_maps
 
-    def run_second_level_glm(self, ID=None, i_img=None,events_file=None,mask_file=None,task_name=None,run_name=None,contrasts = ["trial_RH-rest", "trial_RH", "rest"],smoothing_fwhm=1.5,verbose=True,redo=False):
+    def run_second_level_glm(self,i_fnames=None,design_matrix=None,mask_fname=None,smoothing_fwhm=None,task_name=None,run_name=None,contrasts = ["trial_RH-rest", "trial_RH", "rest"],verbose=True,redo=False):
 
-        # Add in this function the code to run the second level GLM across participants for a specific task and contrast. 
-        # test nilearn: https://nilearn.github.io/stable/modules/generated/nilearn.glm.second_level.SecondLevelModel.html
-        # vs: fsl randomise: https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/Randomise/UserGuide
-        pass
+        # ongoing test nilearn: https://nilearn.github.io/stable/modules/generated/nilearn.glm.second_level.SecondLevelModel.html
+        # --- Input validation -------------------------------------------------------------
+        if i_fnames is None:
+            raise ValueError("Please provide the list of filenames of the input contrast images.")
+        
+        # Load design matrix file if provided, otherwise create a default design matrix with an intercept only
+        if design_matrix is None:
+            design_matrix = pd.DataFrame([1] * len(i_fnames),columns=["intercept"])
+        
+        # --- Define directories  -----------------------------------------------------------
+        second_level_dir = self.second_level_dir.format(task_name) + "/"
+        os.makedirs(second_level_dir, exist_ok=True)
+        
+        # --- Estimate and Fit second-level model -----------------------------------------------------------
+        second_level_model = SecondLevelModel(mask_img=mask_fname,smoothing_fwhm=smoothing_fwhm, n_jobs=2, verbose=1) # define the model to the contrast images and the design matrix
+        second_level_model.fit(i_fnames, design_matrix=design_matrix)  # fit the model to the contrast images and the design matrix
+        
+        # --- Compute contrasts and save -----------------------------------------------------------
+        z_map = second_level_model.compute_contrast(second_level_contrast="intercept",output_type="z_score")
+        z_map_file = os.path.join(second_level_dir, f"n{len(i_fnames)}_{task_name}_intercept_z_map.nii.gz")
+        z_map.to_filename(z_map_file)
+        
+        return z_map_file

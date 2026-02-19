@@ -69,6 +69,7 @@ main_fig_dir = os.path.join(config["raw_dir"], "derivatives/processing/figures/"
 fig_task_dir = os.path.join(main_fig_dir, "task")
 os.makedirs(main_fig_dir, exist_ok=True)
 os.makedirs(fig_task_dir, exist_ok=True)
+
 #------------------------------------------------------------------
 #------ First level
 #------------------------------------------------------------------
@@ -116,7 +117,7 @@ for ID_nb,ID in enumerate(IDs):
                 #------------------------------------------------------------------
 
                 stat_maps=postprocess.run_first_level_glm(ID=ID,
-                                                          i_img=denoised_fmri,
+                                                          i_fname=denoised_fmri,
                                                           events_file=events_file,
                                                           mask_file=mask_final_file,
                                                           task_name=tag,
@@ -172,7 +173,7 @@ for ID_nb,ID in enumerate(IDs):
                             mean=False,
                             n_jobs=1,
                             verbose=False,
-                            redo=redo)
+                            redo=True)
                 
 
                     
@@ -185,3 +186,47 @@ for ID_nb,ID in enumerate(IDs):
 if not os.path.exists(fname_task_metrics) or redo:
     df_task.to_csv(fname_task_metrics, index=False)
     print(f"Task metrics saved to: {fname_task_metrics}")
+
+#------------------------------------------------------------------
+#------ Second level
+#------------------------------------------------------------------
+#TODO: add a commun mask for secon level analyses
+
+print("")
+print("=== Second level analysis script Start ===", flush=True)
+print("Participant(s) included : ", IDs, flush=True)
+print("===================================", flush=True)
+print("")
+
+# list of first evel contrast images in template space for each participant and task
+run2nd=False # set to True to run second level analyses, False to only run first level and save the resulting stat maps in template space
+if run2nd==True:
+    first_level_dir = os.path.join(config["raw_dir"], config["first_level"]["dir"])
+    for task_name in config["design_exp"]["task_names"]:
+        for acq_name in config["design_exp"]["acq_names"]:
+            i_fnames=[]
+            tag="task-" + task_name + "_acq-" + acq_name
+            for ID in IDs:
+                # define the run name if multiple runs exist
+                raw_func=sorted(glob.glob(os.path.join(config["raw_dir"], f'sub-{ID}', 'func', f'sub-{ID}_{tag}_*bold.nii.gz')))
+
+                # take only the first run
+                func_file = raw_func[0]
+
+                # extract run number if exists
+                match = re.search(r"_?(run-\d+)", func_file)
+                run_name = match.group(1) if match else ""
+                
+
+                # find the corresponding first-level file
+                
+                i_fnames.append(glob.glob(os.path.join(first_level_dir.format(ID), f"{tag}", f"*{tag}*{run_name}*trial_RH-rest*inTemplate.nii.gz"))[0])
+            print("--")
+            print(i_fnames)
+            
+            z_map_file=postprocess.run_second_level_glm(i_fnames=i_fnames,
+                                                        mask_fname=f"{path_code}/template/{config['PAM50_cord']}",
+                                                        task_name=tag,
+                                                        run_name="",
+                                                        redo=True,
+                                                        verbose=verbose)
