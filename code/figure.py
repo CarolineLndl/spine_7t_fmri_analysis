@@ -15,6 +15,7 @@ from nilearn.image import smooth_img
 import numpy as np
 import os
 import pandas as pd
+from scipy.ndimage import center_of_mass
 from utils import compute_tsnr_map, extract_mean_within_mask
 import warnings
 
@@ -522,22 +523,59 @@ class FigureEpiComparison:
         self.path_fig_epi_comparison = os.path.join(self.path_main_fig, "epi_comparison")
         if not os.path.exists(self.path_fig_epi_comparison):
             os.makedirs(self.path_fig_epi_comparison)
-        # self.path_fig_data = os.path.join(self.path_fig_epi_comparison, "data")
+        self.path_fig_data = os.path.join(self.path_fig_epi_comparison, "data")
+        if not os.path.exists(self.path_fig_data):
+            os.makedirs(self.path_fig_data)
 
-    def create_figure(self):
+    def create_figure(self, show_avg=False):
         print("=== Create EPI comparison figure ===", flush=True)
 
         ### Create 1 figure per subject, showing moco mean in native space between baseline and slicewise shim
         # crop the images to focus on the spinal cord
         # Show non moco as well?
         # Maybe? Show average pam50 back in native space to compare
+        if show_avg:
+            name_baseline = [a for a in self.config["design_exp"]["acq_names"] if "Base" in a][0]
+            name_slicewise = [a for a in self.config["design_exp"]["acq_names"] if "Slice" in a][0]
+            fname_avg_baseline = self._create_avg_moco_mean_in_pam50(self.IDs, name_baseline)
+            fname_avg_slicewise = self._create_avg_moco_mean_in_pam50(self.IDs, name_slicewise)
+
+            print(f"{fname_avg_baseline=}")
+            print(f"{fname_avg_slicewise=}")
+        else:
+            fname_avg_baseline = None
+            fname_avg_slicewise = None
+
         for ID in self.IDs:
-            self._create_comp_figure(ID)
+            self._create_comp_figure(ID, fname_avg_baseline, fname_avg_slicewise, show_avg)
 
         # Additionally create a gif that switches between baseline and slicewise
 
-    def _create_comp_figure(self, ID):
-        from scipy.ndimage import center_of_mass
+    def _create_avg_moco_mean_in_pam50(self, IDs, acq_name):
+
+        task = "motor"
+        fname_template = os.path.join(self.config["code_dir"], "template", self.config["PAM50_t2"])
+        data_sum = None
+        for ID in IDs:
+            fname_moco_mean, _, fname_warp_from_func_to_template, _  = self._get_fname_moco_mean_and_seg_and_warps(ID, task, acq_name)
+            if not os.path.exists(os.path.join(self.path_fig_data, f"sub-{ID}")):
+                os.makedirs(os.path.join(self.path_fig_data, f"sub-{ID}"))
+            fname_moco_in_template = os.path.join(self.path_fig_data, f"sub-{ID}", f"sub-{ID}_task-{task}_acq-{acq_name}_bold_moco_mean_in_PAM50.nii.gz")
+            cmd_coreg = f"sct_apply_transfo -i {fname_moco_mean} -d {fname_template} -w {fname_warp_from_func_to_template} -o {fname_moco_in_template} -x nn"
+            os.system(cmd_coreg)
+            nii = nib.load(fname_moco_in_template)
+            if data_sum is None:
+                data_sum = nii.get_fdata()
+            else:
+                data_sum += nii.get_fdata()
+
+        data_avg = data_sum / len(IDs)
+        fname_avg = os.path.join(self.path_fig_data, f"avg_task-{task}_acq-{acq_name}_bold_moco_mean_in_PAM50.nii.gz")
+        nii_avg = nib.Nifti1Image(data_avg, affine=nii.affine, header=nii.header)
+        nib.save(nii_avg, fname_avg)
+        return fname_avg
+
+    def _create_comp_figure(self, ID, fname_avg_baseline, fname_avg_slicewise, show_avg=False):
         # from skimage.util import montage
         # Create figure that shows moco mean in native space between baseline and slicewise shim
         task = "motor"
@@ -545,8 +583,8 @@ class FigureEpiComparison:
         name_slicewise = [a for a in self.config["design_exp"]["acq_names"] if "Slice" in a][0]
 
         # Paths for baseline and slicewise shim images
-        fname_baseline, fname_seg_baseline = self._get_fname_moco_mean_and_seg(ID, task, name_baseline)
-        fname_slicewise, fname_seg_slicewise = self._get_fname_moco_mean_and_seg(ID, task, name_slicewise)
+        fname_baseline, fname_seg_baseline, _, fname_warp_from_pam50_to_func_baseline = self._get_fname_moco_mean_and_seg_and_warps(ID, task, name_baseline)
+        fname_slicewise, fname_seg_slicewise, _, fname_warp_from_pam50_to_func_slicewise = self._get_fname_moco_mean_and_seg_and_warps(ID, task, name_slicewise)
 
         # Load images and masks
         img_baseline = nib.load(fname_baseline).get_fdata()
@@ -554,14 +592,41 @@ class FigureEpiComparison:
         mask_baseline = nib.load(fname_seg_baseline).get_fdata()
         mask_slicewise = nib.load(fname_seg_slicewise).get_fdata()
 
+        if show_avg:
+            # Todo: Maybe add a filter?
+            # Compute the average moco mean in native space by warping the average in PAM50 back to native space
+            fname_avg_in_func_baseline = os.path.join(self.path_fig_data, f"sub-{ID}", f"sub-{ID}_task-{task}_acq-{name_baseline}_bold_moco_mean_avg_in_func.nii.gz")
+            cmd = f"sct_apply_transfo -i {fname_avg_baseline} -d {fname_baseline} -w {fname_warp_from_pam50_to_func_baseline} -o {fname_avg_in_func_baseline} -x nn"
+            os.system(cmd)
+            fname_avg_in_func_slicewise = os.path.join(self.path_fig_data, f"sub-{ID}", f"sub-{ID}_task-{task}_acq-{name_slicewise}_bold_moco_mean_avg_in_func.nii.gz")
+            cmd = f"sct_apply_transfo -i {fname_avg_slicewise} -d {fname_slicewise} -w {fname_warp_from_pam50_to_func_slicewise} -o {fname_avg_in_func_slicewise} -x nn"
+            os.system(cmd)
+
+            # Load average images
+            # fname_template_seg = os.path.join(path_code, 'template', self.config["PAM50_cord"])
+            # mask_template = nib.load(fname_template_seg).get_fdata()
+            avg_baseline = nib.load(fname_avg_in_func_baseline).get_fdata()
+            avg_slicewise = nib.load(fname_avg_in_func_slicewise).get_fdata()
+
         n_slices = img_baseline.shape[2]
 
-        fig = plt.figure(figsize=(1.99, 28))
-        gs_main = gridspec.GridSpec(1, 2, figure=fig, hspace=0, wspace=0)
+        if show_avg:
+            fig = plt.figure(figsize=(3.99, 28))
+            gs_main = gridspec.GridSpec(1, 4, figure=fig, hspace=0, wspace=0)
+        else:
+            fig = plt.figure(figsize=(1.99, 28))
+            gs_main = gridspec.GridSpec(1, 2, figure=fig, hspace=0, wspace=0)
+
         gs_baseline = gs_main[0].subgridspec(n_slices, 1, hspace=0, wspace=0)
         gs_slicewise = gs_main[1].subgridspec(n_slices, 1, hspace=0, wspace=0)
         axs_baseline = gs_baseline.subplots()
         axs_slicewise = gs_slicewise.subplots()
+
+        if show_avg:
+            gs_baseline_avg = gs_main[2].subgridspec(n_slices, 1, hspace=0, wspace=0)
+            gs_slicewise_avg = gs_main[3].subgridspec(n_slices, 1, hspace=0, wspace=0)
+            axs_baseline_avg = gs_baseline_avg.subplots()
+            axs_slicewise_avg = gs_slicewise_avg.subplots()
 
         for slice_idx in range(n_slices):
             com_baseline = center_of_mass(mask_baseline[:, :, slice_idx])
@@ -584,17 +649,37 @@ class FigureEpiComparison:
             cropped_baseline = img_baseline[crop_x_baseline, crop_y_baseline, slice_idx]
             cropped_slicewise = img_slicewise[crop_x_slicewise, crop_y_slicewise, slice_idx]
 
-            axs_baseline[slice_idx].imshow(cropped_baseline.T, cmap='gray', origin='lower')
+            vmin = min(cropped_baseline.min(), cropped_slicewise.min())
+            vmax = max(cropped_baseline.max(), cropped_slicewise.max())
+
+            if show_avg:
+                cropped_baseline_avg = avg_baseline[crop_x_baseline, crop_y_baseline, slice_idx]
+                cropped_slicewise_avg = avg_slicewise[crop_x_slicewise, crop_y_slicewise, slice_idx]
+
+                vmin = min(vmin, cropped_baseline_avg.min(), cropped_slicewise_avg.min())
+                vmax = max(vmax, cropped_baseline_avg.max(), cropped_slicewise_avg.max())
+
+                axs_baseline_avg[slice_idx].imshow(cropped_baseline_avg.T, cmap='gray', origin='lower', vmin=vmin, vmax=vmax)
+                axs_baseline_avg[slice_idx].axis('off')
+                axs_baseline_avg[slice_idx].set_aspect('equal', adjustable='box')
+                axs_slicewise_avg[slice_idx].imshow(cropped_slicewise_avg.T, cmap='gray', origin='lower', vmin=vmin, vmax=vmax)
+                axs_slicewise_avg[slice_idx].axis('off')
+                axs_slicewise_avg[slice_idx].set_aspect('equal', adjustable='box')
+
+            axs_baseline[slice_idx].imshow(cropped_baseline.T, cmap='gray', origin='lower', vmin=vmin, vmax=vmax)
             axs_baseline[slice_idx].axis('off')
             axs_baseline[slice_idx].set_aspect('equal', adjustable='box')
-            axs_slicewise[slice_idx].imshow(cropped_slicewise.T, cmap='gray', origin='lower')
+            axs_slicewise[slice_idx].imshow(cropped_slicewise.T, cmap='gray', origin='lower', vmin=vmin, vmax=vmax)
             axs_slicewise[slice_idx].axis('off')
             axs_slicewise[slice_idx].set_aspect('equal', adjustable='box')
 
         self.fname_fig_epi_comparison = os.path.join(self.path_fig_epi_comparison, f"sub-{ID}_epi_comparison.png")
         fig.savefig(self.fname_fig_epi_comparison, dpi=2000)
 
-    def _get_fname_moco_mean_and_seg(self, ID, task, acq_name):
+    def _get_fname_moco_mean_and_seg_and_warps(self, ID, task, acq_name):
+
+        task_name = f"task-{task}_acq-{acq_name}"
+
         # Find the acquisition with the most volumes
         fname_acq_list = sorted(glob.glob(os.path.join(
             self.config["raw_dir"],
@@ -629,6 +714,9 @@ class FigureEpiComparison:
         if len(fname_moco_mean_list) != len(fname_acq_list):
             raise RuntimeError(f"Number of moco mean files does not match number of acq files for sub-{ID} task-{task} acq-{acq_name}")
 
+        fname_moco_mean = fname_moco_mean_list[idx]
+        moco_basename = os.path.basename(fname_moco_mean).rsplit(".nii.gz")[0]
+
         # Segmentation
         fname_seg_manual_list = sorted(glob.glob(os.path.join(
             self.config["raw_dir"],
@@ -637,8 +725,6 @@ class FigureEpiComparison:
             "func",
             f"sub-{ID}_task-{task}_acq-{acq_name}*_bold_moco_mean_seg.nii.gz")))
 
-        fname_moco_mean = fname_moco_mean_list[idx]
-        moco_basename = os.path.basename(fname_moco_mean).rsplit(".nii.gz")[0]
         # Try to find if a manual mask is associated with the selected moco
         print(f"Looking for manual segmentation mask for sub-{ID} task-{task} acq-{acq_name} among: {fname_seg_manual_list}", flush=True)
         fname_seg = None
@@ -668,9 +754,64 @@ class FigureEpiComparison:
                     fname_seg = f
                     break
 
-            if fname_seg is None:
-                raise RuntimeError(f"Could not find a segmentation")
+        if fname_seg is None:
+            raise RuntimeError(f"Could not find a segmentation")
 
-        return fname_moco_mean, fname_seg
+        # Get warp from func to PAM50
+        fname_warp_func_to_pam50 = None
+        fname_warp_list = sorted(glob.glob(os.path.join(
+            self.config["raw_dir"],
+            self.config["preprocess_dir"]["main_dir"].format(ID),
+            self.config["preprocess_dir"]["func_coreg"].format(task_name),
+            self.config["preprocess_f"]["func_warp"].format(f"sub-{ID}_{task_name}"),
+        )))
 
+        if len(fname_warp_list) != len(fname_acq_list):
+            raise RuntimeError(f"Number of warp files does not match number of acq files for sub-{ID} task-{task} acq-{acq_name}")
 
+        # Try to find the segmentation that matches the moco filename
+        print(
+            f"Looking for warp func_to_PAM50 for sub-{ID} task-{task} acq-{acq_name} among: {fname_warp_list}",
+            flush=True)
+        for f in fname_warp_list:
+            if (moco_basename.rsplit("_bold_moco_mean")[0] + "_from-func_to_PAM50_mode-image_xfm.nii.gz") == os.path.basename(f):
+                print(f"Found warp func_to_PAM50 for sub-{ID} task-{task} acq-{acq_name}: {f}", flush=True)
+                fname_warp_func_to_pam50 = f
+                break
+
+        if fname_warp_func_to_pam50 is None:
+            raise RuntimeError(f"Could not find a segmentation")
+
+        # Get warp from PAM50 to func
+        fname_warp_pam50_to_func = None
+        fname_warp_list = sorted(glob.glob(os.path.join(
+            self.config["raw_dir"],
+            self.config["preprocess_dir"]["main_dir"].format(ID),
+            self.config["preprocess_dir"]["func_coreg"].format(task_name),
+            f"sub-{ID}_{task_name}*_from-PAM50_to_func_mode-image_xfm.nii.gz"
+        )))
+        print(os.path.join(
+            self.config["raw_dir"],
+            self.config["preprocess_dir"]["main_dir"].format(ID),
+            self.config["preprocess_dir"]["func_coreg"].format(task_name),
+            f"sub-{ID}_{task_name}*_from-PAM50_to_func_mode-image_xfm.nii.gz"
+        ))
+        if len(fname_warp_list) != len(fname_acq_list):
+            print(f"Number of warp files found: {len(fname_warp_list)}, number of acq files found: {len(fname_acq_list)}")
+            raise RuntimeError(
+                f"Number of warp files does not match number of acq files for sub-{ID} task-{task} acq-{acq_name}")
+
+        # Try to find the segmentation that matches the moco filename
+        print(
+            f"Looking for warp PAM50_to_func for sub-{ID} task-{task} acq-{acq_name} among: {fname_warp_list}",
+            flush=True)
+        for f in fname_warp_list:
+            if (moco_basename.rsplit("_bold_moco_mean")[0] + "_from-PAM50_to_func_mode-image_xfm.nii.gz") == os.path.basename(f):
+                print(f"Found warp PAM50_to_func for sub-{ID} task-{task} acq-{acq_name}: {f}", flush=True)
+                fname_warp_pam50_to_func = f
+                break
+
+        if fname_warp_pam50_to_func is None:
+            raise RuntimeError(f"Could not find a segmentation")
+
+        return fname_moco_mean, fname_seg, fname_warp_func_to_pam50, fname_warp_pam50_to_func
