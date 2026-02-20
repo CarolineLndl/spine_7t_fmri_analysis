@@ -520,7 +520,157 @@ class FigureEpiComparison:
 
         self.path_main_fig = os.path.join(config["raw_dir"], config["figures_dir"]["main_dir"])
         self.path_fig_epi_comparison = os.path.join(self.path_main_fig, "epi_comparison")
-        self.path_fig_data = os.path.join(self.path_fig_epi_comparison, "data")
+        if not os.path.exists(self.path_fig_epi_comparison):
+            os.makedirs(self.path_fig_epi_comparison)
+        # self.path_fig_data = os.path.join(self.path_fig_epi_comparison, "data")
 
     def create_figure(self):
         print("=== Create EPI comparison figure ===", flush=True)
+
+        ### Create 1 figure per subject, showing moco mean in native space between baseline and slicewise shim
+        # crop the images to focus on the spinal cord
+        # Show non moco as well?
+        # Maybe? Show average pam50 back in native space to compare
+        for ID in self.IDs:
+            self._create_comp_figure(ID)
+
+        # Additionally create a gif that switches between baseline and slicewise
+
+    def _create_comp_figure(self, ID):
+        from scipy.ndimage import center_of_mass
+        # from skimage.util import montage
+        # Create figure that shows moco mean in native space between baseline and slicewise shim
+        task = "motor"
+        name_baseline = [a for a in self.config["design_exp"]["acq_names"] if "Base" in a][0]
+        name_slicewise = [a for a in self.config["design_exp"]["acq_names"] if "Slice" in a][0]
+
+        # Paths for baseline and slicewise shim images
+        fname_baseline, fname_seg_baseline = self._get_fname_moco_mean_and_seg(ID, task, name_baseline)
+        fname_slicewise, fname_seg_slicewise = self._get_fname_moco_mean_and_seg(ID, task, name_slicewise)
+
+        # Load images and masks
+        img_baseline = nib.load(fname_baseline).get_fdata()
+        img_slicewise = nib.load(fname_slicewise).get_fdata()
+        mask_baseline = nib.load(fname_seg_baseline).get_fdata()
+        mask_slicewise = nib.load(fname_seg_slicewise).get_fdata()
+
+        n_slices = img_baseline.shape[2]
+
+        fig = plt.figure(figsize=(1.99, 28))
+        gs_main = gridspec.GridSpec(1, 2, figure=fig, hspace=0, wspace=0)
+        gs_baseline = gs_main[0].subgridspec(n_slices, 1, hspace=0, wspace=0)
+        gs_slicewise = gs_main[1].subgridspec(n_slices, 1, hspace=0, wspace=0)
+        axs_baseline = gs_baseline.subplots()
+        axs_slicewise = gs_slicewise.subplots()
+
+        for slice_idx in range(n_slices):
+            com_baseline = center_of_mass(mask_baseline[:, :, slice_idx])
+            com_slicewise = center_of_mass(mask_slicewise[:, :, slice_idx])
+
+            # Define cropping bounds
+            bound_lr = 16  # left-right bound
+            bound_ud = 16  # up-down bound
+            crop_x_baseline = slice(max(0, int(com_baseline[0] - bound_lr)),
+                                    min(mask_baseline.shape[0], int(com_baseline[0] + bound_lr)))
+            crop_y_baseline = slice(max(0, int(com_baseline[1] - bound_ud)),
+                                    min(mask_baseline.shape[1], int(com_baseline[1] + bound_ud)))
+
+            crop_x_slicewise = slice(max(0, int(com_slicewise[0] - bound_lr)),
+                                     min(mask_slicewise.shape[0], int(com_slicewise[0] + bound_lr)))
+            crop_y_slicewise = slice(max(0, int(com_slicewise[1] - bound_ud)),
+                                     min(mask_slicewise.shape[1], int(com_slicewise[1] + bound_ud)))
+
+            # Crop the images
+            cropped_baseline = img_baseline[crop_x_baseline, crop_y_baseline, slice_idx]
+            cropped_slicewise = img_slicewise[crop_x_slicewise, crop_y_slicewise, slice_idx]
+
+            axs_baseline[slice_idx].imshow(cropped_baseline.T, cmap='gray', origin='lower')
+            axs_baseline[slice_idx].axis('off')
+            axs_baseline[slice_idx].set_aspect('equal', adjustable='box')
+            axs_slicewise[slice_idx].imshow(cropped_slicewise.T, cmap='gray', origin='lower')
+            axs_slicewise[slice_idx].axis('off')
+            axs_slicewise[slice_idx].set_aspect('equal', adjustable='box')
+
+        self.fname_fig_epi_comparison = os.path.join(self.path_fig_epi_comparison, f"sub-{ID}_epi_comparison.png")
+        fig.savefig(self.fname_fig_epi_comparison, dpi=2000)
+
+    def _get_fname_moco_mean_and_seg(self, ID, task, acq_name):
+        # Find the acquisition with the most volumes
+        fname_acq_list = sorted(glob.glob(os.path.join(
+            self.config["raw_dir"],
+            f"sub-{ID}",
+            "func",
+            f"sub-{ID}_task-{task}_acq-{acq_name}*_bold.nii.gz"
+        )))
+
+        if len(fname_acq_list) == 0:
+            raise RuntimeError(f"No file found for sub-{ID} task-{task} acq-{acq_name}")
+
+        # take the one with more volumes
+        vols = 0
+        idx = -1
+        for i, fname in enumerate(fname_acq_list):
+            img = nib.load(fname)
+            n_vols = img.shape[3]
+            if n_vols > vols:
+                print(f"Found acquisition with more volumes for sub-{ID} task-{task} acq-{acq_name}: {fname} with {n_vols} volumes", flush=True)
+                vols = n_vols
+                idx = i
+
+        fname_moco_mean_list = sorted(glob.glob(os.path.join(
+            self.config["raw_dir"],
+            self.config["preprocess_dir"]["main_dir"].format(ID),
+            "func",
+            f"task-{task}_acq-{acq_name}",
+            "sct_fmri_moco",
+            f"sub-{ID}_task-{task}_acq-{acq_name}*_bold_moco_mean.nii.gz"
+        )))
+
+        if len(fname_moco_mean_list) != len(fname_acq_list):
+            raise RuntimeError(f"Number of moco mean files does not match number of acq files for sub-{ID} task-{task} acq-{acq_name}")
+
+        # Segmentation
+        fname_seg_manual_list = sorted(glob.glob(os.path.join(
+            self.config["raw_dir"],
+            self.config["manual_dir"],
+            f"sub-{ID}",
+            "func",
+            f"sub-{ID}_task-{task}_acq-{acq_name}*_bold_moco_mean_seg.nii.gz")))
+
+        fname_moco_mean = fname_moco_mean_list[idx]
+        moco_basename = os.path.basename(fname_moco_mean).rsplit(".nii.gz")[0]
+        # Try to find if a manual mask is associated with the selected moco
+        print(f"Looking for manual segmentation mask for sub-{ID} task-{task} acq-{acq_name} among: {fname_seg_manual_list}", flush=True)
+        fname_seg = None
+        for f in fname_seg_manual_list:
+            if (moco_basename + "_seg.nii.gz") == os.path.basename(f):
+                print(f"Found manual segmentation mask for sub-{ID} task-{task} acq-{acq_name}: {f}", flush=True)
+                fname_seg = f
+                break
+
+        if fname_seg is None:
+            fname_seg_auto_list = glob.glob(os.path.join(
+                self.config["raw_dir"],
+                self.config["preprocess_dir"]["main_dir"].format(ID),
+                "func",
+                f"task-{task}_acq-{acq_name}",
+                "sct_deepseg",
+                f"sub-{ID}_task-{task}_acq-{acq_name}*_bold_moco_mean_seg.nii.gz"
+            ))
+
+            # Try to find the segmentation that matches the moco filename
+            print(
+                f"Looking for auto segmentation mask for sub-{ID} task-{task} acq-{acq_name} among: {fname_seg_auto_list}",
+                flush=True)
+            for f in fname_seg_auto_list:
+                if (moco_basename + "_seg.nii.gz") == os.path.basename(f):
+                    print(f"Found manual segmentation mask for sub-{ID} task-{task} acq-{acq_name}: {f}", flush=True)
+                    fname_seg = f
+                    break
+
+            if fname_seg is None:
+                raise RuntimeError(f"Could not find a segmentation")
+
+        return fname_moco_mean, fname_seg
+
+
