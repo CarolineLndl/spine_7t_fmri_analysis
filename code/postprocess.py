@@ -168,21 +168,26 @@ class Postprocess_main:
         if i_fnames is None:
             raise ValueError("Please provide the list of filenames of the input contrast images.")
         
-        # Load design matrix file if provided, otherwise create a default design matrix with an intercept only
-        if design_matrix is None:
-            design_matrix = pd.DataFrame([1] * len(i_fnames),columns=["intercept"])
-        
-        # --- Define directories  -----------------------------------------------------------
-        second_level_dir = self.second_level_dir.format(task_name) + "/"
-        os.makedirs(second_level_dir, exist_ok=True)
-        
-        # --- Estimate and Fit second-level model -----------------------------------------------------------
-        second_level_model = SecondLevelModel(mask_img=mask_fname,smoothing_fwhm=smoothing_fwhm, n_jobs=2, verbose=1) # define the model to the contrast images and the design matrix
-        second_level_model.fit(i_fnames, design_matrix=design_matrix)  # fit the model to the contrast images and the design matrix
-        
-        # --- Compute contrasts and save -----------------------------------------------------------
-        z_map = second_level_model.compute_contrast(second_level_contrast="intercept",output_type="z_score")
         z_map_file = os.path.join(second_level_dir, f"n{len(i_fnames)}_{task_name}_intercept_z_map.nii.gz")
-        z_map.to_filename(z_map_file)
+        
+        if not os.path.exists(z_map_file) or redo:
+            if verbose:
+                print(f"Computing second-level results for task {task_name}.")
+              
+            # Load design matrix file if provided, otherwise create a default design matrix with an intercept only
+            if design_matrix is None:
+                design_matrix = pd.DataFrame([1] * len(i_fnames),columns=["intercept"])
+            
+            # --- Define directories  -----------------------------------------------------------
+            second_level_dir = self.second_level_dir.format(task_name) + "/"
+            os.makedirs(second_level_dir, exist_ok=True)
+            
+            # --- Estimate and Fit second-level model -----------------------------------------------------------
+            second_level_model = SecondLevelModel(mask_img=mask_fname,smoothing_fwhm=smoothing_fwhm, n_jobs=2, verbose=1) # define the model to the contrast images and the design matrix
+            second_level_model.fit(i_fnames, design_matrix=design_matrix)  # fit the model to the contrast images and the design matrix
+            
+            # --- Compute contrasts and save -----------------------------------------------------------
+            z_map = second_level_model.compute_contrast(second_level_contrast="intercept",output_type="z_score")
+            z_map.to_filename(z_map_file)
         
         return z_map_file
