@@ -31,7 +31,7 @@ from IPython.display import Image, display
 # get path of the parent location of this file, and go up one level
 path_code = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(os.path.join(path_code, "code"))  # Change this line according to your directory
-from preprocess import Preprocess_main, Preprocess_Sc
+from preprocess import Preprocess_main, Preprocess_Sc, copy_warping_fields_from_ref_tag, copy_segmentation_from_ref_tag
 import utils
 
 with open(os.path.join(path_code, "config", "config_spine_7t_fmri.json")) as config_file:
@@ -239,7 +239,7 @@ for ID_nb, ID in enumerate(IDs):
                                                                 run_name=run_name,
                                                                 initwarp=warpT2w_PAM50_files[0],
                                                                 initwarpinv=warpT2w_PAM50_files[1],
-                                                                param=params_moco,
+                                                                param=param,
                                                                 redo=redo,
                                                                 verbose=verbose)
 
@@ -270,6 +270,14 @@ for ID_nb, ID in enumerate(IDs):
                                                                 params=params_moco,
                                                                 verbose=verbose,
                                                                 redo=redo)
+
+                    # Copy segmentation and registration files from the motor task to the other tasks, since we are using
+                    # the same reference for moco and registration to PAM50. This is to avoid having to redo segmentation
+                    # and registration for the other tasks, which can be time-consuming.
+                    copy_segmentation_from_ref_tag(ID, tag, ref_tag, manual_dir, preprocessing_dir)
+
+                    # Also copy warping fields
+                    copy_warping_fields_from_ref_tag(ID, tag, ref_tag, preprocessing_dir)
 
                 print(f'=== Func registration : Done  {ID} {tag} {run_name} ===')
 
