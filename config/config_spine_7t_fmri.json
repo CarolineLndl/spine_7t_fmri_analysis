@@ -27,7 +27,7 @@
                   "moco_params":"moco_params*{}*{}.nii.gz",
                   "func_seg":"sub-{}*{}*{}*mean_seg.nii.gz",
                   "func_csf":"sub-{}*{}*{}*_CSF_seg.nii.gz",
-                  "func_warp":"*{}*func_to_PAM50*.nii.gz",
+                  "func_warp":"sub-{}*{}*{}*func_to_PAM50*.nii.gz",
                   "anat_coreg":""
                   },
 

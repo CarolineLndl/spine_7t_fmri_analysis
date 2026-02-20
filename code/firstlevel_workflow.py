@@ -99,7 +99,7 @@ for ID_nb,ID in enumerate(IDs):
                     run_name=""
 
                 denoised_fmri=glob.glob(os.path.join(denoising_dir.format(ID ), tag, config["denoising"]["denoised_dir"],"*"+run_name+"*_nostd_s.nii.gz"))[0]
-                
+                print(denoised_fmri)
                 # Select manual seg if exists
                 mask_file_list = glob.glob(os.path.join(preprocessing_dir.format(ID), config["preprocess_dir"]["func_seg"].format(tag), config["preprocess_f"]["func_seg"].format(ID,tag,run_name)))
                 mask_file = mask_file_list[0] if len(mask_file_list) > 0 else None
@@ -110,6 +110,7 @@ for ID_nb,ID in enumerate(IDs):
                     raise RuntimeError(f"No mask file found for subject {ID}, task {tag}, run {run_name}. Please check the preprocessing outputs and manual corrections.")
 
                 warp_file=glob.glob(os.path.join(preprocessing_dir.format(ID), config["preprocess_dir"]["func_coreg"].format(tag), config["preprocess_f"]["func_warp"].format(ID,tag,run_name)))[0]
+                print(warp_file)
                 events_file=glob.glob(os.path.join(config["raw_dir"], f'sub-{ID}', 'func', f'sub-{ID}_{tag}_*events.tsv'))[0]
                 
                 #------------------------------------------------------------------
@@ -122,7 +123,7 @@ for ID_nb,ID in enumerate(IDs):
                                                           mask_file=mask_final_file,
                                                           task_name=tag,
                                                           run_name=run_name,
-                                                          redo=True,
+                                                          redo=redo,
                                                           verbose=verbose)
 
                 #------------------------------------------------------------------
@@ -228,5 +229,5 @@ if run2nd==True:
                                                         mask_fname=f"{path_code}/template/{config['PAM50_cord']}",
                                                         task_name=tag,
                                                         run_name="",
-                                                        redo=True,
+                                                        redo=redo,
                                                         verbose=verbose)
