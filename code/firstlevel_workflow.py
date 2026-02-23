@@ -99,7 +99,6 @@ for ID_nb,ID in enumerate(IDs):
                     run_name=""
 
                 denoised_fmri=glob.glob(os.path.join(denoising_dir.format(ID ), tag, config["denoising"]["denoised_dir"],"*"+run_name+"*_nostd_s.nii.gz"))[0]
-                print(denoised_fmri)
                 # Select manual seg if exists
                 mask_file_list = glob.glob(os.path.join(preprocessing_dir.format(ID), config["preprocess_dir"]["func_seg"].format(tag), config["preprocess_f"]["func_seg"].format(ID,tag,run_name)))
                 mask_file = mask_file_list[0] if len(mask_file_list) > 0 else None
@@ -110,12 +109,9 @@ for ID_nb,ID in enumerate(IDs):
                     raise RuntimeError(f"No mask file found for subject {ID}, task {tag}, run {run_name}. Please check the preprocessing outputs and manual corrections.")
 
                 warp_file=glob.glob(os.path.join(preprocessing_dir.format(ID), config["preprocess_dir"]["func_coreg"].format(tag), config["preprocess_f"]["func_warp"].format(ID,tag,run_name)))[0]
-                print(warp_file)
                 events_file=glob.glob(os.path.join(config["raw_dir"], f'sub-{ID}', 'func', f'sub-{ID}_{tag}_*events.tsv'))[0]
                 
-                #------------------------------------------------------------------
                 #------ I. Run first level GLM
-                #------------------------------------------------------------------
 
                 stat_maps=postprocess.run_first_level_glm(ID=ID,
                                                           i_fname=denoised_fmri,
@@ -126,9 +122,7 @@ for ID_nb,ID in enumerate(IDs):
                                                           redo=redo,
                                                           verbose=verbose)
 
-                #------------------------------------------------------------------
                 #------ II. Apply correction and extract metrics
-                #------------------------------------------------------------------
                 for i, contrast_fname in enumerate(stat_maps):
                     # Apply correction
                     corr_type="fpr";alpha=0.01;cluster=0
@@ -159,10 +153,8 @@ for ID_nb,ID in enumerate(IDs):
                                 
                                 df_task = pd.concat([df_task, pd.DataFrame([[ID,task_name,acq_name,run_name,"RH-rest",max_zscore,active_voxels]], columns=df_task.columns)], ignore_index=True)
                                 
-                #------------------------------------------------------------------
-                #------ III. Normalize the resulting stat maps to PAM50 template space
-                #------------------------------------------------------------------
                 
+                #------ III. Normalize the resulting stat maps to PAM50 template space
                 for i, contrast_fname in enumerate(stat_maps):
                     Norm_files=preprocess_Sc.apply_warp(
                             i_img=[stat_maps[i]], # input clean image
@@ -174,19 +166,39 @@ for ID_nb,ID in enumerate(IDs):
                             mean=False,
                             n_jobs=1,
                             verbose=False,
-                            redo=True)
-                
+                            redo=redo)
 
-                    
-
-    
-         
     print(f'=== First level done for : {ID} ===', flush=True)
     print("=========================================", flush=True)
+
+#------ IV. Plot first level results for each task and participant
+first_level_dir = os.path.join(config["raw_dir"], config["first_level"]["dir"])
+for task_name in config["design_exp"]["task_names"]:
+    for acq_name in config["design_exp"]["acq_names"]:
+        i_fnames=[]
+        tag="task-" + task_name + "_acq-" + acq_name
+        for ID in IDs:
+            # define the run name if multiple runs exist    
+            raw_func=sorted(glob.glob(os.path.join(config["raw_dir"], f'sub-{ID}', 'func', f'sub-{ID}_{tag}_*bold.nii.gz')))
+            func_file = raw_func[0]# take only the first run
+            match = re.search(r"_?(run-\d+)", func_file)
+            run_name = match.group(1) if match else ""  # extract run number if exists
+            i_fnames.append(glob.glob(os.path.join(first_level_dir.format(ID), f"{tag}", f"*{tag}*{run_name}*trial_RH-rest*inTemplate.nii.gz"))[0])
+
+        postprocess.plot_first_level_maps(i_fnames=i_fnames,
+                                          output_dir=os.path.join(first_level_dir.split("sub")[0]),
+                                          background_fname=os.path.join(path_code, "template", config["PAM50_t2"]),
+                                          #underlay_fname=os.path.join(path_code, "template", config["PAM50_cord"]),
+                                          task_name=tag,
+                                          verbose=True,
+                                          redo=redo)
 
 if not os.path.exists(fname_task_metrics) or redo:
     df_task.to_csv(fname_task_metrics, index=False)
     print(f"Task metrics saved to: {fname_task_metrics}")
+
+
+                
 
 #------------------------------------------------------------------
 #------ Second level
@@ -200,9 +212,8 @@ print("===================================", flush=True)
 print("")
 
 # list of first evel contrast images in template space for each participant and task
-run2nd=False # set to True to run second level analyses, False to only run first level and save the resulting stat maps in template space
-if run2nd==True:
-    first_level_dir = os.path.join(config["raw_dir"], config["first_level"]["dir"])
+second_level=False
+if second_level==True:
     for task_name in config["design_exp"]["task_names"]:
         for acq_name in config["design_exp"]["acq_names"]:
             i_fnames=[]
@@ -222,12 +233,25 @@ if run2nd==True:
                 # find the corresponding first-level file
                 
                 i_fnames.append(glob.glob(os.path.join(first_level_dir.format(ID), f"{tag}", f"*{tag}*{run_name}*trial_RH-rest*inTemplate.nii.gz"))[0])
-            print("--")
+
             print(i_fnames)
             
             z_map_file=postprocess.run_second_level_glm(i_fnames=i_fnames,
-                                                        mask_fname=f"{path_code}/template/{config['PAM50_cord']}",
-                                                        task_name=tag,
-                                                        run_name="",
-                                                        redo=redo,
-                                                        verbose=verbose)
+                                                            mask_fname=f"{path_code}/template/{config['PAM50_cord']}",
+                                                            task_name=tag,
+                                                            run_name="",
+                                                            redo=True,
+                                                            verbose=verbose)
+        
+        #corr_type="fpr";alpha=0.001;cluster=50
+                    
+        #fname_thr_img=z_map_file.split(".")[0] +f"_{corr_type}_{str(alpha)[2:]}_{str(cluster)}cluster.nii.gz"
+        #print(alpha)      
+        #if not os.path.exists(fname_thr_img) or redo:
+         #   thresholded_map, threshold = threshold_stats_img(z_map_file,
+               #                                              alpha=alpha,
+              #                                               height_control=corr_type,
+             #                                                cluster_threshold=cluster,
+            #                                                 parametric=False,
+           #                                                  two_sided=redo)
+          #  thresholded_map.to_filename(fname_thr_img)

@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 from nilearn.plotting import plot_design_matrix
 from nilearn.glm.first_level import FirstLevelModel
 from nilearn.glm.second_level import SecondLevelModel
+from nilearn.glm.second_level import non_parametric_inference
 
 from preprocess import Preprocess_main, Preprocess_Sc
 
@@ -160,34 +161,327 @@ class Postprocess_main:
                 results.to_filename(stat_maps[i])
         
         return stat_maps
+    
+    def plot_first_level_maps(self,i_fnames=None, output_dir=None,stat_min=1.6,stat_max=5, background_fname=None,underlay_fname=None,task_name=None,verbose=True,redo=False):
+        if output_dir==None:
+            output_dir = os.path.join(self.first_level_dir, task_name + "/")
+        if i_fnames is None or len(i_fnames) == 0:
+            raise ValueError("i_fnames is empty")
+        
+        # --- Figure layout -----------------------------------------------------------
+        maps_per_row=6 # number of columns to plot the maps
+        col_nb_per_map = 3  # sagittal + coronal + axial
+        gap_cols = 1   # one empty column between maps
+        total_cols = maps_per_row * (col_nb_per_map + gap_cols)  # total axes per row
+        row_nb=int(np.ceil(len(i_fnames)/maps_per_row)) # number of rows needed to plot all the maps with 6 columns
+        fig, axes = plt.subplots(row_nb, total_cols, figsize=(total_cols, row_nb*3), constrained_layout=True)
+        plt.subplots_adjust(wspace=0.1, hspace=0.1)  # smaller spacing
+        axes = np.atleast_1d(axes).flatten()# Make axes iterable in all cases
 
-    def run_second_level_glm(self,i_fnames=None,design_matrix=None,mask_fname=None,smoothing_fwhm=None,task_name=None,run_name=None,contrasts = ["trial_RH-rest", "trial_RH", "rest"],verbose=True,redo=False):
+        # --- Load files -----------------------------------------------------------
+        template_data = nib.as_closest_canonical(nib.load(background_fname)).get_fdata()
+        underlay_data = None
+        if underlay_fname is not None:
+            underlay_data = nib.as_closest_canonical(nib.load(underlay_fname)).get_fdata()
+        
+       # --- Plot maps -------------------------------------------------------------
+        for i, i_fname in enumerate(i_fnames):
+            idx = i * (col_nb_per_map + gap_cols)  # skip over gap
+            ax_sag = axes[idx]
+            ax_cor = axes[idx + 1]
+            ax_axi = axes[idx + 2]
 
+            statmap_data = nib.as_closest_canonical(nib.load(i_fname)).get_fdata()
+            stat_thresh = np.where(statmap_data > stat_min, statmap_data, 0)
+
+            # Maximal Ibtensity Projection along the x-axis → sagittal view
+            mip_sag = np.max(stat_thresh, axis=0).T  # shape (Y, Z) → transpose if needed
+            mip_sag = np.where(mip_sag > stat_min, mip_sag, np.nan)  # mask low values
+            mip_cor = np.max(stat_thresh, axis=1).T  # shape (X, Z) → transpose if needed
+            mip_cor = np.where(mip_cor > stat_min, mip_cor, np.nan)  # mask low values
+            mip_axi = np.max(stat_thresh, axis=2).T  # shape (X, Y) → transpose if needed
+            mip_axi = np.where(mip_axi > stat_min, mip_axi, np.nan)  # mask low values
+
+            # Sagittal view (X fixed, Y–Z plane)
+            x_slice = statmap_data.shape[0] // 2
+            template_sag = template_data[x_slice, :, :].T
+            ax_sag.imshow(template_sag, cmap="gray", origin="lower")
+            if underlay_data is not None:
+                ax_sag.imshow(underlay_data[x_slice, :, :].T, cmap="gray", alpha=0.3, origin="lower")
+            ax_sag.imshow(mip_sag, cmap="hot", origin="lower", vmin=stat_min, vmax=stat_max)
+            ax_sag.axis("off")
+            # Add R/L S/I labels only for the first map
+            if i == 0:
+                ax_sag.text(2, 2, "L", color="white", fontsize=1.5)
+                ax_sag.text(stat_thresh.shape[1]-12, 2, "R", color="yellow", fontsize=1.5)
+                ax_sag.text(2, stat_thresh.shape[0]-12, "S", color="yellow", fontsize=1)
+                ax_sag.text(2, 2, "I", color="yellow", fontsize=1)
+
+
+            # Coronal view (Y fixed, X–Z plane)
+            y_slice = statmap_data.shape[1] // 2
+            template_cor = template_data[:, y_slice, :].T
+            ax_cor.imshow(template_cor, cmap="gray", origin="lower")
+            if underlay_data is not None:
+                ax_cor.imshow(underlay_data[:, y_slice, :].T, cmap="gray", alpha=0.3, origin="lower")
+
+
+            ax_cor.axvline(x=y_slice,color="white",linestyle="--",linewidth=0.8)
+
+
+            ax_cor.imshow(mip_cor, cmap="hot", origin="lower", vmin=stat_min, vmax=stat_max)
+            ax_cor.axis("off")
+            if i == 0:
+                ax_cor.text(2, 2, "L", color="yellow", fontsize=1)
+                ax_cor.text(mip_cor.shape[1]-12, 2, "R", color="yellow", fontsize=1)
+                ax_cor.text(2, mip_cor.shape[0]-12, "S", color="yellow", fontsize=1)
+                ax_cor.text(2, 2, "I", color="yellow", fontsize=1)
+
+            # Axial view (Z fixed, X–Y plane)
+            z_slice = statmap_data.shape[2] // 2
+            axi_slice = statmap_data[:, :, z_slice].T
+            template_axi = template_data[:, :, z_slice].T
+            ax_axi.imshow(template_axi, cmap="gray", origin="lower")
+            if underlay_data is not None:
+                ax_axi.imshow(underlay_data[:, :, z_slice].T, cmap="gray", alpha=0.3, origin="lower")
+            
+            ax_axi.imshow(mip_axi, cmap="hot", origin="lower", vmin=stat_min, vmax=stat_max)
+            ax_axi.axis("off")
+            if i == 0:
+                ax_axi.text(2, 2, "S", color="yellow", fontsize=1)
+                ax_axi.text(2, mip_axi.shape[0]-12, "I", color="yellow", fontsize=1)
+
+            # --- Hide unused axes (including gap columns) ---
+            for g in range(1, gap_cols+1):
+                gap_idx = idx + col_nb_per_map + (g-1)
+                if gap_idx < len(axes):
+                    axes[gap_idx].axis("off")
+            for j in range(len(i_fnames) * (col_nb_per_map + gap_cols), len(axes)):
+                axes[j].axis("off")
+
+
+        out_file = os.path.join(output_dir,f"first_level_maps_{task_name}.png")
+        fig.savefig(out_file, dpi=300)
+        plt.close(fig)
+            
+
+
+        # Plot subject number and task name on the figure
+        # add one scale bar for all the maps
+        # plot R/L and S/I orientation on the first plot
+        # save in the right folder
+
+    def plot_first_level_maps2(self,i_fnames=None, output_dir=None,stat_min=1.6,stat_max=5, background_fname=None,underlay_fname=None,task_name=None,verbose=True,redo=False):
+
+        if output_dir==None:
+            output_dir = os.path.join(self.first_level_dir, task_name + "/")
+        if i_fnames is None or len(i_fnames) == 0:
+            raise ValueError("i_fnames is empty")
+        
+        # --- Figure layout -----------------------------------------------------------
+        maps_per_row=6 # number of columns to plot the maps
+        col_nb_per_map = 3  # sagittal + coronal + axial
+        gap_cols = 1   # one empty column between maps
+        total_cols = maps_per_row * (col_nb_per_map + gap_cols)  # total axes per row
+        row_nb=int(np.ceil(len(i_fnames)/maps_per_row)) # number of rows needed to plot all the maps with 6 columns
+        fig, axes = plt.subplots(row_nb, total_cols, figsize=(total_cols, row_nb*3), constrained_layout=True)
+        plt.subplots_adjust(wspace=0.1, hspace=0.1)  # smaller spacing
+        axes = np.atleast_1d(axes).flatten()# Make axes iterable in all cases
+
+        # --- Load files -----------------------------------------------------------
+        template_data = nib.as_closest_canonical(nib.load(background_fname)).get_fdata()
+        underlay_data = None
+        if underlay_fname is not None:
+            underlay_data = nib.as_closest_canonical(nib.load(underlay_fname)).get_fdata()
+        
+       # --- Plot maps -------------------------------------------------------------
+        for i, i_fname in enumerate(i_fnames):
+            idx = i * (col_nb_per_map + gap_cols)  # skip over gap
+            ax_sag = axes[idx]
+            ax_cor = axes[idx + 1]
+            ax_axi = axes[idx + 2]
+
+            statmap_data = nib.as_closest_canonical(nib.load(i_fname)).get_fdata()
+            stat_thresh = np.where(statmap_data > stat_min, statmap_data, 0)
+
+            # Maximal Ibtensity Projection along the x-axis → sagittal view
+            mip_sag = np.max(stat_thresh, axis=0).T  # shape (Y, Z) → transpose if needed
+            mip_sag = np.where(mip_sag > stat_min, mip_sag, np.nan)  # mask low values
+            mip_cor = np.max(stat_thresh, axis=1).T  # shape (X, Z) → transpose if needed
+            mip_cor = np.where(mip_cor > stat_min, mip_cor, np.nan)  # mask low values
+            mip_axi = np.max(stat_thresh, axis=2).T  # shape (X, Y) → transpose if needed
+            mip_axi = np.where(mip_axi > stat_min, mip_axi, np.nan)  # mask low values
+
+            # Sagittal view (X fixed, Y–Z plane)
+            x_slice = statmap_data.shape[0] // 2
+            template_sag = template_data[x_slice, :, :].T
+            ax_sag.imshow(template_sag, cmap="gray", origin="lower")
+            if underlay_data is not None:
+                ax_sag.imshow(underlay_data[x_slice, :, :].T, cmap="gray", alpha=0.3, origin="lower")
+            ax_sag.imshow(mip_sag, cmap="hot", origin="lower", vmin=stat_min, vmax=stat_max)
+            ax_sag.axis("off")
+            # Add R/L S/I labels only for the first map
+            if i == 0:
+                ax_sag.text(2, 2, "L", color="white", fontsize=1.5)
+                ax_sag.text(stat_thresh.shape[1]-12, 2, "R", color="yellow", fontsize=1.5)
+                ax_sag.text(2, stat_thresh.shape[0]-12, "S", color="yellow", fontsize=1)
+                ax_sag.text(2, 2, "I", color="yellow", fontsize=1)
+
+
+            # Coronal view (Y fixed, X–Z plane)
+            y_slice = statmap_data.shape[1] // 2
+            template_cor = template_data[:, y_slice, :].T
+            ax_cor.imshow(template_cor, cmap="gray", origin="lower")
+            if underlay_data is not None:
+                ax_cor.imshow(underlay_data[:, y_slice, :].T, cmap="gray", alpha=0.3, origin="lower")
+
+
+            ax_cor.axvline(x=y_slice,color="white",linestyle="--",linewidth=0.8)
+
+
+            ax_cor.imshow(mip_cor, cmap="hot", origin="lower", vmin=stat_min, vmax=stat_max)
+            ax_cor.axis("off")
+            if i == 0:
+                ax_cor.text(2, 2, "L", color="yellow", fontsize=1)
+                ax_cor.text(mip_cor.shape[1]-12, 2, "R", color="yellow", fontsize=1)
+                ax_cor.text(2, mip_cor.shape[0]-12, "S", color="yellow", fontsize=1)
+                ax_cor.text(2, 2, "I", color="yellow", fontsize=1)
+
+            # Axial view (Z fixed, X–Y plane)
+            z_slice = statmap_data.shape[2] // 2
+            axi_slice = statmap_data[:, :, z_slice].T
+            template_axi = template_data[:, :, z_slice].T
+            ax_axi.imshow(template_axi, cmap="gray", origin="lower")
+            if underlay_data is not None:
+                ax_axi.imshow(underlay_data[:, :, z_slice].T, cmap="gray", alpha=0.3, origin="lower")
+            
+            ax_axi.imshow(mip_axi, cmap="hot", origin="lower", vmin=stat_min, vmax=stat_max)
+            ax_axi.axis("off")
+            if i == 0:
+                ax_axi.text(2, 2, "S", color="yellow", fontsize=1)
+                ax_axi.text(2, mip_axi.shape[0]-12, "I", color="yellow", fontsize=1)
+
+            # --- Hide unused axes (including gap columns) ---
+            for g in range(1, gap_cols+1):
+                gap_idx = idx + col_nb_per_map + (g-1)
+                if gap_idx < len(axes):
+                    axes[gap_idx].axis("off")
+            for j in range(len(i_fnames) * (col_nb_per_map + gap_cols), len(axes)):
+                axes[j].axis("off")
+
+
+        out_file = os.path.join(output_dir,f"first_level_maps_{task_name}.png")
+        fig.savefig(out_file, dpi=300)
+        plt.close(fig)
+            
+
+
+        # Plot subject number and task name on the figure
+        # add one scale bar for all the maps
+        # plot R/L and S/I orientation on the first plot
+        # save in the right folder
+
+    def run_second_level_glm(self,i_fnames=None,design_matrix=None,mask_fname=None,smoothing_fwhm=None,task_name=None,parametric=False,run_name=None,verbose=True,redo=False):
+        '''
+        Run second-level GLM for a specific task.
         # ongoing test nilearn: https://nilearn.github.io/stable/modules/generated/nilearn.glm.second_level.SecondLevelModel.html
+
+        Parameters
+        ----------
+        i_fnames : list of str
+            List of filenames of the input contrast images in the same space (e.g., ["sub-A001_task-motor_contrast-trial_RH-rest_inTemplate.nii.gz", "sub-A002_task-motor_contrast-trial_RH-rest_inTemplate.nii.gz"])
+        design_matrix : pandas DataFrame, optional
+            Design matrix for the second-level analysis (default is None, which will create a design matrix
+            with an intercept only)
+        mask_fname : str, optional
+            Filename of the mask NIfTI file where to restrict the analysis (default is None)
+        smoothing_fwhm : float, optional
+            Full-width at half-maximum for spatial smoothing (default is None, which means no smoothing)
+        task_name : str
+            Task name (e.g., "motor_acq-shimBase+3mm")
+        run_name : str, optional
+            Run name (e.g., "run-1") (default is None, which means no run name will be added to the output filename)
+        verbose : bool, optional
+            Whether to print information during processing (default is True)
+        redo : bool, optional
+            Whether to redo the analysis even if results already exist (default is False)
+        Returns
+        -------
+        z_map_file : str
+            Filename of the output z-map NIfTI file (e.g., "n20_motor_acq-shimBase+3mm_intercept_z_map.nii.gz")
+        '''
+        
+
+
         # --- Input validation -------------------------------------------------------------
         if i_fnames is None:
             raise ValueError("Please provide the list of filenames of the input contrast images.")
         
-        z_map_file = os.path.join(second_level_dir, f"n{len(i_fnames)}_{task_name}_intercept_z_map.nii.gz")
+        # --- Define directories  -----------------------------------------------------------
+        second_level_dir = self.second_level_dir.format(task_name) + "/"
+        os.makedirs(second_level_dir, exist_ok=True)
+
+        # Load design matrix file if provided, otherwise create a default design matrix with an intercept only
+        if design_matrix is None:
+            design_matrix = pd.DataFrame([1] * len(i_fnames),columns=["intercept"])
+
+        if parametric ==True:
+            stat_map_file = os.path.join(second_level_dir, f"n{len(i_fnames)}_{task_name}_intercept_z_map.nii.gz")
+            if not os.path.exists(stat_map_file) or redo:
+                if verbose:
+                    print(f"Computing parametric second-level analysis for task {task_name}.")
+                
+                
+                
+                # --- Estimate and Fit second-level model -----------------------------------------------------------
+                second_level_model = SecondLevelModel(mask_img=mask_fname,smoothing_fwhm=smoothing_fwhm, n_jobs=2, verbose=1) # define the model to the contrast images and the design matrix
+                second_level_model.fit(i_fnames, design_matrix=design_matrix)  # fit the model to the contrast images and the design matrix
+                
+                # --- Compute contrasts and save -----------------------------------------------------------
+                z_map = second_level_model.compute_contrast(second_level_contrast="intercept",output_type="z_score")
+                z_map.to_filename(stat_map_file)
         
-        if not os.path.exists(z_map_file) or redo:
-            if verbose:
-                print(f"Computing second-level results for task {task_name}.")
-              
-            # Load design matrix file if provided, otherwise create a default design matrix with an intercept only
-            if design_matrix is None:
-                design_matrix = pd.DataFrame([1] * len(i_fnames),columns=["intercept"])
+        else:
+            stat_map_file = os.path.join(second_level_dir, f"n{len(i_fnames)}_{task_name}_")
+            if not os.path.exists(stat_map_file + 'logp_max_t.nii.gz') or redo:
+                if verbose:
+                    print(f"Computing non-parametric second-level analysis for task {task_name}.")
             
-            # --- Define directories  -----------------------------------------------------------
-            second_level_dir = self.second_level_dir.format(task_name) + "/"
-            os.makedirs(second_level_dir, exist_ok=True)
-            
-            # --- Estimate and Fit second-level model -----------------------------------------------------------
-            second_level_model = SecondLevelModel(mask_img=mask_fname,smoothing_fwhm=smoothing_fwhm, n_jobs=2, verbose=1) # define the model to the contrast images and the design matrix
-            second_level_model.fit(i_fnames, design_matrix=design_matrix)  # fit the model to the contrast images and the design matrix
-            
-            # --- Compute contrasts and save -----------------------------------------------------------
-            z_map = second_level_model.compute_contrast(second_level_contrast="intercept",output_type="z_score")
-            z_map.to_filename(z_map_file)
+                out_dict = non_parametric_inference(
+                    i_fnames,
+                    design_matrix=design_matrix,
+                    mask=mask_fname,
+                    model_intercept=True,
+                    n_perm=50,  # 500 for the sake of time. Ideally, this should be 10,000.
+                    two_sided_test=False,
+                    smoothing_fwhm=1,
+                    n_jobs=2,
+                    threshold=0.01, # voxel level threshold for cluster definition (uncorrected p-value)
+                    #tfce=True,
+                    verbose=1,
+                    )
+                
+                print(out_dict)
+                out_dict["t"].to_filename(stat_map_file+ 't.nii.gz')
+                out_dict["logp_max_t"].to_filename(stat_map_file+ 'logp_max_t.nii.gz')
+                out_dict["logp_max_size"].to_filename(stat_map_file+ 'logp_max_size.nii.gz')
+                out_dict["logp_max_mass"].to_filename(stat_map_file+ 'logp_max_mass.nii.gz')
+                #out_dict["tfce"].to_filename(stat_map_file+ 'tfce.nii.gz')
+                #out_dict["logp_max_tfce"].to_filename(stat_map_file+ 'logp_max_tfce.nii.gz')
+
+                #mask the t-map with the significant cluster in the logp_max_size map
+                logp_max_size_img = nib.load(stat_map_file+ 'logp_max_size.nii.gz')
+                logp_max_size_data = logp_max_size_img.get_fdata()
+                #threshold the logp_max_size map at p<0.05
+                logp_max_size_data_thresholded = logp_max_size_data > -np.log10(0.05)
+                #mask the t-map with the thresholded logp_max_size map
+                t_img = nib.load(stat_map_file+ 't.nii.gz')
+                t_data = t_img.get_fdata()
+                t_data_masked = t_data * logp_max_size_data_thresholded
+                t_masked_img = nib.Nifti1Image(t_data_masked, t_img.affine, t_img.header)
+                t_masked_img.to_filename(stat_map_file+ 't_clustercorrected.nii.gz')
+
         
-        return z_map_file
+        return stat_map_file
+    
+  
