@@ -212,7 +212,7 @@ print("===================================", flush=True)
 print("")
 
 # list of first evel contrast images in template space for each participant and task
-second_level=False
+second_level=True
 if second_level==True:
     for task_name in config["design_exp"]["task_names"]:
         for acq_name in config["design_exp"]["acq_names"]:
