@@ -32,6 +32,7 @@ from IPython.display import Image, display
 path_code = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(os.path.join(path_code, "code"))  # Change this line according to your directory
 from preprocess import Preprocess_main, Preprocess_Sc, copy_warping_fields_from_ref_tag, copy_segmentation_from_ref_tag
+from preprocess import copy_csf_segmentation_from_ref_tag
 import utils
 
 with open(os.path.join(path_code, "config", "config_spine_7t_fmri.json")) as config_file:
@@ -158,8 +159,7 @@ for ID_nb, ID in enumerate(IDs):
     for task_name in config["design_exp"]["task_names"]:
         for acq_name in config["design_exp"]["acq_names"]:
             tag = "task-" + task_name + "_acq-" + acq_name
-            json_f = glob.glob(os.path.join(config["raw_dir"], f"sub-{ID}", "func", f"sub-{ID}_{tag}_*bold.json"))
-            raw_func = glob.glob(os.path.join(config["raw_dir"], f"sub-{ID}", "func", f"sub-{ID}_{tag}_*bold.nii.gz"))
+            raw_func = sorted(glob.glob(os.path.join(config["raw_dir"], f"sub-{ID}", "func", f"sub-{ID}_{tag}_*bold.nii.gz")))
             o_dir = os.path.join(preprocessing_dir.format(ID),  "func", tag)
             params_moco = 'poly=0,smooth=1,metric=MeanSquares,gradStep=1,sampling=0.2'
 
@@ -172,7 +172,8 @@ for ID_nb, ID in enumerate(IDs):
                 else:
                     run_name = ""
 
-                if task_name == 'motor':
+                # Full processing only for motor task run-1, the others will be co-registered
+                if task_name == 'motor' and (run_name == "run-01" or run_name == ""):
                     #------------------------------------------------------------------
                     #------ Create mask around the cord for moco
                     #------------------------------------------------------------------
@@ -243,23 +244,32 @@ for ID_nb, ID in enumerate(IDs):
                                                                 redo=redo,
                                                                 verbose=verbose)
 
+                    # Copy the segmentation, scf segmentation and warping field to where the final files are expected to be
+                    copy_segmentation_from_ref_tag(ID, tag, tag, manual_dir, preprocessing_dir)
+                    copy_csf_segmentation_from_ref_tag(ID, tag, tag, manual_dir, preprocessing_dir)
+                    copy_warping_fields_from_ref_tag(ID, tag, tag, preprocessing_dir)
+
                 else:
                     # For other tasks (eg: rest), we will use the motor fMRI scan as a reference for creating the moco mask, 
                     # as a target for moco, and for segmentation and registration to PAM50.
                     # See discussion: https://github.com/CarolineLndl/spine_7t_fmri_analysis/issues/64
+                    # See discussion: https://github.com/CarolineLndl/spine_7t_fmri_analysis/issues/82
                     ref_tag = "task-motor_acq-" + acq_name
                     # reference func file has _tmean as a suffix, and is located under the ref_tag folder. If there are multiple runs, select the first one
                     try:
                         ref_func_file = glob.glob(os.path.join(preprocessing_dir.format(ID), "func", ref_tag, f"sub-{ID}_{ref_tag}_*bold_tmean.nii.gz"))[0]
                         print(f'=== Using {ref_func_file} as reference for moco ===', flush=True)
-                    except IndexError:
+                    except IndexError as e:
                         print(f'No reference file found for {ref_tag} in raw data.', flush=True)
+                        raise e
                     # Reference mask file is located under ref_tag/sct_get_centerline. If there are multiple runs, select the first one
                     try:
                         ref_mask_file = glob.glob(os.path.join(preprocessing_dir.format(ID), "func", ref_tag, "sct_get_centerline", f"sub-{ID}_{ref_tag}_*tmean_mask.nii.gz"))[0]
                         print(f'=== Using {ref_mask_file} as reference mask for moco ===', flush=True)
-                    except IndexError:
+                    except IndexError as e:
                         print(f'No reference mask file found for {ref_tag} in raw data.', flush=True)
+                        raise e
+
                     # Run moco using the motor scan as reference, and using the same mask as for the motor scan
                     moco_f,moco_mean_f,qc_dir=preprocess_Sc.moco(ID=ID,
                                                                 i_img=func_file,
@@ -275,8 +285,7 @@ for ID_nb, ID in enumerate(IDs):
                     # the same reference for moco and registration to PAM50. This is to avoid having to redo segmentation
                     # and registration for the other tasks, which can be time-consuming.
                     copy_segmentation_from_ref_tag(ID, tag, ref_tag, manual_dir, preprocessing_dir)
-
-                    # Also copy warping fields
+                    copy_csf_segmentation_from_ref_tag(ID, tag, ref_tag, manual_dir, preprocessing_dir)
                     copy_warping_fields_from_ref_tag(ID, tag, ref_tag, preprocessing_dir)
 
                 print(f'=== Func registration : Done  {ID} {tag} {run_name} ===')
