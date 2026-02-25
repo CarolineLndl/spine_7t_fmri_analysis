@@ -100,13 +100,9 @@ for ID_nb,ID in enumerate(IDs):
                 denoised_fmri=glob.glob(os.path.join(denoising_dir.format(ID ), tag, config["denoising"]["denoised_dir"],"*"+run_name+"*_nostd_s.nii.gz"))[0]
                 
                 # Select manual seg if exists
-                mask_file_list = glob.glob(os.path.join(preprocessing_dir.format(ID), config["preprocess_dir"]["func_seg"].format(tag), config["preprocess_f"]["func_seg"].format(ID,tag,run_name)))
-                mask_file = mask_file_list[0] if len(mask_file_list) > 0 else None
-                manual_seg_file_list = glob.glob(os.path.join(f"{manual_dir}", f"sub-{ID}", "func", config["preprocess_f"]["func_seg"].format(ID,tag,run_name)))
-                manual_seg_file = manual_seg_file_list[0] if len(manual_seg_file_list) > 0 else ""
-                mask_final_file = manual_seg_file if os.path.exists(manual_seg_file) else mask_file
-                if mask_final_file is None:
-                    raise RuntimeError(f"No mask file found for subject {ID}, task {tag}, run {run_name}. Please check the preprocessing outputs and manual corrections.")
+                mask_final_file = os.path.join(preprocessing_dir.format(ID), 'func', tag, f"sub-{ID}_{tag}_bold_moco_mean_seg.nii.gz")
+                if not os.path.exists(mask_final_file):
+                    raise RuntimeError(f"No mask file found for subject {ID}, task {tag}. Please check the preprocessing outputs and manual corrections.")
 
                 warp_file=glob.glob(os.path.join(preprocessing_dir.format(ID), config["preprocess_dir"]["func_coreg"].format(tag), config["preprocess_f"]["func_warp"].format(ID,tag,run_name)))[0]
                 events_file=glob.glob(os.path.join(config["raw_dir"], f'sub-{ID}', 'func', f'sub-{ID}_{tag}_*events.tsv'))[0]
