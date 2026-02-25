@@ -189,11 +189,13 @@ class FigureTSNR:
         nii_tsnr_baseline_avg = nib.load(self.fname_tsnr_baseline_avg)
         nii_tsnr_slicewise_avg = nib.load(self.fname_tsnr_slicewise_avg)
 
-        fname_tsnr_baseline_avg_smooth = os.path.join(self.path_fig_tsnr, "data", "tsnr_baseline_avg_smooth_in_PAM50.nii.gz")
+        fname_tsnr_baseline_avg_smooth = os.path.join(self.path_fig_tsnr, "data",
+                                                      "tsnr_baseline_avg_smooth_in_PAM50.nii.gz")
         nii_tsnr_baseline_avg_smooth = smooth_img(nii_tsnr_baseline_avg, fwhm=[2, 2, 4])
         nib.save(nii_tsnr_baseline_avg_smooth, fname_tsnr_baseline_avg_smooth)
 
-        fname_tsnr_slicewise_avg_smooth = os.path.join(self.path_fig_tsnr, "data", "tsnr_slicewise_avg_smooth_in_PAM50.nii.gz")
+        fname_tsnr_slicewise_avg_smooth = os.path.join(self.path_fig_tsnr, "data",
+                                                       "tsnr_slicewise_avg_smooth_in_PAM50.nii.gz")
         nii_tsnr_slicewise_avg_smooth = smooth_img(nii_tsnr_slicewise_avg, fwhm=[2, 2, 4])
         nib.save(nii_tsnr_slicewise_avg_smooth, fname_tsnr_slicewise_avg_smooth)
 
@@ -213,8 +215,10 @@ class FigureTSNR:
 
         fname_template = os.path.join(self.config["code_dir"], "template", self.config["PAM50_t2"])
         nii_template = nib.load(fname_template)
-        create_tsnr_template_plot(fig, gs_main[1], nii_tsnr_baseline_avg_smooth, nii_tsnr_slicewise_avg_smooth, nii_template, nii_outline)
-        fig.suptitle(f"A) Average tSNR map (n={len(self.IDs)})              B) tSNR accross participants", fontsize=12, fontweight='bold',
+        create_tsnr_template_plot(fig, gs_main[1], nii_tsnr_baseline_avg_smooth, nii_tsnr_slicewise_avg_smooth,
+                                  nii_template, nii_outline)
+        fig.suptitle(f"A) Average tSNR map (n={len(self.IDs)})              B) tSNR accross participants", fontsize=12,
+                     fontweight='bold',
                      x=0.52)
         fname_output = os.path.join(self.path_fig_tsnr, "tsnr_plot.png")
         fig.savefig(fname_output, dpi=1000)
@@ -399,13 +403,13 @@ def create_tsnr_template_plot(fig, gs, nii_baseline, nii_slicewise, nii_template
     axs[0, 1].set_title('Slice-wise\nf0xyz shim', fontsize=10)
     axs[1, 0].imshow(np.rot90(
         nii_baseline.get_fdata()[axial_left_bound:axial_right_bound, axial_bot_bound:axial_top_bound, axial_slice]),
-                     vmin=vmin, vmax=vmax, cmap='turbo')
+        vmin=vmin, vmax=vmax, cmap='turbo')
     axs[1, 0].imshow(np.rot90(axial_cord_outline_nan), vmin=0, vmax=1, cmap='grey', alpha=0.75)
     axs[1, 0].axis('off')
     axs[1, 0].set_aspect('equal', adjustable='box')
     axs[1, 1].imshow(np.rot90(
         nii_slicewise.get_fdata()[axial_left_bound:axial_right_bound, axial_bot_bound:axial_top_bound, axial_slice]),
-                     vmin=vmin, vmax=vmax, cmap='turbo')
+        vmin=vmin, vmax=vmax, cmap='turbo')
     axs[1, 1].imshow(np.rot90(axial_cord_outline_nan), vmin=0, vmax=1, cmap='grey', alpha=0.75)
     axs[1, 1].axis('off')
     axs[1, 1].set_aspect('equal', adjustable='box')
@@ -557,11 +561,14 @@ class FigureEpiComparison:
         fname_template = os.path.join(self.config["code_dir"], "template", self.config["PAM50_t2"])
         data_sum = None
         for ID in IDs:
-            fname_moco_mean, _, fname_warp_from_func_to_template, _  = self._get_fname_moco_mean_and_seg_and_warps(ID, task, acq_name)
+            fname_moco_mean, _, fname_warp_from_func_to_template, _ = self._get_fname_moco_mean_and_seg_and_warps(ID,
+                                                                                                                  task,
+                                                                                                                  acq_name)
             if not os.path.exists(os.path.join(self.path_fig_data, f"sub-{ID}")):
                 os.makedirs(os.path.join(self.path_fig_data, f"sub-{ID}"))
-            fname_moco_in_template = os.path.join(self.path_fig_data, f"sub-{ID}", f"sub-{ID}_task-{task}_acq-{acq_name}_bold_moco_mean_in_PAM50.nii.gz")
-            cmd_coreg = f"sct_apply_transfo -i {fname_moco_mean} -d {fname_template} -w {fname_warp_from_func_to_template} -o {fname_moco_in_template} -x nn"
+            fname_moco_in_template = os.path.join(self.path_fig_data, f"sub-{ID}",
+                                                  f"sub-{ID}_task-{task}_acq-{acq_name}_bold_moco_mean_in_PAM50.nii.gz")
+            cmd_coreg = f"sct_apply_transfo -i {fname_moco_mean} -d {fname_template} -w {fname_warp_from_func_to_template} -o {fname_moco_in_template}"
             os.system(cmd_coreg)
             nii = nib.load(fname_moco_in_template)
             if data_sum is None:
@@ -575,7 +582,9 @@ class FigureEpiComparison:
         nib.save(nii_avg, fname_avg)
         return fname_avg
 
-    def _create_comp_figure(self, ID, fname_avg_baseline, fname_avg_slicewise, show_avg=False):
+    def _create_comp_figure(self, ID, fname_avg_baseline, fname_avg_slicewise, show_avg=False, show_slice_factor=2):
+        # Todo: Find template slice from func slice and use template_slice_to_vert_level and add it on the figure
+        
         # from skimage.util import montage
         # Create figure that shows moco mean in native space between baseline and slicewise shim
         task = "motor"
@@ -583,8 +592,10 @@ class FigureEpiComparison:
         name_slicewise = [a for a in self.config["design_exp"]["acq_names"] if "Slice" in a][0]
 
         # Paths for baseline and slicewise shim images
-        fname_baseline, fname_seg_baseline, _, fname_warp_from_pam50_to_func_baseline = self._get_fname_moco_mean_and_seg_and_warps(ID, task, name_baseline)
-        fname_slicewise, fname_seg_slicewise, _, fname_warp_from_pam50_to_func_slicewise = self._get_fname_moco_mean_and_seg_and_warps(ID, task, name_slicewise)
+        fname_baseline, fname_seg_baseline, _, fname_warp_from_pam50_to_func_baseline = self._get_fname_moco_mean_and_seg_and_warps(
+            ID, task, name_baseline)
+        fname_slicewise, fname_seg_slicewise, _, fname_warp_from_pam50_to_func_slicewise = self._get_fname_moco_mean_and_seg_and_warps(
+            ID, task, name_slicewise)
 
         # Load images and masks
         img_baseline = nib.load(fname_baseline).get_fdata()
@@ -595,11 +606,13 @@ class FigureEpiComparison:
         if show_avg:
             # Todo: Maybe add a filter?
             # Compute the average moco mean in native space by warping the average in PAM50 back to native space
-            fname_avg_in_func_baseline = os.path.join(self.path_fig_data, f"sub-{ID}", f"sub-{ID}_task-{task}_acq-{name_baseline}_bold_moco_mean_avg_in_func.nii.gz")
-            cmd = f"sct_apply_transfo -i {fname_avg_baseline} -d {fname_baseline} -w {fname_warp_from_pam50_to_func_baseline} -o {fname_avg_in_func_baseline} -x nn"
+            fname_avg_in_func_baseline = os.path.join(self.path_fig_data, f"sub-{ID}",
+                                                      f"sub-{ID}_task-{task}_acq-{name_baseline}_bold_moco_mean_avg_in_func.nii.gz")
+            cmd = f"sct_apply_transfo -i {fname_avg_baseline} -d {fname_baseline} -w {fname_warp_from_pam50_to_func_baseline} -o {fname_avg_in_func_baseline}"
             os.system(cmd)
-            fname_avg_in_func_slicewise = os.path.join(self.path_fig_data, f"sub-{ID}", f"sub-{ID}_task-{task}_acq-{name_slicewise}_bold_moco_mean_avg_in_func.nii.gz")
-            cmd = f"sct_apply_transfo -i {fname_avg_slicewise} -d {fname_slicewise} -w {fname_warp_from_pam50_to_func_slicewise} -o {fname_avg_in_func_slicewise} -x nn"
+            fname_avg_in_func_slicewise = os.path.join(self.path_fig_data, f"sub-{ID}",
+                                                       f"sub-{ID}_task-{task}_acq-{name_slicewise}_bold_moco_mean_avg_in_func.nii.gz")
+            cmd = f"sct_apply_transfo -i {fname_avg_slicewise} -d {fname_slicewise} -w {fname_warp_from_pam50_to_func_slicewise} -o {fname_avg_in_func_slicewise}"
             os.system(cmd)
 
             # Load average images
@@ -611,24 +624,29 @@ class FigureEpiComparison:
         n_slices = img_baseline.shape[2]
 
         if show_avg:
-            fig = plt.figure(figsize=(3.99, 28))
+            fig = plt.figure(figsize=(3.99, n_slices // show_slice_factor))
             gs_main = gridspec.GridSpec(1, 4, figure=fig, hspace=0, wspace=0)
         else:
-            fig = plt.figure(figsize=(1.99, 28))
+            fig = plt.figure(figsize=(1.99, n_slices // show_slice_factor))
             gs_main = gridspec.GridSpec(1, 2, figure=fig, hspace=0, wspace=0)
 
-        gs_baseline = gs_main[0].subgridspec(n_slices, 1, hspace=0, wspace=0)
-        gs_slicewise = gs_main[1].subgridspec(n_slices, 1, hspace=0, wspace=0)
+        title_fontsize = 5
+        gs_baseline = gs_main[0].subgridspec(n_slices // show_slice_factor, 1, hspace=0, wspace=0)
+        gs_slicewise = gs_main[1].subgridspec(n_slices // show_slice_factor, 1, hspace=0, wspace=0)
         axs_baseline = gs_baseline.subplots()
+        axs_baseline[0].set_title(f"Subject {ID} baseline\n2nd order shim", fontsize=title_fontsize)
         axs_slicewise = gs_slicewise.subplots()
+        axs_slicewise[0].set_title(f"Subject {ID} slice-wise\nf0xyz shim", fontsize=title_fontsize)
 
         if show_avg:
-            gs_baseline_avg = gs_main[2].subgridspec(n_slices, 1, hspace=0, wspace=0)
-            gs_slicewise_avg = gs_main[3].subgridspec(n_slices, 1, hspace=0, wspace=0)
+            gs_baseline_avg = gs_main[2].subgridspec(n_slices // show_slice_factor, 1, hspace=0, wspace=0)
+            gs_slicewise_avg = gs_main[3].subgridspec(n_slices // show_slice_factor, 1, hspace=0, wspace=0)
             axs_baseline_avg = gs_baseline_avg.subplots()
+            axs_baseline_avg[0].set_title(f"Average baseline\n2nd order shim", fontsize=title_fontsize)
             axs_slicewise_avg = gs_slicewise_avg.subplots()
+            axs_slicewise_avg[0].set_title(f"Average slice-wise\nf0xyz shim", fontsize=title_fontsize)
 
-        for slice_idx in range(n_slices):
+        for idx, slice_idx in enumerate(range(0, n_slices, show_slice_factor)):
             com_baseline = center_of_mass(mask_baseline[:, :, slice_idx])
             com_slicewise = center_of_mass(mask_slicewise[:, :, slice_idx])
 
@@ -659,19 +677,20 @@ class FigureEpiComparison:
                 vmin = min(vmin, cropped_baseline_avg.min(), cropped_slicewise_avg.min())
                 vmax = max(vmax, cropped_baseline_avg.max(), cropped_slicewise_avg.max())
 
-                axs_baseline_avg[slice_idx].imshow(cropped_baseline_avg.T, cmap='gray', origin='lower', vmin=vmin, vmax=vmax)
-                axs_baseline_avg[slice_idx].axis('off')
-                axs_baseline_avg[slice_idx].set_aspect('equal', adjustable='box')
-                axs_slicewise_avg[slice_idx].imshow(cropped_slicewise_avg.T, cmap='gray', origin='lower', vmin=vmin, vmax=vmax)
-                axs_slicewise_avg[slice_idx].axis('off')
-                axs_slicewise_avg[slice_idx].set_aspect('equal', adjustable='box')
+                axs_baseline_avg[idx].imshow(cropped_baseline_avg.T, cmap='gray', origin='lower', vmin=vmin, vmax=vmax)
+                axs_baseline_avg[idx].axis('off')
+                axs_baseline_avg[idx].set_aspect('equal', adjustable='box')
+                axs_slicewise_avg[idx].imshow(cropped_slicewise_avg.T, cmap='gray', origin='lower', vmin=vmin,
+                                              vmax=vmax)
+                axs_slicewise_avg[idx].axis('off')
+                axs_slicewise_avg[idx].set_aspect('equal', adjustable='box')
 
-            axs_baseline[slice_idx].imshow(cropped_baseline.T, cmap='gray', origin='lower', vmin=vmin, vmax=vmax)
-            axs_baseline[slice_idx].axis('off')
-            axs_baseline[slice_idx].set_aspect('equal', adjustable='box')
-            axs_slicewise[slice_idx].imshow(cropped_slicewise.T, cmap='gray', origin='lower', vmin=vmin, vmax=vmax)
-            axs_slicewise[slice_idx].axis('off')
-            axs_slicewise[slice_idx].set_aspect('equal', adjustable='box')
+            axs_baseline[idx].imshow(cropped_baseline.T, cmap='gray', origin='lower', vmin=vmin, vmax=vmax)
+            axs_baseline[idx].axis('off')
+            axs_baseline[idx].set_aspect('equal', adjustable='box')
+            axs_slicewise[idx].imshow(cropped_slicewise.T, cmap='gray', origin='lower', vmin=vmin, vmax=vmax)
+            axs_slicewise[idx].axis('off')
+            axs_slicewise[idx].set_aspect('equal', adjustable='box')
 
         self.fname_fig_epi_comparison = os.path.join(self.path_fig_epi_comparison, f"sub-{ID}_epi_comparison.png")
         fig.savefig(self.fname_fig_epi_comparison, dpi=2000)
@@ -698,7 +717,9 @@ class FigureEpiComparison:
             img = nib.load(fname)
             n_vols = img.shape[3]
             if n_vols > vols:
-                print(f"Found acquisition with more volumes for sub-{ID} task-{task} acq-{acq_name}: {fname} with {n_vols} volumes", flush=True)
+                print(
+                    f"Found acquisition with more volumes for sub-{ID} task-{task} acq-{acq_name}: {fname} with {n_vols} volumes",
+                    flush=True)
                 vols = n_vols
                 idx = i
 
@@ -712,7 +733,8 @@ class FigureEpiComparison:
         )))
 
         if len(fname_moco_mean_list) != len(fname_acq_list):
-            raise RuntimeError(f"Number of moco mean files does not match number of acq files for sub-{ID} task-{task} acq-{acq_name}")
+            raise RuntimeError(
+                f"Number of moco mean files does not match number of acq files for sub-{ID} task-{task} acq-{acq_name}")
 
         fname_moco_mean = fname_moco_mean_list[idx]
         moco_basename = os.path.basename(fname_moco_mean).rsplit(".nii.gz")[0]
@@ -726,7 +748,9 @@ class FigureEpiComparison:
             f"sub-{ID}_task-{task}_acq-{acq_name}*_bold_moco_mean_seg.nii.gz")))
 
         # Try to find if a manual mask is associated with the selected moco
-        print(f"Looking for manual segmentation mask for sub-{ID} task-{task} acq-{acq_name} among: {fname_seg_manual_list}", flush=True)
+        print(
+            f"Looking for manual segmentation mask for sub-{ID} task-{task} acq-{acq_name} among: {fname_seg_manual_list}",
+            flush=True)
         fname_seg = None
         for f in fname_seg_manual_list:
             if (moco_basename + "_seg.nii.gz") == os.path.basename(f):
@@ -767,14 +791,16 @@ class FigureEpiComparison:
         )))
 
         if len(fname_warp_list) != len(fname_acq_list):
-            raise RuntimeError(f"Number of warp files does not match number of acq files for sub-{ID} task-{task} acq-{acq_name}")
+            raise RuntimeError(
+                f"Number of warp files does not match number of acq files for sub-{ID} task-{task} acq-{acq_name}")
 
         # Try to find the segmentation that matches the moco filename
         print(
             f"Looking for warp func_to_PAM50 for sub-{ID} task-{task} acq-{acq_name} among: {fname_warp_list}",
             flush=True)
         for f in fname_warp_list:
-            if (moco_basename.rsplit("_bold_moco_mean")[0] + "_from-func_to_PAM50_mode-image_xfm.nii.gz") == os.path.basename(f):
+            if (moco_basename.rsplit("_bold_moco_mean")[
+                    0] + "_from-func_to_PAM50_mode-image_xfm.nii.gz") == os.path.basename(f):
                 print(f"Found warp func_to_PAM50 for sub-{ID} task-{task} acq-{acq_name}: {f}", flush=True)
                 fname_warp_func_to_pam50 = f
                 break
@@ -797,7 +823,8 @@ class FigureEpiComparison:
             f"sub-{ID}_{task_name}*_from-PAM50_to_func_mode-image_xfm.nii.gz"
         ))
         if len(fname_warp_list) != len(fname_acq_list):
-            print(f"Number of warp files found: {len(fname_warp_list)}, number of acq files found: {len(fname_acq_list)}")
+            print(
+                f"Number of warp files found: {len(fname_warp_list)}, number of acq files found: {len(fname_acq_list)}")
             raise RuntimeError(
                 f"Number of warp files does not match number of acq files for sub-{ID} task-{task} acq-{acq_name}")
 
@@ -806,7 +833,8 @@ class FigureEpiComparison:
             f"Looking for warp PAM50_to_func for sub-{ID} task-{task} acq-{acq_name} among: {fname_warp_list}",
             flush=True)
         for f in fname_warp_list:
-            if (moco_basename.rsplit("_bold_moco_mean")[0] + "_from-PAM50_to_func_mode-image_xfm.nii.gz") == os.path.basename(f):
+            if (moco_basename.rsplit("_bold_moco_mean")[
+                    0] + "_from-PAM50_to_func_mode-image_xfm.nii.gz") == os.path.basename(f):
                 print(f"Found warp PAM50_to_func for sub-{ID} task-{task} acq-{acq_name}: {f}", flush=True)
                 fname_warp_pam50_to_func = f
                 break
@@ -815,3 +843,58 @@ class FigureEpiComparison:
             raise RuntimeError(f"Could not find a segmentation")
 
         return fname_moco_mean, fname_seg, fname_warp_func_to_pam50, fname_warp_pam50_to_func
+
+
+def template_slice_to_spinal_level(template_slice):
+    spinal_levels = {
+        0: range(435, 440),
+        1: range(420, 435),  # C1...
+        2: range(399, 420),
+        3: range(366, 399),
+        4: range(333, 366),
+        5: range(300, 333),
+        6: range(269, 300),
+        7: range(238, 269),
+        8: range(206, 238),
+        9: range(172, 206),
+        10: range(135, 172),
+        11: range(94, 135),
+        12: range(47, 94),
+        13: range(420, 47)
+    }
+    spinal_levels_to_label = {1: 'C1', 2: 'C2', 3: 'C3', 4: 'C4', 5: 'C5', 6: 'C6', 7: 'C7', 8: 'C8', 9: 'T1', 10: 'T2', 11: 'T3', 12: 'T4', 13: 'T5'}
+
+    data_spinal_levels = np.zeros((440,), dtype=int)
+    for level, range_ in spinal_levels.items():
+        for r in range_:
+            data_spinal_levels[r] = level
+
+    return data_spinal_levels[template_slice], spinal_levels_to_label.get(data_spinal_levels[template_slice], 'Unknown')
+
+
+def template_slice_to_vert_level(template_slice):
+    vert_levels = {
+        0: range(413, 440),
+        1: range(388, 413),  # C1
+        2: range(357, 388),  # C2
+        3: range(322, 357),  # ...
+        4: range(285, 322),
+        5: range(250, 285),
+        6: range(221, 250),
+        7: range(187, 221),
+        8: range(142, 187),
+        9: range(96, 142),
+        10: range(52, 96),
+        11: range(3, 52),
+        12: range(0, 3)
+    }
+
+    vert_levels_to_label = {1: 'C1', 2: 'C2', 3: 'C3', 4: 'C4', 5: 'C5', 6: 'C6', 7: 'C7', 8: 'T1', 9: 'T2', 10: 'T3',
+                            11: 'T4', 12: 'T5'}
+
+    data_vert_levels = np.zeros((440,), dtype=int)
+    for level, range_ in vert_levels.items():
+        for r in range_:
+            data_vert_levels[r] = level
+
+    return data_vert_levels[template_slice], vert_levels_to_label.get(data_vert_levels[template_slice], 'Unknown')
