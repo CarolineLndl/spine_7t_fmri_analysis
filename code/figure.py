@@ -467,7 +467,7 @@ def create_tsnr_violin_plot(fig, gs, snr_baseline: list, snr_shim: list):
     ax.xaxis.set_label_position('top')
     ax.xaxis.tick_top()
     ax.tick_params(axis='x', which='both', bottom=False, top=False)
-    ax.set_ylabel('Mean tSNR for each subject')
+    ax.set_ylabel('Mean tSNR for each participant')
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
     ax.spines['bottom'].set_visible(False)
@@ -517,20 +517,17 @@ class FigureEpiComparison:
             os.makedirs(self.path_fig_data)
 
     def create_figure(self, show_avg=False):
+        # Todo: Run on all the pipeline to make sure we have the same # of images in mocomean, pipeline will crash if not.
         print("=== Create EPI comparison figure ===", flush=True)
 
         ### Create 1 figure per subject, showing moco mean in native space between baseline and slicewise shim
-        # crop the images to focus on the spinal cord
-        # Show non moco as well?
-        # Maybe? Show average pam50 back in native space to compare
         if show_avg:
             name_baseline = [a for a in self.config["design_exp"]["acq_names"] if "Base" in a][0]
             name_slicewise = [a for a in self.config["design_exp"]["acq_names"] if "Slice" in a][0]
-            fname_avg_baseline = self._create_avg_moco_mean_in_pam50(self.IDs, name_baseline)
-            fname_avg_slicewise = self._create_avg_moco_mean_in_pam50(self.IDs, name_slicewise)
-
-            print(f"{fname_avg_baseline=}")
-            print(f"{fname_avg_slicewise=}")
+            fname_avg_baseline, nvols_b = self._create_avg_moco_mean_in_pam50(self.IDs, name_baseline)
+            fname_avg_slicewise, nvols_s = self._create_avg_moco_mean_in_pam50(self.IDs, name_slicewise)
+            if nvols_b != nvols_s:
+                raise RuntimeError(f"Number of volumes in baseline and slicewise moco mean should be the same, but we have {nvols_b} and {nvols_s}")
         else:
             fname_avg_baseline = None
             fname_avg_slicewise = None
@@ -546,9 +543,7 @@ class FigureEpiComparison:
         fname_template = os.path.join(self.config["code_dir"], "template", self.config["PAM50_t2"])
         data_sum = None
         for ID in IDs:
-            fname_moco_mean, _, fname_warp_from_func_to_template, _ = self._get_fname_moco_mean_and_seg_and_warps(ID,
-                                                                                                                  task,
-                                                                                                                  acq_name)
+            fname_moco_mean, _, fname_warp_from_func_to_template, _, nvols = self._get_fname_moco_mean_and_seg_and_warps(ID, task, acq_name)
             if not os.path.exists(os.path.join(self.path_fig_data, f"sub-{ID}")):
                 os.makedirs(os.path.join(self.path_fig_data, f"sub-{ID}"))
             fname_moco_in_template = os.path.join(self.path_fig_data, f"sub-{ID}",
@@ -565,22 +560,22 @@ class FigureEpiComparison:
         fname_avg = os.path.join(self.path_fig_data, f"avg_task-{task}_acq-{acq_name}_bold_moco_mean_in_PAM50.nii.gz")
         nii_avg = nib.Nifti1Image(data_avg, affine=nii.affine, header=nii.header)
         nib.save(nii_avg, fname_avg)
-        return fname_avg
+        return fname_avg, nvols
 
     def _create_comp_figure(self, ID, fname_avg_baseline, fname_avg_slicewise, show_avg=False, show_slice_factor=2):
-        # Todo: Find template slice from func slice and use template_slice_to_vert_level and add it on the figure
-        
-        # from skimage.util import montage
         # Create figure that shows moco mean in native space between baseline and slicewise shim
         task = "motor"
         name_baseline = [a for a in self.config["design_exp"]["acq_names"] if "Base" in a][0]
         name_slicewise = [a for a in self.config["design_exp"]["acq_names"] if "Slice" in a][0]
 
         # Paths for baseline and slicewise shim images
-        fname_baseline, fname_seg_baseline, _, fname_warp_from_pam50_to_func_baseline = self._get_fname_moco_mean_and_seg_and_warps(
+        fname_baseline, fname_seg_baseline, _, fname_warp_from_pam50_to_func_baseline, nvols_b = self._get_fname_moco_mean_and_seg_and_warps(
             ID, task, name_baseline)
-        fname_slicewise, fname_seg_slicewise, _, fname_warp_from_pam50_to_func_slicewise = self._get_fname_moco_mean_and_seg_and_warps(
+        fname_slicewise, fname_seg_slicewise, _, fname_warp_from_pam50_to_func_slicewise, nvols_s = self._get_fname_moco_mean_and_seg_and_warps(
             ID, task, name_slicewise)
+
+        if nvols_b != nvols_s:
+            raise RuntimeError(f"Number of volumes in baseline and slicewise moco mean should be the same for sub-{ID}, but we have {nvols_b} and {nvols_s}")
 
         # Load images and masks
         img_baseline = nib.load(fname_baseline).get_fdata()
@@ -589,7 +584,6 @@ class FigureEpiComparison:
         mask_slicewise = nib.load(fname_seg_slicewise).get_fdata()
 
         if show_avg:
-            # Todo: Maybe add a filter?
             # Compute the average moco mean in native space by warping the average in PAM50 back to native space
             fname_avg_in_func_baseline = os.path.join(self.path_fig_data, f"sub-{ID}",
                                                       f"sub-{ID}_task-{task}_acq-{name_baseline}_bold_moco_mean_avg_in_func.nii.gz")
@@ -619,9 +613,9 @@ class FigureEpiComparison:
         gs_baseline = gs_main[0].subgridspec(n_slices // show_slice_factor, 1, hspace=0, wspace=0)
         gs_slicewise = gs_main[1].subgridspec(n_slices // show_slice_factor, 1, hspace=0, wspace=0)
         axs_baseline = gs_baseline.subplots()
-        axs_baseline[0].set_title(f"Subject {ID} baseline\n2nd order shim", fontsize=title_fontsize)
+        axs_baseline[0].set_title(f"ID {ID} baseline\n2nd order shim", fontsize=title_fontsize)
         axs_slicewise = gs_slicewise.subplots()
-        axs_slicewise[0].set_title(f"Subject {ID} slice-wise\nf0xyz shim", fontsize=title_fontsize)
+        axs_slicewise[0].set_title(f"ID {ID} slice-wise\nf0xyz shim", fontsize=title_fontsize)
 
         if show_avg:
             gs_baseline_avg = gs_main[2].subgridspec(n_slices // show_slice_factor, 1, hspace=0, wspace=0)
@@ -631,7 +625,7 @@ class FigureEpiComparison:
             axs_slicewise_avg = gs_slicewise_avg.subplots()
             axs_slicewise_avg[0].set_title(f"Average slice-wise\nf0xyz shim", fontsize=title_fontsize)
 
-        for idx, slice_idx in enumerate(range(0, n_slices, show_slice_factor)):
+        for idx, slice_idx in enumerate(range(n_slices -1, -1, -show_slice_factor)):
             com_baseline = center_of_mass(mask_baseline[:, :, slice_idx])
             com_slicewise = center_of_mass(mask_slicewise[:, :, slice_idx])
 
@@ -677,6 +671,10 @@ class FigureEpiComparison:
             axs_slicewise[idx].axis('off')
             axs_slicewise[idx].set_aspect('equal', adjustable='box')
 
+            template_slice_idx = self.func_slice_to_template_slice(slice_idx, com_baseline[0], com_baseline[1], fname_warp_from_pam50_to_func_baseline, fname_avg_in_func_baseline, ID, task, name_baseline)
+            spinal_level = template_slice_to_spinal_level(template_slice_idx)[1]
+            axs_baseline[idx].text(0.1, 0.9, spinal_level, color='white', fontsize=4, fontweight='bold', ha='center', va='center', transform=axs_baseline[idx].transAxes)
+
         self.fname_fig_epi_comparison = os.path.join(self.path_fig_epi_comparison, f"sub-{ID}_epi_comparison.png")
         fig.savefig(self.fname_fig_epi_comparison, dpi=2000)
 
@@ -702,11 +700,10 @@ class FigureEpiComparison:
             img = nib.load(fname)
             n_vols = img.shape[3]
             if n_vols > vols:
-                print(
-                    f"Found acquisition with more volumes for sub-{ID} task-{task} acq-{acq_name}: {fname} with {n_vols} volumes",
-                    flush=True)
                 vols = n_vols
                 idx = i
+
+        print(f"sub-{ID} task-{task} acq-{acq_name}: {fname} with {n_vols} volumes", flush=True)
 
         fname_moco_mean_list = sorted(glob.glob(os.path.join(
             self.config["raw_dir"],
@@ -757,7 +754,33 @@ class FigureEpiComparison:
         if not os.path.exists(fname_warp_pam50_to_func):
             raise RuntimeError(f"Could not find a segmentation")
 
-        return fname_moco_mean, fname_seg, fname_warp_func_to_pam50, fname_warp_pam50_to_func
+        return fname_moco_mean, fname_seg, fname_warp_func_to_pam50, fname_warp_pam50_to_func, n_vols
+
+    def func_slice_to_template_slice(self, func_slice, com1, com2, fname_warp_template_to_func, fname_moco_mean, ID, task, acq_name):
+        name = f"sub-{ID}_task-{task}_acq-{acq_name}"
+
+        fname_slice_temp = os.path.join(self.path_fig_data, "template_slice.nii.gz")
+
+        if not os.path.exists(fname_slice_temp) or self.redo:
+            # Take the template, overwrite it with the slice number, and warp it to func space.
+            fname_template = os.path.join(self.config["code_dir"], "template", self.config["PAM50_t2"])
+            nii_template = nib.load(fname_template)
+            data = nii_template.get_fdata()
+            for i_slice in range(nii_template.shape[2]):
+                data_template_slice = np.full_like(data[..., 0], i_slice)
+                data[:, :, i_slice] = data_template_slice
+
+            nii_slice_temp = nib.Nifti1Image(data.astype(np.int16), affine=nii_template.affine, header=nii_template.header)
+            nib.save(nii_slice_temp, fname_slice_temp)
+
+        fname_template_slice_in_func = os.path.join(self.path_fig_data, f"sub-{ID}", f"{name}_template_slice_in_func.nii.gz")
+        if not os.path.exists(fname_template_slice_in_func) or self.redo:
+            cmd_coreg = f"sct_apply_transfo -i {fname_slice_temp} -d {fname_moco_mean} -w {fname_warp_template_to_func} -o {fname_template_slice_in_func}"
+            os.system(cmd_coreg)
+
+        nii_slice_func = nib.load(fname_template_slice_in_func)
+        slice_temp = int(nii_slice_func.get_fdata()[int(com1), int(com2), func_slice])
+        return slice_temp
 
 
 def template_slice_to_spinal_level(template_slice):
