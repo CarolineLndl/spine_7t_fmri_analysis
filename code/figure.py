@@ -722,109 +722,39 @@ class FigureEpiComparison:
                 f"Number of moco mean files does not match number of acq files for sub-{ID} task-{task} acq-{acq_name}")
 
         fname_moco_mean = fname_moco_mean_list[idx]
-        moco_basename = os.path.basename(fname_moco_mean).rsplit(".nii.gz")[0]
 
         # Segmentation
-        fname_seg_manual_list = sorted(glob.glob(os.path.join(
+        fname_seg = os.path.join(
             self.config["raw_dir"],
-            self.config["manual_dir"],
-            f"sub-{ID}",
+            self.config["preprocess_dir"]["main_dir"].format(ID),
             "func",
-            f"sub-{ID}_task-{task}_acq-{acq_name}*_bold_moco_mean_seg.nii.gz")))
-
-        # Try to find if a manual mask is associated with the selected moco
-        print(
-            f"Looking for manual segmentation mask for sub-{ID} task-{task} acq-{acq_name} among: {fname_seg_manual_list}",
-            flush=True)
-        fname_seg = None
-        for f in fname_seg_manual_list:
-            if (moco_basename + "_seg.nii.gz") == os.path.basename(f):
-                print(f"Found manual segmentation mask for sub-{ID} task-{task} acq-{acq_name}: {f}", flush=True)
-                fname_seg = f
-                break
-
-        if fname_seg is None:
-            fname_seg_auto_list = glob.glob(os.path.join(
-                self.config["raw_dir"],
-                self.config["preprocess_dir"]["main_dir"].format(ID),
-                "func",
-                f"task-{task}_acq-{acq_name}",
-                "sct_deepseg",
-                f"sub-{ID}_task-{task}_acq-{acq_name}*_bold_moco_mean_seg.nii.gz"
-            ))
-
-            # Try to find the segmentation that matches the moco filename
-            print(
-                f"Looking for auto segmentation mask for sub-{ID} task-{task} acq-{acq_name} among: {fname_seg_auto_list}",
-                flush=True)
-            for f in fname_seg_auto_list:
-                if (moco_basename + "_seg.nii.gz") == os.path.basename(f):
-                    print(f"Found manual segmentation mask for sub-{ID} task-{task} acq-{acq_name}: {f}", flush=True)
-                    fname_seg = f
-                    break
-
-        if fname_seg is None:
+            task_name,
+            f"sub-{ID}_{task_name}_bold_moco_mean_seg.nii.gz"
+        )
+        if not os.path.exists(fname_seg):
             raise RuntimeError(f"Could not find a segmentation")
 
         # Get warp from func to PAM50
-        fname_warp_func_to_pam50 = None
-        fname_warp_list = sorted(glob.glob(os.path.join(
+        fname_warp_func_to_pam50 = os.path.join(
             self.config["raw_dir"],
             self.config["preprocess_dir"]["main_dir"].format(ID),
-            self.config["preprocess_dir"]["func_coreg"].format(task_name),
-            self.config["preprocess_f"]["func_warp"].format(f"sub-{ID}_{task_name}"),
-        )))
-
-        if len(fname_warp_list) != len(fname_acq_list):
-            raise RuntimeError(
-                f"Number of warp files does not match number of acq files for sub-{ID} task-{task} acq-{acq_name}")
-
-        # Try to find the segmentation that matches the moco filename
-        print(
-            f"Looking for warp func_to_PAM50 for sub-{ID} task-{task} acq-{acq_name} among: {fname_warp_list}",
-            flush=True)
-        for f in fname_warp_list:
-            if (moco_basename.rsplit("_bold_moco_mean")[
-                    0] + "_from-func_to_PAM50_mode-image_xfm.nii.gz") == os.path.basename(f):
-                print(f"Found warp func_to_PAM50 for sub-{ID} task-{task} acq-{acq_name}: {f}", flush=True)
-                fname_warp_func_to_pam50 = f
-                break
-
-        if fname_warp_func_to_pam50 is None:
-            raise RuntimeError(f"Could not find a segmentation")
+            "func",
+            task_name,
+            f"sub-{ID}_{task_name}_from-func_to_PAM50_mode-image_xfm.nii.gz"
+        )
+        if not os.path.exists(fname_warp_func_to_pam50):
+            raise RuntimeError(f"Could not find a func_to_PAM50 for sub-{ID} task-{task} acq-{acq_name}")
 
         # Get warp from PAM50 to func
-        fname_warp_pam50_to_func = None
-        fname_warp_list = sorted(glob.glob(os.path.join(
+        fname_warp_pam50_to_func = os.path.join(
             self.config["raw_dir"],
             self.config["preprocess_dir"]["main_dir"].format(ID),
-            self.config["preprocess_dir"]["func_coreg"].format(task_name),
-            f"sub-{ID}_{task_name}*_from-PAM50_to_func_mode-image_xfm.nii.gz"
-        )))
-        print(os.path.join(
-            self.config["raw_dir"],
-            self.config["preprocess_dir"]["main_dir"].format(ID),
-            self.config["preprocess_dir"]["func_coreg"].format(task_name),
-            f"sub-{ID}_{task_name}*_from-PAM50_to_func_mode-image_xfm.nii.gz"
-        ))
-        if len(fname_warp_list) != len(fname_acq_list):
-            print(
-                f"Number of warp files found: {len(fname_warp_list)}, number of acq files found: {len(fname_acq_list)}")
-            raise RuntimeError(
-                f"Number of warp files does not match number of acq files for sub-{ID} task-{task} acq-{acq_name}")
+            "func",
+            task_name,
+            f"sub-{ID}_{task_name}_from-PAM50_to_func_mode-image_xfm.nii.gz"
+        )
 
-        # Try to find the segmentation that matches the moco filename
-        print(
-            f"Looking for warp PAM50_to_func for sub-{ID} task-{task} acq-{acq_name} among: {fname_warp_list}",
-            flush=True)
-        for f in fname_warp_list:
-            if (moco_basename.rsplit("_bold_moco_mean")[
-                    0] + "_from-PAM50_to_func_mode-image_xfm.nii.gz") == os.path.basename(f):
-                print(f"Found warp PAM50_to_func for sub-{ID} task-{task} acq-{acq_name}: {f}", flush=True)
-                fname_warp_pam50_to_func = f
-                break
-
-        if fname_warp_pam50_to_func is None:
+        if not os.path.exists(fname_warp_pam50_to_func):
             raise RuntimeError(f"Could not find a segmentation")
 
         return fname_moco_mean, fname_seg, fname_warp_func_to_pam50, fname_warp_pam50_to_func
