@@ -117,7 +117,7 @@ def main():
                     continue
 
                 # Compute tSNR map in native space
-                path_tsnr_sub_folder = os.path.join(path_fig_data, f"sub-{ID}", f"task-{task}_acq-{acq_name}")
+                path_tsnr_sub_folder = os.path.join(path_fig_data, f"sub-{ID}", tag)
                 fname_tsnr = compute_tsnr_map(selected_file, path_tsnr_sub_folder, redo, min_vols_for_tsnr)
 
                 # Warp tSNR in PAM50 space
@@ -129,11 +129,8 @@ def main():
                         config["raw_dir"],
                         config["preprocess_dir"]["main_dir"].format(ID),
                         "func",
-                        f"task-{task}_acq-{acq_name}",
-                        "sct_register_multimodal",
-                        os.path.basename(selected_file).replace("_bold_moco.nii.gz",
-                                                                "_from-func_to_PAM50_mode-image_xfm.nii.gz")
-                    )
+                        tag,
+                        f"sub-{ID}_{tag}_from-func_to_PAM50_mode-image_xfm.nii.gz")
 
                     if not os.path.exists(fname_warp_from_func_to_template):
                         raise RuntimeError(f"Warp file not found: {fname_warp_from_func_to_template}")
@@ -143,24 +140,12 @@ def main():
 
                 # Extract metrics from native space
                 if fname_tsnr is not None:
-                    fname_mask = os.path.join(
-                        config["raw_dir"],
-                        config["preprocess_dir"]["main_dir"].format(ID),
-                        "func",
-                        f"task-{task}_acq-{acq_name}",
-                        "sct_deepseg",
-                        os.path.basename(selected_file).replace("_bold_moco.nii.gz", "_bold_moco_mean_seg.nii.gz")
-                    )
 
-                    fname_mask_manual = os.path.join(config["raw_dir"],
-                                                     config["manual_dir"],
-                                                     f"sub-{ID}",
-                                                     "func",
-                                                     os.path.basename(selected_file).replace("_bold_moco.nii.gz",
-                                                                                             "_bold_moco_mean_seg.nii.gz"))
-
-                    if os.path.exists(fname_mask_manual):
-                        fname_mask = fname_mask_manual
+                    fname_mask = os.path.join(config["raw_dir"],
+                                              config["preprocess_dir"]["main_dir"].format(ID),
+                                              'func',
+                                              tag,
+                                              f"sub-{ID}_{tag}_bold_moco_mean_seg.nii.gz")
 
                     if not os.path.exists(fname_mask):
                         raise RuntimeError(f"Mask file not found: {fname_mask}")

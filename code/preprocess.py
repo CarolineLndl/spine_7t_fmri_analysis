@@ -499,9 +499,9 @@ class Preprocess_Sc:
             o_img = os.path.join(o_folder, base_name.split('.')[0] + tag)
 
         # --- Manual segmentation paths -------------------------------------------------------------------
-        if img_type=="func":
-            if tissue=="csf":
-                o_manual = os.path.join(self.manual_dir, f"sub-{ID}/func/",base_name.split('mean')[0] + "CSF_seg.nii.gz")
+        if img_type == "func":
+            if tissue == "csf":
+                o_manual = os.path.join(self.manual_dir, f"sub-{ID}/func/", base_name.split(".nii.gz")[0] + "_CSF_seg.nii.gz")
             else:
                 o_manual = os.path.join(self.manual_dir, f"sub-{ID}/func/", os.path.basename(o_img))
         else:
@@ -1038,7 +1038,7 @@ class Preprocess_Sc:
 
 
 
-    def _plot_qc(self,ID, ses_name, task_name, tag, qc_indiv_path, fig_size=(5,5),alpha=0.8):
+    def _plot_qc(self, ID, ses_name, task_name, tag, qc_indiv_path, fig_size=(5,5),alpha=0.8):
         qc_indiv_dir=utils.get_latest_dir(base_dir=qc_indiv_path)
         img_bck=qc_indiv_dir + "/background_img.png"
         img_cntr=qc_indiv_dir + "/overlay_img.png"
@@ -1056,57 +1056,68 @@ class Preprocess_Sc:
 
 
 def copy_segmentation_from_ref_tag(ID, tag, ref_tag, manual_dir, preprocessing_dir):
-    # If manual file exists for the rest task, do nothing
-    fname_manual_seg_list = glob.glob(os.path.join(manual_dir, f"sub-{ID}", "func", f"sub-{ID}_{tag}_*seg.nii.gz"))
-    has_manual_seg = len(fname_manual_seg_list) > 0
-    if has_manual_seg:
-        print(f'=== Manual segmentation file already exists for {ID} {tag}, skipping copy of segmentation file ===',
-              flush=True)
+
+    fname_dest = os.path.join(preprocessing_dir.format(ID), "func", tag, f"sub-{ID}_{tag}_bold_moco_mean_seg.nii.gz")
+
+    # We need to copy either the manual segmentation file if it exists for the motor task, or the
+    # automatic segmentation file if it doesn't
+    fname_ref_manual_seg_list = glob.glob(os.path.join(manual_dir, f"sub-{ID}", "func", f"sub-{ID}_{ref_tag}_*bold_moco_mean_seg.nii.gz"))
+    fname_ref_auto_seg_list = glob.glob(os.path.join(preprocessing_dir.format(ID), "func", ref_tag, "sct_deepseg",
+                                                     f"sub-{ID}_{ref_tag}_*bold_moco_mean_seg.nii.gz"))
+    if len(fname_ref_manual_seg_list) > 0:
+        fname_from = sorted(fname_ref_manual_seg_list)[0]  # Take run-01 (sorted list)
+        print(f'=== Copying manual segmentation file from {ref_tag} to {tag} for {ID} ===', flush=True)
+    elif len(fname_ref_auto_seg_list) > 0:
+        fname_from = sorted(fname_ref_auto_seg_list)[0]  # Take run-01 (sorted list)
+        print(f'=== Copying automatic segmentation file from {ref_tag} to {tag} for {ID} ===', flush=True)
     else:
-        # We need to copy either the manual segmentation file if it exists for the motor task, or the
-        # automatic segmentation file if it doesn't
-        fname_ref_manual_seg_list = glob.glob(os.path.join(manual_dir, f"sub-{ID}", "func", f"sub-{ID}_{ref_tag}_*bold_moco_mean_seg.nii.gz"))
-        fname_ref_auto_seg_list = glob.glob(os.path.join(preprocessing_dir.format(ID), "func", ref_tag, "sct_deepseg",
-                                                         f"sub-{ID}_{ref_tag}_*bold_moco_mean_seg.nii.gz"))
-        fname_ref_seg_dest = os.path.join(preprocessing_dir.format(ID), "func", tag, "sct_deepseg",
-                                          f"sub-{ID}_{tag}_bold_moco_mean_seg.nii.gz")
-        if len(fname_ref_manual_seg_list) > 0:
-            fname_ref_seg = sorted(fname_ref_manual_seg_list)[0]
-            print(f'=== Copying manual segmentation file from {ref_tag} to {tag} for {ID} ===', flush=True)
-        elif len(fname_ref_auto_seg_list) > 0:
-            fname_ref_seg = sorted(fname_ref_auto_seg_list)[0]
-            print(f'=== Copying automatic segmentation file from {ref_tag} to {tag} for {ID} ===', flush=True)
-        else:
-            raise RuntimeError(
-                f'No segmentation file found for {ref_tag} in either manual or automatic folders for {ID}. Cannot copy segmentation file to {tag}.')
+        raise RuntimeError(
+            f'No segmentation file found for {ref_tag} in either manual or automatic folders for {ID}. Cannot copy segmentation file to {tag}.')
 
-        if not os.path.exists(os.path.dirname(fname_ref_seg_dest)):
-            os.makedirs(os.path.dirname(fname_ref_seg_dest))
+    shutil.copy(fname_from, fname_dest)
 
-        shutil.copy(fname_ref_seg, fname_ref_seg_dest)
+
+def copy_csf_segmentation_from_ref_tag(ID, tag, ref_tag, manual_dir, preprocessing_dir):
+
+    fname_dest = os.path.join(preprocessing_dir.format(ID), "func", tag, f"sub-{ID}_{tag}_bold_moco_mean_CSF_seg.nii.gz")
+
+    # We need to copy either the manual segmentation file if it exists for the motor task, or the
+    # automatic segmentation file if it doesn't
+    fname_ref_manual_seg_list = glob.glob(os.path.join(manual_dir, f"sub-{ID}", "func", f"sub-{ID}_{ref_tag}_*bold_moco_mean_CSF_seg.nii.gz"))
+    fname_ref_auto_seg_list = glob.glob(os.path.join(preprocessing_dir.format(ID), "func", ref_tag, "sct_propseg",
+                                                     f"sub-{ID}_{ref_tag}_*bold_moco_mean_CSF_seg.nii.gz"))
+    if len(fname_ref_manual_seg_list) > 0:
+        fname_from = sorted(fname_ref_manual_seg_list)[0]  # Take run-01 (sorted list)
+        print(f'=== Copying manual CSF segmentation file from {ref_tag} to {tag} for {ID} ===', flush=True)
+    elif len(fname_ref_auto_seg_list) > 0:
+        fname_from = sorted(fname_ref_auto_seg_list)[0]  # Take run-01 (sorted list)
+        print(f'=== Copying automatic CSF segmentation file from {ref_tag} to {tag} for {ID} ===', flush=True)
+    else:
+        raise RuntimeError(
+            f'No CSF segmentation file found for {ref_tag} in either manual or automatic folders for {ID}. Cannot copy segmentation file to {tag}.')
+
+    shutil.copy(fname_from, fname_dest)
 
 
 def copy_warping_fields_from_ref_tag(ID, tag, ref_tag, preprocessing_dir):
+
     fname_ref_warp_from_func_list = glob.glob(
         os.path.join(preprocessing_dir.format(ID), "func", ref_tag, "sct_register_multimodal",
                      f"sub-{ID}_{ref_tag}_*from-func_to_PAM50_mode-image_xfm.nii.gz"))
     fname_ref_warp_from_pam50_list = glob.glob(
         os.path.join(preprocessing_dir.format(ID), "func", ref_tag, "sct_register_multimodal",
                      f"sub-{ID}_{ref_tag}_*from-PAM50_to_func_mode-image_xfm.nii.gz"))
-    if len(fname_ref_warp_from_func_list) == 0 or len(fname_ref_warp_from_pam50_list) == 0:
-        raise RuntimeError(f'No warping fields found for {ref_tag} in {ID}. Cannot copy warping fields to {tag}.')
+    if len(fname_ref_warp_from_func_list) != 1 or len(fname_ref_warp_from_pam50_list) != 1:
+        raise RuntimeError(f'More than 1 warping fields found for {ref_tag} {ID}. Cannot copy warping fields to {tag}.')
 
     fname_ref_warp_from_func = sorted(fname_ref_warp_from_func_list)[0]
     fname_ref_warp_from_pam50 = sorted(fname_ref_warp_from_pam50_list)[0]
-    fname_ref_warp_from_func_dest = os.path.join(preprocessing_dir.format(ID), "func", tag, "sct_register_multimodal",
+    fname_ref_warp_from_func_dest = os.path.join(preprocessing_dir.format(ID), "func", tag,
                                                  f"sub-{ID}_{tag}_from-func_to_PAM50_mode-image_xfm.nii.gz")
-    fname_ref_warp_from_pam50_dest = os.path.join(preprocessing_dir.format(ID), "func", tag, "sct_register_multimodal",
+    fname_ref_warp_from_pam50_dest = os.path.join(preprocessing_dir.format(ID), "func", tag,
                                                   f"sub-{ID}_{tag}_from-PAM50_to_func_mode-image_xfm.nii.gz")
 
     print(f'=== Copying warping fields from {ref_tag} to {tag} for {ID} ===', flush=True)
-
-    if not os.path.exists(os.path.dirname(fname_ref_warp_from_func_dest)):
-        os.makedirs(os.path.dirname(fname_ref_warp_from_func_dest))
 
     shutil.copy(fname_ref_warp_from_func, fname_ref_warp_from_func_dest)
     shutil.copy(fname_ref_warp_from_pam50, fname_ref_warp_from_pam50_dest)
