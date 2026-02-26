@@ -499,9 +499,9 @@ class Preprocess_Sc:
             o_img = os.path.join(o_folder, base_name.split('.')[0] + tag)
 
         # --- Manual segmentation paths -------------------------------------------------------------------
-        if img_type=="func":
-            if tissue=="csf":
-                o_manual = os.path.join(self.manual_dir, f"sub-{ID}/func/",base_name.split('mean')[0] + "CSF_seg.nii.gz")
+        if img_type == "func":
+            if tissue == "csf":
+                o_manual = os.path.join(self.manual_dir, f"sub-{ID}/func/", base_name.split(".nii.gz")[0] + "_CSF_seg.nii.gz")
             else:
                 o_manual = os.path.join(self.manual_dir, f"sub-{ID}/func/", os.path.basename(o_img))
         else:
@@ -1110,8 +1110,8 @@ def copy_warping_fields_from_ref_tag(ID, tag, ref_tag, preprocessing_dir):
     if len(fname_ref_warp_from_func_list) != 1 or len(fname_ref_warp_from_pam50_list) != 1:
         raise RuntimeError(f'More than 1 warping fields found for {ref_tag} {ID}. Cannot copy warping fields to {tag}.')
 
-    fname_ref_warp_from_func = fname_ref_warp_from_func_list[0]
-    fname_ref_warp_from_pam50 = fname_ref_warp_from_pam50_list[0]
+    fname_ref_warp_from_func = sorted(fname_ref_warp_from_func_list)[0]
+    fname_ref_warp_from_pam50 = sorted(fname_ref_warp_from_pam50_list)[0]
     fname_ref_warp_from_func_dest = os.path.join(preprocessing_dir.format(ID), "func", tag,
                                                  f"sub-{ID}_{tag}_from-func_to_PAM50_mode-image_xfm.nii.gz")
     fname_ref_warp_from_pam50_dest = os.path.join(preprocessing_dir.format(ID), "func", tag,
