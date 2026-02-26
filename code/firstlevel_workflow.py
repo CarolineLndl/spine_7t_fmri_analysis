@@ -80,7 +80,7 @@ print("")
 
 df_task = pd.DataFrame(columns=["ID", "task", "acq", "run", "contrast", "max_zscore", "active_voxels"])
 fname_task_metrics = os.path.join(fig_task_dir, "first_level_metrics_n" + str(len(IDs)) + ".csv")
-for ID_nb,ID in enumerate(IDs):
+for ID_nb, ID in enumerate(IDs):
     print("", flush=True)
     print(f'=== First level start for :  {ID} ===', flush=True)
 
@@ -99,14 +99,18 @@ for ID_nb,ID in enumerate(IDs):
 
                 denoised_fmri=glob.glob(os.path.join(denoising_dir.format(ID ), tag, config["denoising"]["denoised_dir"],"*"+run_name+"*_nostd_s.nii.gz"))[0]
                 
-                # Select manual seg if exists
+                # Select segmentation
                 mask_final_file = os.path.join(preprocessing_dir.format(ID), 'func', tag, f"sub-{ID}_{tag}_bold_moco_mean_seg.nii.gz")
                 if not os.path.exists(mask_final_file):
                     raise RuntimeError(f"No mask file found for subject {ID}, task {tag}. Please check the preprocessing outputs and manual corrections.")
 
-                warp_file=glob.glob(os.path.join(preprocessing_dir.format(ID), config["preprocess_dir"]["func_coreg"].format(tag), config["preprocess_f"]["func_warp"].format(ID,tag,run_name)))[0]
+                # Select warp file
+                warp_file = os.path.join(preprocessing_dir.format(ID), 'func', tag, f"sub-{ID}_{tag}_from-func_to_PAM50_mode-image_xfm.nii.gz")
+                if not os.path.exists(warp_file):
+                    raise RuntimeError(f"No warp file found for subject {ID}, task {tag}. Please check the preprocessing outputs and manual corrections.")
+
                 events_file=glob.glob(os.path.join(config["raw_dir"], f'sub-{ID}', 'func', f'sub-{ID}_{tag}_*events.tsv'))[0]
-                
+
                 #------------------------------------------------------------------
                 #------ I. Run first level GLM
                 #------------------------------------------------------------------
