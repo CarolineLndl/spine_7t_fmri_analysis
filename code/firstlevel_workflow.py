@@ -211,9 +211,11 @@ for sub_id in sorted(subject_files.keys()):
     pair = subject_files[sub_id][:2]  # take first two files
     if len(pair) == 2:
         i_fnames_pairs.append(pair)
-    
+
+print(i_fnames_pairs)
+output_dir=os.path.join(config["raw_dir"], config["figures_dir"]["main_dir"], "task")
 postprocess.plot_first_level_maps(i_fnames_pair=i_fnames_pairs,
-                                          output_dir=os.path.join(first_level_dir.split("sub")[0]),
+                                          output_dir=output_dir,
                                           background_fname=os.path.join(path_code, "template", config["PAM50_t2"]),
                                           #underlay_fname=os.path.join(path_code, "template", config["PAM50_cord"]),
                                           task_name=tag,

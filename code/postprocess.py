@@ -162,9 +162,12 @@ class Postprocess_main:
         
         return stat_maps
     
-    def plot_first_level_maps(self, i_fnames_pair=None, output_dir=None,stat_min=2.3, stat_max=5,background_fname=None, underlay_fname=None,task_name=None, verbose=True, redo=False,n_cols=5):
+    def plot_first_level_maps(self, i_fnames_pair=None, output_dir=None,stat_min=1.6, stat_max=5,background_fname=None, underlay_fname=None,task_name=None, verbose=True, redo=False,n_cols=5):
         """
         Plot first-level statistical maps for multiple participants and contrasts in a grid layout.
+        TODO: reduce FOV coronal
+        - KEEp only max and mean value and remove stick lines in the colorbar
+        - add spinal levels in the coronal view 
         """
         if output_dir is None:
             output_dir = os.path.join(self.first_level_dir)
@@ -186,18 +189,18 @@ class Postprocess_main:
 
         # --- Figure and gridspec ---
         # Figure size scales with number of participant rows
-        fig_height = n_participant_rows * 4  # adjust 4 as needed
+        fig_height = n_participant_rows * 4  
         fig_width = n_actual_cols * 3
         fig = plt.figure(figsize=(fig_width, fig_height))
 
         # Each participant: coronal = 3 units, axial = 1 unit, small gap after each participant = 0.5
         height_ratios = []
         for _ in range(n_participant_rows):
-            height_ratios += [3, 1, 2]  # coronal, axial, gap
+            height_ratios += [3, 1, 1]  # coronal, axial, gap
 
 
-        gs = fig.add_gridspec(nrows=len(height_ratios), ncols=n_cols*2,
-                          height_ratios=height_ratios, hspace=0.02, wspace=0.01)
+        gs = fig.add_gridspec(nrows=len(height_ratios), ncols=n_cols*3,
+                          height_ratios=height_ratios, hspace=0.002, wspace=0.001)
 
 
         for subj_idx, maps_pair in enumerate(i_fnames_pair):
@@ -215,6 +218,7 @@ class Postprocess_main:
                 stat_thresh = np.where(statmap_data > stat_min, statmap_data, 0)
 
                 # --- Coronal (top row) ---
+                
                 y_slice = statmap_data.shape[1] // 2
                 mip_cor = np.max(stat_thresh, axis=1).T
                 mip_cor = np.where(mip_cor > stat_min, mip_cor, np.nan)
@@ -233,13 +237,13 @@ class Postprocess_main:
                 if map_idx == 0:
                     x_center = 1  
                     y_top = 1.15   
-                    ax_cor.text(x_center, y_top, f"ID #{subj_idx + 1}", ha='center', va='bottom', fontsize=6, fontweight='bold', transform=ax_cor.transAxes)
+                    ax_cor.text(x_center, y_top, f"ID #{subj_idx + 1}", ha='center', va='bottom', fontsize=6, fontweight='bold', transform=ax_cor.transAxes, fontname="Arial")
                     line_y = 1.12 
                     ax_cor.hlines(y=line_y, xmin=0, xmax=2, colors='black', linewidth=0.8, transform=ax_cor.transAxes, clip_on=False)
     
-                    ax_cor.set_title(f"baseShim", color="black", fontweight='bold', fontsize=5)
+                    ax_cor.set_title(f"baseShim", color="black", fontweight='bold', fontsize=5, fontname="Arial")
                 else:
-                    ax_cor.set_title(f"sliceShim", color="black", fontweight='bold', fontsize=5)
+                    ax_cor.set_title(f"sliceShim", color="black", fontweight='bold', fontsize=5, fontname="Arial")
 
                 # Orientation labels only for first participant
                 if subj_idx == 0 and map_idx == 0:
@@ -292,12 +296,13 @@ class Postprocess_main:
                 sm.set_array([])
 
                 cbar = fig.colorbar(sm, cax=inner_ax)
-                cbar.set_label('t-value', fontsize=4.5)
-                cbar.ax.yaxis.set_label_position('left')  # move label to left side
+                cbar.set_label('Z-score', fontsize=4.5)
+                cbar.ax.yaxis.set_label_position('left')  #
+                cbar.ax.set_yticks([])
+                cbar.ax.text(0, 0, f"{stat_min:.1f}", fontsize=4.5, va='center', ha='right', color='black', transform=cbar.ax.transAxes)
+                cbar.ax.text(0, 1, f"{stat_max:.1f}", fontsize=4.5, va='center', ha='right', color='black', transform=cbar.ax.transAxes)
 
-                cbar.ax.set_frame_on(False)  # <-- this removes the border
-                cbar.ax.tick_params(labelsize=4)
-                cbar.ax.tick_params(length=2,width=0.5)  # make ticks shorter
+                cbar.ax.set_frame_on(False)
 
 
         # --- Save figure ---
