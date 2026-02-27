@@ -162,7 +162,79 @@ class Postprocess_main:
         
         return stat_maps
     
-    def plot_first_level_maps(self,i_fnames=None, output_dir=None,stat_min=2.3,stat_max=5, background_fname=None,underlay_fname=None,task_name=None,verbose=True,redo=False):
+    def plot_first_level_maps(self, i_fnames_pair=None, output_dir=None,stat_min=2.3, stat_max=5,background_fname=None, underlay_fname=None,task_name=None, verbose=True, redo=False):
+    
+        if output_dir is None:
+            output_dir = os.path.join(self.first_level_dir)
+        if i_fnames_pair is None or len(i_fnames_pair) == 0:
+            raise ValueError("i_fnames_pair is empty")
+
+        # --- Load PAM50 template and optional underlay --------------------------
+        template_data = nib.as_closest_canonical(nib.load(background_fname)).get_fdata()
+        underlay_data = None
+        if underlay_fname is not None:
+            underlay_data = nib.as_closest_canonical(nib.load(underlay_fname)).get_fdata()
+
+        for subject_idx, maps_pair in enumerate(i_fnames_pair):
+            if len(maps_pair) != 2:
+                raise ValueError("Each subject should have exactly 2 statistical maps")
+
+            # --- Create a 2x2 grid for this subject -------------------------------
+            fig, axs = plt.subplots(2, 2, figsize=(8, 8), constrained_layout=True)
+            axs = axs.flatten()  # 0,1 = coronal; 2,3 = axial
+
+            for i, i_fname in enumerate(maps_pair):
+                statmap_data = nib.as_closest_canonical(nib.load(i_fname)).get_fdata()
+                stat_thresh = np.where(statmap_data > stat_min, statmap_data, 0)
+
+                # Coronal (top row)
+                mip_cor = np.max(stat_thresh, axis=1).T
+                mip_cor = np.where(mip_cor > stat_min, mip_cor, np.nan)
+                y_slice = statmap_data.shape[1] // 2
+                template_cor = template_data[:, y_slice, :].T
+
+                ax_cor = axs[i]
+                ax_cor.imshow(template_cor, cmap="gray", origin="lower")
+                if underlay_data is not None:
+                    ax_cor.imshow(underlay_data[:, y_slice, :].T, cmap="gray", origin="lower")
+                ax_cor.imshow(mip_cor, cmap="hot", origin="lower", vmin=stat_min, vmax=stat_max)
+                ax_cor.axvline(x=y_slice, color="white", linestyle="--", linewidth=0.8, alpha=0.6)
+                ax_cor.axis("off")
+                if subject_idx == 0:
+                    ax_cor.text(0.05, 0.05, "L", transform=ax_cor.transAxes, color="white", fontsize=10, ha="left", va="bottom")
+                    ax_cor.text(0.95, 0.05, "R", transform=ax_cor.transAxes, color="white", fontsize=10, ha="right", va="bottom")
+
+                # Axial (bottom row)
+                mip_axi = np.max(stat_thresh, axis=2).T
+                mip_axi = np.where(mip_axi > stat_min, mip_axi, np.nan)
+                z_slice = statmap_data.shape[2] // 2
+                template_axi = template_data[:, :, z_slice].T
+
+                ax_axi = axs[i+2]
+                ax_axi.imshow(template_axi, cmap="gray", origin="lower")
+                if underlay_data is not None:
+                    ax_axi.imshow(underlay_data[:, :, z_slice].T, cmap="gray", origin="lower")
+                ax_axi.imshow(mip_axi, cmap="hot", origin="lower", vmin=stat_min, vmax=stat_max)
+                ax_axi.axis("off")
+                if subject_idx == 0:
+                    ax_axi.text(0.02, 0.5, "L", transform=ax_axi.transAxes, color="white", fontsize=10, ha="left", va="center")
+                    ax_axi.text(0.98, 0.5, "R", transform=ax_axi.transAxes, color="white", fontsize=10, ha="right", va="center")
+                    ax_axi.text(0.5, 0.98, "A", transform=ax_axi.transAxes, color="white", fontsize=10, ha="center", va="top")
+                    ax_axi.text(0.5, 0.02, "P", transform=ax_axi.transAxes, color="white", fontsize=10, ha="center", va="bottom")
+
+            # --- Save figure for this subject -------------------------------------
+            out_file = os.path.join(output_dir, f"first_level_maps_{task_name}_sub-{subject_idx+1}.png")
+            fig.savefig(out_file, dpi=300)
+            plt.close(fig)
+            
+
+        # Plot subject number and task name on the figure
+        # add one scale bar for all the maps
+        # plot R/L and S/I orientation on the first plot
+        # save in the right folder
+
+
+    def plot_first_level_maps1(self,i_fnames=None, output_dir=None,stat_min=2.3,stat_max=5, background_fname=None,underlay_fname=None,task_name=None,verbose=True,redo=False):
         if output_dir==None:
             output_dir = os.path.join(self.first_level_dir, task_name + "/")
         if i_fnames is None or len(i_fnames) == 0:
