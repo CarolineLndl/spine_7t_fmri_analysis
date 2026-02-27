@@ -258,16 +258,9 @@ class Denoising:
             i_img=glob.glob(self.preproc_dir.format(ID)+ '/' + self.config["preprocess_dir"]["func_moco"].format(task_name) + self.config["preprocess_f"]["func_moco"].format(ID,task_tag,run_tag))[0]
 
         if mask_file is None:
-            mask_file_list = glob.glob(self.preproc_dir.format(ID) + self.config["preprocess_dir"]["func_seg"].format(task_name) + self.config["preprocess_f"]["func_seg"].format(ID, task_tag, run_tag))
-            mask_file = mask_file_list[0] if len(mask_file_list) > 0 else None
+            mask_file = os.path.join(self.preproc_dir.format(ID), 'func', task_name, f"sub-{ID}_{task_name}_bold_moco_mean_seg.nii.gz")
 
-            # check if a manual segmentation file exists
-            manual_mask_file_list = glob.glob(os.path.join(self.manual_dir, f"sub-{ID}", ses_name, "func", self.config["preprocess_f"]["func_seg"].format(ID, task_tag, run_tag)))
-            manual_mask_file = manual_mask_file_list[0] if len(manual_mask_file_list) > 0 else ""
-            if os.path.exists(manual_mask_file):
-                mask_file = manual_mask_file
-
-            if mask_file is None:
+            if not os.path.exists(mask_file):
                 raise RuntimeError('No mask file found for this participant, task and run, please provide a mask file or check the preprocessing outputs')
 
         # --- Define output file --------------------------------------------------------
