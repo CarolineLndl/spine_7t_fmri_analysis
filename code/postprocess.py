@@ -9,7 +9,7 @@ from nilearn.plotting import plot_design_matrix
 from nilearn.glm.first_level import FirstLevelModel
 from nilearn.glm.second_level import SecondLevelModel
 from nilearn.glm.second_level import non_parametric_inference
-
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 from preprocess import Preprocess_main, Preprocess_Sc
 
 #####################################################
@@ -162,182 +162,149 @@ class Postprocess_main:
         
         return stat_maps
     
-    def plot_first_level_maps(self, i_fnames_pair=None, output_dir=None,stat_min=2.3, stat_max=5,background_fname=None, underlay_fname=None,task_name=None, verbose=True, redo=False):
-    
+    def plot_first_level_maps(self, i_fnames_pair=None, output_dir=None,stat_min=2.3, stat_max=5,background_fname=None, underlay_fname=None,task_name=None, verbose=True, redo=False,n_cols=5):
+        """
+        Plot first-level statistical maps for multiple participants and contrasts in a grid layout.
+        """
         if output_dir is None:
             output_dir = os.path.join(self.first_level_dir)
         if i_fnames_pair is None or len(i_fnames_pair) == 0:
             raise ValueError("i_fnames_pair is empty")
 
-        # --- Load PAM50 template and optional underlay --------------------------
+        n_subjects = len(i_fnames_pair)
+        n_participant_rows = (n_subjects + n_cols - 1) // n_cols  # number of participant rows
+        n_rows = n_participant_rows * 3  # coronal, axial, gap
+        n_actual_cols = min(n_subjects, n_cols)
+        total_cols = n_cols * 3  # 2 maps + 1 spacer per participant
+
+
+        # --- Load template and underlay ---
         template_data = nib.as_closest_canonical(nib.load(background_fname)).get_fdata()
         underlay_data = None
         if underlay_fname is not None:
             underlay_data = nib.as_closest_canonical(nib.load(underlay_fname)).get_fdata()
 
-        for subject_idx, maps_pair in enumerate(i_fnames_pair):
+        # --- Figure and gridspec ---
+        # Figure size scales with number of participant rows
+        fig_height = n_participant_rows * 4  # adjust 4 as needed
+        fig_width = n_actual_cols * 3
+        fig = plt.figure(figsize=(fig_width, fig_height))
+
+        # Each participant: coronal = 3 units, axial = 1 unit, small gap after each participant = 0.5
+        height_ratios = []
+        for _ in range(n_participant_rows):
+            height_ratios += [3, 1, 2]  # coronal, axial, gap
+
+
+        gs = fig.add_gridspec(nrows=len(height_ratios), ncols=n_cols*2,
+                          height_ratios=height_ratios, hspace=0.02, wspace=0.01)
+
+
+        for subj_idx, maps_pair in enumerate(i_fnames_pair):
             if len(maps_pair) != 2:
                 raise ValueError("Each subject should have exactly 2 statistical maps")
 
-            # --- Create a 2x2 grid for this subject -------------------------------
-            fig, axs = plt.subplots(2, 2, figsize=(8, 8), constrained_layout=True)
-            axs = axs.flatten()  # 0,1 = coronal; 2,3 = axial
+            col_idx = subj_idx % n_cols
+            row_participant = subj_idx // n_cols 
+            row_start = (subj_idx // n_cols) * 3
+            col_start = (subj_idx % n_cols) * 3  # 2 for maps, 1 for spacer
 
-            for i, i_fname in enumerate(maps_pair):
+
+            for map_idx, i_fname in enumerate(maps_pair):
                 statmap_data = nib.as_closest_canonical(nib.load(i_fname)).get_fdata()
                 stat_thresh = np.where(statmap_data > stat_min, statmap_data, 0)
 
-                # Coronal (top row)
+                # --- Coronal (top row) ---
+                y_slice = statmap_data.shape[1] // 2
                 mip_cor = np.max(stat_thresh, axis=1).T
                 mip_cor = np.where(mip_cor > stat_min, mip_cor, np.nan)
-                y_slice = statmap_data.shape[1] // 2
                 template_cor = template_data[:, y_slice, :].T
 
-                ax_cor = axs[i]
+                ax_cor = fig.add_subplot(gs[row_start, col_start + map_idx])
                 ax_cor.imshow(template_cor, cmap="gray", origin="lower")
                 if underlay_data is not None:
                     ax_cor.imshow(underlay_data[:, y_slice, :].T, cmap="gray", origin="lower")
+                
                 ax_cor.imshow(mip_cor, cmap="hot", origin="lower", vmin=stat_min, vmax=stat_max)
-                ax_cor.axvline(x=y_slice, color="white", linestyle="--", linewidth=0.8, alpha=0.6)
+                ax_cor.axvline(x=y_slice, color="white", linestyle="--", linewidth=0.5, alpha=0.6)
                 ax_cor.axis("off")
-                if subject_idx == 0:
-                    ax_cor.text(0.05, 0.05, "L", transform=ax_cor.transAxes, color="white", fontsize=10, ha="left", va="bottom")
-                    ax_cor.text(0.95, 0.05, "R", transform=ax_cor.transAxes, color="white", fontsize=10, ha="right", va="bottom")
 
-                # Axial (bottom row)
-                mip_axi = np.max(stat_thresh, axis=2).T
-                mip_axi = np.where(mip_axi > stat_min, mip_axi, np.nan)
+                # Bold title above coronal view
+                if map_idx == 0:
+                    x_center = 1  
+                    y_top = 1.15   
+                    ax_cor.text(x_center, y_top, f"ID #{subj_idx + 1}", ha='center', va='bottom', fontsize=6, fontweight='bold', transform=ax_cor.transAxes)
+                    line_y = 1.12 
+                    ax_cor.hlines(y=line_y, xmin=0, xmax=2, colors='black', linewidth=0.8, transform=ax_cor.transAxes, clip_on=False)
+    
+                    ax_cor.set_title(f"baseShim", color="black", fontweight='bold', fontsize=5)
+                else:
+                    ax_cor.set_title(f"sliceShim", color="black", fontweight='bold', fontsize=5)
+
+                # Orientation labels only for first participant
+                if subj_idx == 0 and map_idx == 0:
+                    ax_cor.text(0.05, 0.05, "L", transform=ax_cor.transAxes, color="white", fontsize=5, ha="left", va="bottom")
+                    ax_cor.text(0.95, 0.05, "R", transform=ax_cor.transAxes, color="white", fontsize=5, ha="right", va="bottom")
+
+                # --- Axial (bottom row) ---
+                row_axi = row_start + 1
                 z_slice = statmap_data.shape[2] // 2
-                template_axi = template_data[:, :, z_slice].T
 
-                ax_axi = axs[i+2]
+                # Crop for smaller axial view
+                crop_x = 30
+                crop_y = 30
+                x0 = statmap_data.shape[0] // 2
+                y0 = statmap_data.shape[1] // 2
+                x_min, x_max = x0 - crop_x, x0 + crop_x
+                y_min, y_max = y0 - crop_y, y0 + crop_y
+                template_axi = template_data[x_min:x_max, y_min:y_max, z_slice].T
+                stat_crop = stat_thresh[x_min:x_max, y_min:y_max, :]
+                mip_axi = np.max(stat_crop, axis=2).T
+                mip_axi = np.where(mip_axi > stat_min, mip_axi, np.nan)
+
+                ax_axi = fig.add_subplot(gs[row_start + 1, col_start + map_idx])
                 ax_axi.imshow(template_axi, cmap="gray", origin="lower")
                 if underlay_data is not None:
-                    ax_axi.imshow(underlay_data[:, :, z_slice].T, cmap="gray", origin="lower")
+                    ax_axi.imshow(underlay_data[x_min:x_max, y_min:y_max, z_slice].T,
+                                cmap="gray", alpha=0.3, origin="lower")
                 ax_axi.imshow(mip_axi, cmap="hot", origin="lower", vmin=stat_min, vmax=stat_max)
                 ax_axi.axis("off")
-                if subject_idx == 0:
-                    ax_axi.text(0.02, 0.5, "L", transform=ax_axi.transAxes, color="white", fontsize=10, ha="left", va="center")
-                    ax_axi.text(0.98, 0.5, "R", transform=ax_axi.transAxes, color="white", fontsize=10, ha="right", va="center")
-                    ax_axi.text(0.5, 0.98, "A", transform=ax_axi.transAxes, color="white", fontsize=10, ha="center", va="top")
-                    ax_axi.text(0.5, 0.02, "P", transform=ax_axi.transAxes, color="white", fontsize=10, ha="center", va="bottom")
 
-            # --- Save figure for this subject -------------------------------------
-            out_file = os.path.join(output_dir, f"first_level_maps_{task_name}_sub-{subject_idx+1}.png")
-            fig.savefig(out_file, dpi=300)
-            plt.close(fig)
-            
+                if subj_idx == 0 and map_idx == 0:
+                    ax_axi.text(0.02, 0.5, "L", transform=ax_axi.transAxes, color="white", fontsize=5, ha="left", va="center")
+                    ax_axi.text(0.98, 0.5, "R", transform=ax_axi.transAxes, color="white", fontsize=5, ha="right", va="center")
+                    ax_axi.text(0.5, 0.98, "A", transform=ax_axi.transAxes, color="white", fontsize=5, ha="center", va="top")
+                    ax_axi.text(0.5, 0.02, "P", transform=ax_axi.transAxes, color="white", fontsize=5, ha="center", va="bottom")
+                
+                # ---- Add colorbar only for the first participant and first map -----
+                gap_col_idx = 2  
+                row_for_cbar = 0  
+                cbar_ax = fig.add_subplot(gs[row_for_cbar, gap_col_idx])
+                cbar_ax.axis('off')
+                pos = [0.25, 0.05, 0.5, 0.9]  # adjust left/width to center horizontally
+                pos = [0.45, 0.5, 0.1, 0.3]  # left, bottom, width, height
 
-        # Plot subject number and task name on the figure
-        # add one scale bar for all the maps
-        # plot R/L and S/I orientation on the first plot
-        # save in the right folder
+                inner_ax = cbar_ax.inset_axes(pos)
 
+               # Normalize and create colorbar
+                norm = plt.Normalize(vmin=stat_min, vmax=stat_max)
+                sm = plt.cm.ScalarMappable(cmap='hot', norm=norm)
+                sm.set_array([])
 
-    def plot_first_level_maps1(self,i_fnames=None, output_dir=None,stat_min=2.3,stat_max=5, background_fname=None,underlay_fname=None,task_name=None,verbose=True,redo=False):
-        if output_dir==None:
-            output_dir = os.path.join(self.first_level_dir, task_name + "/")
-        if i_fnames is None or len(i_fnames) == 0:
-            raise ValueError("i_fnames is empty")
-        
-        # --- Figure layout -----------------------------------------------------------
-        maps_per_row=6 # number of columns to plot the maps
-        col_nb_per_map = 3  # sagittal + coronal + axial
-        gap_cols = 1   # one empty column between maps
-        total_cols = maps_per_row * (col_nb_per_map + gap_cols)  # total axes per row
-        row_nb=int(np.ceil(len(i_fnames)/maps_per_row)) # number of rows needed to plot all the maps with 6 columns
-        fig, axes = plt.subplots(row_nb, total_cols, figsize=(total_cols, row_nb*3), constrained_layout=True)
-        plt.subplots_adjust(wspace=0.1, hspace=0.1)  # smaller spacing
-        axes = np.atleast_1d(axes).flatten()# Make axes iterable in all cases
+                cbar = fig.colorbar(sm, cax=inner_ax)
+                cbar.set_label('t-value', fontsize=4.5)
+                cbar.ax.yaxis.set_label_position('left')  # move label to left side
 
-        # --- Load files -----------------------------------------------------------
-        template_data = nib.as_closest_canonical(nib.load(background_fname)).get_fdata()
-        underlay_data = None
-        if underlay_fname is not None:
-            underlay_data = nib.as_closest_canonical(nib.load(underlay_fname)).get_fdata()
-        
-       # --- Plot maps -------------------------------------------------------------
-        for i, i_fname in enumerate(i_fnames):
-            idx = i * (col_nb_per_map + gap_cols)  # skip over gap
-            ax_sag = axes[idx]
-            ax_cor = axes[idx + 1]
-            ax_axi = axes[idx + 2]
-
-            statmap_data = nib.as_closest_canonical(nib.load(i_fname)).get_fdata()
-            stat_thresh = np.where(statmap_data > stat_min, statmap_data, 0)
-
-            # Maximal Ibtensity Projection along the x-axis → sagittal view
-            mip_sag = np.max(stat_thresh, axis=0).T  # shape (Y, Z) → transpose if needed
-            mip_sag = np.where(mip_sag > stat_min, mip_sag, np.nan)  # mask low values
-            mip_cor = np.max(stat_thresh, axis=1).T  # shape (X, Z) → transpose if needed
-            mip_cor = np.where(mip_cor > stat_min, mip_cor, np.nan)  # mask low values
-            mip_axi = np.max(stat_thresh, axis=2).T  # shape (X, Y) → transpose if needed
-            mip_axi = np.where(mip_axi > stat_min, mip_axi, np.nan)  # mask low values
-
-            # Sagittal view (X fixed, Y–Z plane)
-            x_slice = statmap_data.shape[0] // 2
-            template_sag = template_data[x_slice, :, :].T
-            ax_sag.imshow(template_sag, cmap="gray", origin="lower")
-            if underlay_data is not None:
-                ax_sag.imshow(underlay_data[x_slice, :, :].T, cmap="gray", alpha=0.3, origin="lower")
-            ax_sag.imshow(mip_sag, cmap="hot", origin="lower", vmin=stat_min, vmax=stat_max)
-            ax_sag.axis("off")
-            # Add R/L S/I labels only for the first map
-            if i == 0:
-                ax_sag.text(0.05, 0.05, "P",transform=ax_sag.transAxes,color="white", fontsize=12,ha="left", va="bottom")
-                ax_sag.text(0.95, 0.05, "A",transform=ax_sag.transAxes,color="white", fontsize=12,ha="right", va="bottom")
+                cbar.ax.set_frame_on(False)  # <-- this removes the border
+                cbar.ax.tick_params(labelsize=4)
+                cbar.ax.tick_params(length=2,width=0.5)  # make ticks shorter
 
 
-            # Coronal view (Y fixed, X–Z plane)
-            y_slice = statmap_data.shape[1] // 2
-            template_cor = template_data[:, y_slice, :].T
-            ax_cor.imshow(template_cor, cmap="gray", origin="lower")
-            if underlay_data is not None:
-                ax_cor.imshow(underlay_data[:, y_slice, :].T, cmap="gray", alpha=0.3, origin="lower")
-
-            ax_cor.axvline(x=y_slice,color="white",linestyle="--",linewidth=0.8,alpha=0.6)
-            ax_cor.imshow(mip_cor, cmap="hot", origin="lower", vmin=stat_min, vmax=stat_max)
-            ax_cor.axis("off")
-            if i == 0:
-                ax_cor.text(0.05, 0.05, "L",transform=ax_cor.transAxes,color="white", fontsize=12,ha="left", va="bottom")
-                ax_cor.text(0.95, 0.05, "R",transform=ax_cor.transAxes,color="white", fontsize=12,ha="right", va="bottom")
-
-            # Axial view (Z fixed, X–Y plane)
-            z_slice = statmap_data.shape[2] // 2
-            axi_slice = statmap_data[:, :, z_slice].T
-            template_axi = template_data[:, :, z_slice].T
-            ax_axi.imshow(template_axi, cmap="gray", origin="lower")
-            if underlay_data is not None:
-                ax_axi.imshow(underlay_data[:, :, z_slice].T, cmap="gray", alpha=0.3, origin="lower")
-            
-            ax_axi.imshow(mip_axi, cmap="hot", origin="lower", vmin=stat_min, vmax=stat_max)
-            ax_axi.axis("off")
-            if i == 0:
-                ax_axi.text(0.02, 0.50, "L",transform=ax_axi.transAxes,color="white", fontsize=12,ha="left", va="bottom")
-                ax_axi.text(0.98, 0.50, "R",transform=ax_axi.transAxes,color="white", fontsize=12,ha="right", va="bottom")
-                ax_axi.text(0.5, 0.98, "A", transform=ax_axi.transAxes,color="white", fontsize=12,ha="left", va="top")
-                ax_axi.text(0.5, 0.02, "P",transform=ax_axi.transAxes,color="white", fontsize=12,ha="left", va="bottom")
-
-            # --- Hide unused axes (including gap columns) ---
-            for g in range(1, gap_cols+1):
-                gap_idx = idx + col_nb_per_map + (g-1)
-                if gap_idx < len(axes):
-                    axes[gap_idx].axis("off")
-            for j in range(len(i_fnames) * (col_nb_per_map + gap_cols), len(axes)):
-                axes[j].axis("off")
-
-
-        out_file = os.path.join(output_dir,f"first_level_maps_{task_name}.png")
+        # --- Save figure ---
+        out_file = os.path.join(output_dir, f"first_level_maps_{task_name}_all.png")
+        print(out_file)
         fig.savefig(out_file, dpi=300)
         plt.close(fig)
-            
-
-
-        # Plot subject number and task name on the figure
-        # add one scale bar for all the maps
-        # plot R/L and S/I orientation on the first plot
-        # save in the right folder
-
 
     def run_second_level_glm(self,i_fnames=None,design_matrix=None,mask_fname=None,smoothing_fwhm=None,task_name=None,parametric=False,run_name=None,verbose=True,redo=False):
         '''

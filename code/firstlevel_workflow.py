@@ -101,7 +101,6 @@ for ID_nb, ID in enumerate(IDs):
 
                 denoised_fmri=glob.glob(os.path.join(denoising_dir.format(ID ), tag, config["denoising"]["denoised_dir"],"*"+run_name+"*_nostd_s.nii.gz"))[0]
 # Select manual seg if exists
-                print(os.path.join(preprocessing_dir.format(ID), 'func',tag, config["preprocess_f"]["func_seg"].format(ID,tag,"")))
                 mask_file_list = glob.glob(os.path.join(preprocessing_dir.format(ID), 'func',tag, config["preprocess_f"]["func_seg"].format(ID,tag,"")))
                 mask_file = mask_file_list[0] if len(mask_file_list) > 0 else None
                 manual_seg_file_list = glob.glob(os.path.join(f"{manual_dir}", f"sub-{ID}", "func", config["preprocess_f"]["func_seg"].format(ID,tag,run_name)))
@@ -184,6 +183,8 @@ for ID_nb, ID in enumerate(IDs):
     print("=========================================", flush=True)
 
 #------ IV. Plot first level results for each task and participant
+# TODO change the output for the figure
+
 # --- Select stat map files ---
 i_fnames=[]
 first_level_dir = os.path.join(config["raw_dir"], config["first_level"]["dir"])
@@ -211,15 +212,13 @@ for sub_id in sorted(subject_files.keys()):
     if len(pair) == 2:
         i_fnames_pairs.append(pair)
     
-    print(i_fnames_pairs)
-    
-#postprocess.plot_first_level_maps(i_fnames=i_fnames,
- #                                         output_dir=os.path.join(first_level_dir.split("sub")[0]),
-  #                                        background_fname=os.path.join(path_code, "template", config["PAM50_t2"]),
+postprocess.plot_first_level_maps(i_fnames_pair=i_fnames_pairs,
+                                          output_dir=os.path.join(first_level_dir.split("sub")[0]),
+                                          background_fname=os.path.join(path_code, "template", config["PAM50_t2"]),
                                           #underlay_fname=os.path.join(path_code, "template", config["PAM50_cord"]),
-   #                                       task_name=tag,
-    #                                      verbose=True,
-     #                                     redo=redo)
+                                          task_name=tag,
+                                          verbose=True,
+                                          redo=True)
 
 #if not os.path.exists(fname_task_metrics) or redo:
  #   df_task.to_csv(fname_task_metrics, index=False)
