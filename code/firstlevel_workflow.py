@@ -18,6 +18,7 @@ import pandas as pd
 from nilearn.glm import threshold_stats_img
 import nibabel as nib
 import numpy as np
+from collections import defaultdict
 
 # Get the environment variable PATH_CODE
 path_code = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -174,10 +175,11 @@ for ID_nb, ID in enumerate(IDs):
     print("=========================================", flush=True)
 
 #------ IV. Plot first level results for each task and participant
+# --- Select stat map files ---
+i_fnames=[]
 first_level_dir = os.path.join(config["raw_dir"], config["first_level"]["dir"])
 for task_name in config["design_exp"]["task_names"]:
     for acq_name in config["design_exp"]["acq_names"]:
-        i_fnames=[]
         tag="task-" + task_name + "_acq-" + acq_name
         for ID in IDs:
             # define the run name if multiple runs exist    
@@ -187,17 +189,32 @@ for task_name in config["design_exp"]["task_names"]:
             run_name = match.group(1) if match else ""  # extract run number if exists
             i_fnames.append(glob.glob(os.path.join(first_level_dir.format(ID), f"{tag}", f"*{tag}*{run_name}*trial_RH-rest*inTemplate.nii.gz"))[0])
 
-        postprocess.plot_first_level_maps(i_fnames=i_fnames,
-                                          output_dir=os.path.join(first_level_dir.split("sub")[0]),
-                                          background_fname=os.path.join(path_code, "template", config["PAM50_t2"]),
-                                          #underlay_fname=os.path.join(path_code, "template", config["PAM50_cord"]),
-                                          task_name=tag,
-                                          verbose=True,
-                                          redo=redo)
+# --- Group by participant ID ---
+subject_files = defaultdict(list)
+for f in i_fnames:
+    sub_id = os.path.basename(f).split("_")[0]
+    subject_files[sub_id].append(f)
 
-if not os.path.exists(fname_task_metrics) or redo:
-    df_task.to_csv(fname_task_metrics, index=False)
-    print(f"Task metrics saved to: {fname_task_metrics}")
+# --- Keep only first two maps per subject as pairs ---
+i_fnames_pairs = []
+for sub_id in sorted(subject_files.keys()):
+    pair = subject_files[sub_id][:2]  # take first two files
+    if len(pair) == 2:
+        i_fnames_pairs.append(pair)
+    
+    print(i_fnames_pairs)
+    
+#postprocess.plot_first_level_maps(i_fnames=i_fnames,
+ #                                         output_dir=os.path.join(first_level_dir.split("sub")[0]),
+  #                                        background_fname=os.path.join(path_code, "template", config["PAM50_t2"]),
+                                          #underlay_fname=os.path.join(path_code, "template", config["PAM50_cord"]),
+   #                                       task_name=tag,
+    #                                      verbose=True,
+     #                                     redo=redo)
+
+#if not os.path.exists(fname_task_metrics) or redo:
+ #   df_task.to_csv(fname_task_metrics, index=False)
+  #  print(f"Task metrics saved to: {fname_task_metrics}")
 
 
                 
@@ -214,7 +231,7 @@ print("===================================", flush=True)
 print("")
 
 # list of first evel contrast images in template space for each participant and task
-second_level=True
+second_level=False
 if second_level==True:
     for task_name in config["design_exp"]["task_names"]:
         for acq_name in config["design_exp"]["acq_names"]:
