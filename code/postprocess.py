@@ -7,7 +7,11 @@ import nibabel as nib
 import matplotlib.pyplot as plt
 from nilearn.plotting import plot_design_matrix
 from nilearn.glm.first_level import FirstLevelModel
+from nilearn.glm.second_level import SecondLevelModel
+from nilearn.glm.second_level import non_parametric_inference
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 from preprocess import Preprocess_main, Preprocess_Sc
+from nibabel.processing import resample_from_to
 
 #####################################################
 class Postprocess_main:
@@ -34,6 +38,7 @@ class Postprocess_main:
         self.raw_dir = os.path.join(self.config["raw_dir"])  # directory of the raw data
         self.derivatives_dir = os.path.join(self.config["raw_dir"], self.config["derivatives_dir"])  # directory of the derivatives data
         self.first_level_dir = os.path.join(self.config["raw_dir"], self.config["first_level"]["dir"])  # directory of the derivatives data
+        self.second_level_dir = os.path.join(self.config["raw_dir"], self.config["second_level"]["dir"])  # directory of the second-level analysis data
         self.manual_dir = os.path.join(self.config["raw_dir"], self.config["manual_dir"])  # directory of the manual corrections
 
         # Create directories -------------------------------------------------------------------------------------
@@ -54,7 +59,7 @@ class Postprocess_main:
 
 
 
-    def run_first_level_glm(self, ID=None, i_img=None,events_file=None,mask_file=None,task_name=None,run_name=None,contrasts = ["trial_RH-rest", "trial_RH", "rest"],smoothing_fwhm=1.5,verbose=True,redo=False):
+    def run_first_level_glm(self, ID=None, i_fname=None,events_file=None,mask_file=None,task_name=None,run_name=None,contrasts = ["trial_RH-rest", "trial_RH", "rest"],smoothing_fwhm=1.5,verbose=True,redo=False):
         """
         Run first-level GLM for a specific subject and task.
 
@@ -62,7 +67,7 @@ class Postprocess_main:
         ----------
         ID : str
             Participant ID (e.g., "093")
-        i_img : str
+        i_fname : str
             Filename of the input fMRI image (4D NIfTI file)
         events_file : str
             Filename of the events TSV file
@@ -86,7 +91,7 @@ class Postprocess_main:
         # --- Input validation -------------------------------------------------------------
         if ID is None:
             raise ValueError("Please provide the participant ID (e.g., _.stc(ID='A001')).")
-        if i_img is None:
+        if i_fname is None:
             raise ValueError("Please provide the filename of the input image.")
         if events_file is None:
             raise ValueError("Please provide the filename of the events TSV file.")
@@ -108,7 +113,7 @@ class Postprocess_main:
         tr = json_data.get("RepetitionTime")
 
         # Load fMRI image
-        img = nib.load(i_img)
+        img = nib.load(i_fname)
         n_scans = img.shape[3]
         frame_times = np.arange(n_scans) * tr
 
@@ -128,7 +133,7 @@ class Postprocess_main:
                 mask_img=mask_file
             )
 
-            fmri_glm = model.fit(i_img, events=df_events)
+            fmri_glm = model.fit(i_fname, events=df_events)
 
             # Plot design matrix 
             design_mat = fmri_glm.design_matrices_[0]
@@ -143,7 +148,7 @@ class Postprocess_main:
             if verbose:
                 print(f"First-level results already exist for sub-{ID} {task_name} {run_name}. Skipping computation.")
         
-        # Compute contrasts and save
+        # --- Compute contrasts and save -----------------------------------------------------------
         stat_maps=[]
         for i, contrast in enumerate(contrasts):
             if smoothing_fwhm is not None:
@@ -157,3 +162,267 @@ class Postprocess_main:
                 results.to_filename(stat_maps[i])
         
         return stat_maps
+    
+    def plot_first_level_maps(self, i_fnames_pair=None, output_dir=None,stat_min=1.6, stat_max=5,background_fname=None,mask_fname=None, underlay_fname=None,task_name=None, verbose=True, redo=False,n_cols=5):
+        """
+        Plot first-level statistical maps for multiple participants and contrasts in a grid layout.
+        TO DO: reduce FOV coronal
+        To do: add spinal levels in the coronal view 
+        """
+        if output_dir is None:
+            output_dir = os.path.join(self.first_level_dir)
+        if i_fnames_pair is None or len(i_fnames_pair) == 0:
+            raise ValueError("i_fnames_pair is empty")
+
+        n_subjects = len(i_fnames_pair)
+        n_participant_rows = (n_subjects + n_cols - 1) // n_cols  # number of participant rows
+        n_rows = n_participant_rows * 3  # coronal, axial, gap
+        n_actual_cols = min(n_subjects, n_cols)
+        total_cols = n_cols * 3  # 2 maps + 1 spacer per participant
+
+
+        # --- Load template, mask, and underlay ---
+        template_img = nib.as_closest_canonical(nib.load(background_fname))
+        template_data = template_img.get_fdata()
+        mask_data = None
+        if mask_fname is not None:
+            mask_img = nib.load(mask_fname)
+            mask_data = nib.as_closest_canonical(mask_img).get_fdata()
+
+        underlay_data = None
+        if underlay_fname is not None:
+            underlay_data = nib.as_closest_canonical(nib.load(underlay_fname)).get_fdata()
+
+        # --- Figure and gridspec ---
+        # Figure size scales with number of participant rows
+        fig_height = n_participant_rows *2
+        fig_width = 7 #max paper width is 7 inches
+        fig = plt.figure(figsize=(fig_width, fig_height))
+        fig.subplots_adjust(left=0.07,right=0.99,top=0.95,bottom=0.01)
+
+        height_ratios = []
+        for _ in range(n_participant_rows):
+            height_ratios += [3.6, 1.15, 1]  # coronal, axial, gap
+
+        gs = fig.add_gridspec(nrows=len(height_ratios), ncols=n_cols*3,
+                          height_ratios=height_ratios, 
+                          hspace=0.01, wspace=0.001)
+
+
+        for subj_idx, maps_pair in enumerate(i_fnames_pair):
+            if len(maps_pair) != 2:
+                raise ValueError("Each subject should have exactly 2 statistical maps")
+
+            col_idx = subj_idx % n_cols
+            row_participant = subj_idx // n_cols 
+            row_start = (subj_idx // n_cols) * 3
+            col_start = (subj_idx % n_cols) * 3  # 2 for maps, 1 for spacer
+
+
+            for map_idx, i_fname in enumerate(maps_pair):
+                statmap_img = nib.as_closest_canonical(nib.load(i_fname))
+                statmap_data = statmap_img.get_fdata()
+                if mask_data is not None:
+                    mask_resampled = resample_from_to(mask_img, statmap_img, order=0)  # nearest-neighbor for mask
+                    mask_data = mask_resampled.get_fdata() > 0  # boolean
+                    statmap_data = np.where(mask_data, statmap_data, 0)
+        
+                stat_thresh = np.where(statmap_data > stat_min, statmap_data, 0)
+
+                # --- Coronal (top row) ---
+                y_slice = statmap_data.shape[1] // 2
+                mip_cor = np.max(stat_thresh, axis=1).T
+                mip_cor = np.where(mip_cor > stat_min, mip_cor, np.nan)
+                template_cor = template_data[:, y_slice, :].T
+
+                ax_cor = fig.add_subplot(gs[row_start, col_start + map_idx])
+                ax_cor.imshow(template_cor, cmap="gray", origin="lower")
+                if underlay_data is not None:
+                    ax_cor.imshow(underlay_data[:, y_slice, :].T, cmap="gray", origin="lower")
+                
+                ax_cor.imshow(mip_cor, cmap="hot", origin="lower", vmin=stat_min, vmax=stat_max)
+                ax_cor.axvline(x=y_slice, color="white", linestyle="--", linewidth=0.5, alpha=0.6)
+                ax_cor.axis("off")
+
+
+                if map_idx == 0:
+                    x_center = 1  
+                    y_top = 1.15   
+                    ax_cor.text(x_center, y_top, f"ID #{subj_idx + 1}", ha='center', va='bottom', fontsize=6, fontweight='bold', transform=ax_cor.transAxes, fontname="Arial")
+                    line_y = 1.14
+                    ax_cor.hlines(y=line_y, xmin=0, xmax=2.2, colors='black', linewidth=0.8, transform=ax_cor.transAxes, clip_on=False)
+    
+                    ax_cor.set_title(f"baseShim", color="black", fontweight='bold', fontsize=5, fontname="Arial")
+                else:
+                    ax_cor.set_title(f"sliceShim", color="black", fontweight='bold', fontsize=5, fontname="Arial")
+
+                # Orientation labels only for first participant
+                if subj_idx == 0 and map_idx == 0:
+                    ax_cor.text(0.05, 0.05, "L", transform=ax_cor.transAxes, color="white", fontsize=5, ha="left", va="bottom")
+                    ax_cor.text(0.95, 0.05, "R", transform=ax_cor.transAxes, color="white", fontsize=5, ha="right", va="bottom")
+
+                # --- Axial (bottom row) ---
+                row_axi = row_start + 1
+                z_slice = statmap_data.shape[2] // 2
+
+                # Crop for smaller axial view
+                crop_x = 30
+                crop_y = 30
+                x0 = statmap_data.shape[0] // 2
+                y0 = statmap_data.shape[1] // 2
+                x_min, x_max = x0 - crop_x, x0 + crop_x
+                y_min, y_max = y0 - crop_y, y0 + crop_y
+                template_axi = template_data[x_min:x_max, y_min:y_max, z_slice].T
+                stat_crop = stat_thresh[x_min:x_max, y_min:y_max, :]
+                mip_axi = np.max(stat_crop, axis=2).T
+                mip_axi = np.where(mip_axi > stat_min, mip_axi, np.nan)
+
+                ax_axi = fig.add_subplot(gs[row_start + 1, col_start + map_idx])
+                ax_axi.imshow(template_axi, cmap="gray", origin="lower")
+                if underlay_data is not None:
+                    ax_axi.imshow(underlay_data[x_min:x_max, y_min:y_max, z_slice].T,
+                                cmap="gray", alpha=0.3, origin="lower")
+                ax_axi.imshow(mip_axi, cmap="hot", origin="lower", vmin=stat_min, vmax=stat_max)
+                ax_axi.axis("off")
+
+                if subj_idx == 0 and map_idx == 0:
+                    ax_axi.text(0.02, 0.5, "L", transform=ax_axi.transAxes, color="white", fontsize=5, ha="left", va="center")
+                    ax_axi.text(0.98, 0.5, "R", transform=ax_axi.transAxes, color="white", fontsize=5, ha="right", va="center")
+                    ax_axi.text(0.5, 0.98, "A", transform=ax_axi.transAxes, color="white", fontsize=5, ha="center", va="top")
+                    ax_axi.text(0.5, 0.02, "P", transform=ax_axi.transAxes, color="white", fontsize=5, ha="center", va="bottom")
+                
+                # ---- Add colorbar only for the first participant and first map -----
+                gap_col_idx = 2  
+                row_for_cbar = 0  
+                cbar_ax = fig.add_subplot(gs[row_for_cbar, gap_col_idx])
+                cbar_ax.axis('off')
+                pos = [0.25, 0.05, 0.5, 0.9]  # adjust left/width to center horizontally
+                pos = [0.45, 0.5, 0.1, 0.3]  # left, bottom, width, height
+
+                inner_ax = cbar_ax.inset_axes(pos)
+
+               # Normalize and create colorbar
+                norm = plt.Normalize(vmin=stat_min, vmax=stat_max)
+                sm = plt.cm.ScalarMappable(cmap='hot', norm=norm)
+                sm.set_array([])
+
+                cbar = fig.colorbar(sm, cax=inner_ax)
+                cbar.set_label('Z-score', fontsize=4.5)
+                cbar.ax.yaxis.set_label_position('left')  #
+                cbar.ax.set_yticks([])
+                cbar.ax.text(1.5, -0.2, f"{stat_min:.1f}", fontsize=4.5, va='center', ha='right', color='black', transform=cbar.ax.transAxes)
+                cbar.ax.text(1.5, 1.2, f"{stat_max:.1f}", fontsize=4.5, va='center', ha='right', color='black', transform=cbar.ax.transAxes)
+
+                cbar.ax.set_frame_on(False)
+
+
+        # --- Save figure ---
+        out_file = os.path.join(output_dir, f"first_level_maps_{task_name}_all.png")
+        print(out_file)
+        fig.savefig(out_file, dpi=300)
+        plt.close(fig)
+
+    def run_second_level_glm(self,i_fnames=None,design_matrix=None,mask_fname=None,smoothing_fwhm=None,task_name=None,parametric=False,run_name=None,verbose=True,redo=False):
+        '''
+        Run second-level GLM for a specific task.
+        # ongoing test nilearn: https://nilearn.github.io/stable/modules/generated/nilearn.glm.second_level.SecondLevelModel.html
+
+        Parameters
+        ----------
+        i_fnames : list of str
+            List of filenames of the input contrast images in the same space (e.g., ["sub-A001_task-motor_contrast-trial_RH-rest_inTemplate.nii.gz", "sub-A002_task-motor_contrast-trial_RH-rest_inTemplate.nii.gz"])
+        design_matrix : pandas DataFrame, optional
+            Design matrix for the second-level analysis (default is None, which will create a design matrix
+            with an intercept only)
+        mask_fname : str, optional
+            Filename of the mask NIfTI file where to restrict the analysis (default is None)
+        smoothing_fwhm : float, optional
+            Full-width at half-maximum for spatial smoothing (default is None, which means no smoothing)
+        task_name : str
+            Task name (e.g., "motor_acq-shimBase+3mm")
+        run_name : str, optional
+            Run name (e.g., "run-1") (default is None, which means no run name will be added to the output filename)
+        verbose : bool, optional
+            Whether to print information during processing (default is True)
+        redo : bool, optional
+            Whether to redo the analysis even if results already exist (default is False)
+        Returns
+        -------
+        z_map_file : str
+            Filename of the output z-map NIfTI file (e.g., "n20_motor_acq-shimBase+3mm_intercept_z_map.nii.gz")
+        '''
+        
+
+
+        # --- Input validation -------------------------------------------------------------
+        if i_fnames is None:
+            raise ValueError("Please provide the list of filenames of the input contrast images.")
+        
+        # --- Define directories  -----------------------------------------------------------
+        second_level_dir = self.second_level_dir.format(task_name) + "/"
+        os.makedirs(second_level_dir, exist_ok=True)
+
+        # Load design matrix file if provided, otherwise create a default design matrix with an intercept only
+        if design_matrix is None:
+            design_matrix = pd.DataFrame([1] * len(i_fnames),columns=["intercept"])
+
+        if parametric ==True:
+            stat_map_file = os.path.join(second_level_dir, f"n{len(i_fnames)}_{task_name}_intercept_z_map.nii.gz")
+            if not os.path.exists(stat_map_file) or redo:
+                if verbose:
+                    print(f"Computing parametric second-level analysis for task {task_name}.")
+                
+                
+                
+                # --- Estimate and Fit second-level model -----------------------------------------------------------
+                second_level_model = SecondLevelModel(mask_img=mask_fname,smoothing_fwhm=smoothing_fwhm, n_jobs=2, verbose=1) # define the model to the contrast images and the design matrix
+                second_level_model.fit(i_fnames, design_matrix=design_matrix)  # fit the model to the contrast images and the design matrix
+                
+                # --- Compute contrasts and save -----------------------------------------------------------
+                z_map = second_level_model.compute_contrast(second_level_contrast="intercept",output_type="z_score")
+                z_map.to_filename(stat_map_file)
+        
+        else:
+            stat_map_file = os.path.join(second_level_dir, f"n{len(i_fnames)}_{task_name}_")
+            if not os.path.exists(stat_map_file + 'logp_max_t.nii.gz') or redo:
+                if verbose:
+                    print(f"Computing non-parametric second-level analysis for task {task_name}.")
+            
+                out_dict = non_parametric_inference(
+                    i_fnames,
+                    design_matrix=design_matrix,
+                    mask=mask_fname,
+                    model_intercept=True,
+                    n_perm=10000,  # 500 for the sake of time. Ideally, this should be 10,000.
+                    two_sided_test=False,
+                    smoothing_fwhm=1,
+                    n_jobs=2,
+                    threshold=0.01, # voxel level threshold for cluster definition (uncorrected p-value)
+                    #tfce=True,
+                    verbose=1,
+                    )
+                
+                print(out_dict)
+                out_dict["t"].to_filename(stat_map_file+ 't.nii.gz')
+                out_dict["logp_max_t"].to_filename(stat_map_file+ 'logp_max_t.nii.gz')
+                out_dict["logp_max_size"].to_filename(stat_map_file+ 'logp_max_size.nii.gz')
+                out_dict["logp_max_mass"].to_filename(stat_map_file+ 'logp_max_mass.nii.gz')
+                #out_dict["tfce"].to_filename(stat_map_file+ 'tfce.nii.gz')
+                #out_dict["logp_max_tfce"].to_filename(stat_map_file+ 'logp_max_tfce.nii.gz')
+
+                #mask the t-map with the significant cluster in the logp_max_size map
+                logp_max_size_img = nib.load(stat_map_file+ 'logp_max_size.nii.gz')
+                logp_max_size_data = logp_max_size_img.get_fdata()
+                #threshold the logp_max_size map at p<0.05
+                logp_max_size_data_thresholded = logp_max_size_data > -np.log10(0.05)
+                #mask the t-map with the thresholded logp_max_size map
+                t_img = nib.load(stat_map_file+ 't.nii.gz')
+                t_data = t_img.get_fdata()
+                t_data_masked = t_data * logp_max_size_data_thresholded
+                t_masked_img = nib.Nifti1Image(t_data_masked, t_img.affine, t_img.header)
+                t_masked_img.to_filename(stat_map_file+ 't_clustercorrected.nii.gz')
+
+        
+        return stat_map_file
+    
+  
