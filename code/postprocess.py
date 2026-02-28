@@ -11,6 +11,7 @@ from nilearn.glm.second_level import SecondLevelModel
 from nilearn.glm.second_level import non_parametric_inference
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from preprocess import Preprocess_main, Preprocess_Sc
+from nibabel.processing import resample_from_to
 
 #####################################################
 class Postprocess_main:
@@ -162,11 +163,11 @@ class Postprocess_main:
         
         return stat_maps
     
-    def plot_first_level_maps(self, i_fnames_pair=None, output_dir=None,stat_min=1.6, stat_max=5,background_fname=None, underlay_fname=None,task_name=None, verbose=True, redo=False,n_cols=5):
+    def plot_first_level_maps(self, i_fnames_pair=None, output_dir=None,stat_min=1.6, stat_max=5,background_fname=None,mask_fname=None, underlay_fname=None,task_name=None, verbose=True, redo=False,n_cols=5):
         """
         Plot first-level statistical maps for multiple participants and contrasts in a grid layout.
-        TODO: reduce FOV coronal
-        - add spinal levels in the coronal view 
+        TO DO: reduce FOV coronal
+        To do: add spinal levels in the coronal view 
         """
         if output_dir is None:
             output_dir = os.path.join(self.first_level_dir)
@@ -180,8 +181,14 @@ class Postprocess_main:
         total_cols = n_cols * 3  # 2 maps + 1 spacer per participant
 
 
-        # --- Load template and underlay ---
-        template_data = nib.as_closest_canonical(nib.load(background_fname)).get_fdata()
+        # --- Load template, mask, and underlay ---
+        template_img = nib.as_closest_canonical(nib.load(background_fname))
+        template_data = template_img.get_fdata()
+        mask_data = None
+        if mask_fname is not None:
+            mask_img = nib.load(mask_fname)
+            mask_data = nib.as_closest_canonical(mask_img).get_fdata()
+
         underlay_data = None
         if underlay_fname is not None:
             underlay_data = nib.as_closest_canonical(nib.load(underlay_fname)).get_fdata()
@@ -213,7 +220,13 @@ class Postprocess_main:
 
 
             for map_idx, i_fname in enumerate(maps_pair):
-                statmap_data = nib.as_closest_canonical(nib.load(i_fname)).get_fdata()
+                statmap_img = nib.as_closest_canonical(nib.load(i_fname))
+                statmap_data = statmap_img.get_fdata()
+                if mask_data is not None:
+                    mask_resampled = resample_from_to(mask_img, statmap_img, order=0)  # nearest-neighbor for mask
+                    mask_data = mask_resampled.get_fdata() > 0  # boolean
+                    statmap_data = np.where(mask_data, statmap_data, 0)
+        
                 stat_thresh = np.where(statmap_data > stat_min, statmap_data, 0)
 
                 # --- Coronal (top row) ---

@@ -227,7 +227,6 @@ if not os.path.exists(cropped_PAM50_fname) or redo:
     cmd = f"fslroi {pam50_fname} {cropped_PAM50_fname} 0 -1 0 -1 {z_min} {z_size}"
     os.system(cmd)
 
-    print(f"Cropped PAM50 saved: {cropped_PAM50_fname}, slices z={z_min}-{z_max}")
 
 #------ V. Plot first level results for each task and participant
 
@@ -257,11 +256,11 @@ for sub_id in sorted(subject_files.keys()):
     if len(pair) == 2:
         i_fnames_pairs.append(pair)
 
-print(i_fnames_pairs)
 output_dir=os.path.join(config["raw_dir"], config["figures_dir"]["main_dir"], "task")
 postprocess.plot_first_level_maps(i_fnames_pair=i_fnames_pairs,
                                           output_dir=output_dir,
                                           background_fname=os.path.join(path_code, "template", config["PAM50_t2"]),
+                                          mask_fname=cropped_PAM50_fname,
                                           #underlay_fname=os.path.join(path_code, "template", config["PAM50_cord"]),
                                           task_name=tag,
                                           verbose=True,
