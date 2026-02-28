@@ -202,17 +202,32 @@ for ID_nb, ID in enumerate(IDs):
 #------ IV. Extract the commun mask for all participants and tasks
 first_level_dir = os.path.join(config["raw_dir"], config["first_level"]["dir"])
 common_mask_fname = os.path.join(first_level_dir.split("sub")[0], "common_mask_PAM50.nii.gz")
-print(norm_mask)
-if not os.path.exists("common_mask_fname") or redo:
+cropped_PAM50_fname = os.path.join(first_level_dir.split("sub")[0], "PAM50_cord_cropped.nii.gz")
+
+if not os.path.exists(cropped_PAM50_fname) or redo:
     norm_mask_data = [nib.as_closest_canonical(nib.load(f)).get_fdata() for f in norm_mask]
     n_files = len(norm_mask_data)
 
-    # --- Compute common mask (n-1)---
+    # Compute common mask (n-1)---
     sum_mask = np.sum(norm_mask_data, axis=0)
     common_mask_data = (sum_mask >= n_files-3).astype(np.uint8)
     common_mask_fname = os.path.join(first_level_dir.split("sub")[0], "common_mask_PAM50.nii.gz")
     common_mask_img = nib.Nifti1Image(common_mask_data, affine=nib.load(norm_mask[0]).affine)
     common_mask_img.to_filename(common_mask_fname)
+    common_mask_data = common_mask_img.get_fdata()
+
+    # ---  Extract the z-slices that contain the common mask ---
+    z_indices = np.where(np.any(common_mask_data > 0, axis=(0,1)))[0]
+    z_min, z_max = z_indices[[0, -1]]
+    z_size = z_max - z_min + 1
+
+    #Crop the PAM50 template to the common mask z-slices
+    
+    pam50_fname = os.path.join(path_code, "template", config["PAM50_cord"])
+    cmd = f"fslroi {pam50_fname} {cropped_PAM50_fname} 0 -1 0 -1 {z_min} {z_size}"
+    os.system(cmd)
+
+    print(f"Cropped PAM50 saved: {cropped_PAM50_fname}, slices z={z_min}-{z_max}")
 
 #------ V. Plot first level results for each task and participant
 
