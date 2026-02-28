@@ -189,18 +189,18 @@ class Postprocess_main:
 
         # --- Figure and gridspec ---
         # Figure size scales with number of participant rows
-        fig_height = n_participant_rows * 4  
-        fig_width = n_actual_cols * 3
+        fig_height = n_participant_rows *2
+        fig_width = 7 #max paper width is 7 inches
         fig = plt.figure(figsize=(fig_width, fig_height))
+        fig.subplots_adjust(left=0.07,right=0.99,top=0.95,bottom=0.01)
 
-        # Each participant: coronal = 3 units, axial = 1 unit, small gap after each participant = 0.5
         height_ratios = []
         for _ in range(n_participant_rows):
-            height_ratios += [3, 1, 1]  # coronal, axial, gap
-
+            height_ratios += [3.6, 1.15, 1]  # coronal, axial, gap
 
         gs = fig.add_gridspec(nrows=len(height_ratios), ncols=n_cols*3,
-                          height_ratios=height_ratios, hspace=0.002, wspace=0.001)
+                          height_ratios=height_ratios, 
+                          hspace=0.01, wspace=0.001)
 
 
         for subj_idx, maps_pair in enumerate(i_fnames_pair):
@@ -238,8 +238,8 @@ class Postprocess_main:
                     x_center = 1  
                     y_top = 1.15   
                     ax_cor.text(x_center, y_top, f"ID #{subj_idx + 1}", ha='center', va='bottom', fontsize=6, fontweight='bold', transform=ax_cor.transAxes, fontname="Arial")
-                    line_y = 1.12 
-                    ax_cor.hlines(y=line_y, xmin=0, xmax=2, colors='black', linewidth=0.8, transform=ax_cor.transAxes, clip_on=False)
+                    line_y = 1.14
+                    ax_cor.hlines(y=line_y, xmin=0, xmax=2.2, colors='black', linewidth=0.8, transform=ax_cor.transAxes, clip_on=False)
     
                     ax_cor.set_title(f"baseShim", color="black", fontweight='bold', fontsize=5, fontname="Arial")
                 else:
@@ -299,8 +299,8 @@ class Postprocess_main:
                 cbar.set_label('Z-score', fontsize=4.5)
                 cbar.ax.yaxis.set_label_position('left')  #
                 cbar.ax.set_yticks([])
-                cbar.ax.text(0, 0, f"{stat_min:.1f}", fontsize=4.5, va='center', ha='right', color='black', transform=cbar.ax.transAxes)
-                cbar.ax.text(0, 1, f"{stat_max:.1f}", fontsize=4.5, va='center', ha='right', color='black', transform=cbar.ax.transAxes)
+                cbar.ax.text(1.5, -0.2, f"{stat_min:.1f}", fontsize=4.5, va='center', ha='right', color='black', transform=cbar.ax.transAxes)
+                cbar.ax.text(1.5, 1.2, f"{stat_max:.1f}", fontsize=4.5, va='center', ha='right', color='black', transform=cbar.ax.transAxes)
 
                 cbar.ax.set_frame_on(False)
 

@@ -116,11 +116,13 @@ for ID_nb, ID in enumerate(IDs):
 
                 # Select warp file
                 warp_file = os.path.join(preprocessing_dir.format(ID), 'func', tag, f"sub-{ID}_{tag}_from-func_to_PAM50_mode-image_xfm.nii.gz")
+                
+                
                 if not os.path.exists(warp_file):
                     raise RuntimeError(f"No warp file found for subject {ID}, task {tag}. Please check the preprocessing outputs and manual corrections.")
 
                 events_file=glob.glob(os.path.join(config["raw_dir"], f'sub-{ID}', 'func', f'sub-{ID}_{tag}_*events.tsv'))[0]
-
+                print(events_file)
                 #------------------------------------------------------------------
                 #------ I. Run first level GLM
 
