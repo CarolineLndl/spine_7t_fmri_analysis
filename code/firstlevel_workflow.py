@@ -170,7 +170,7 @@ for ID_nb, ID in enumerate(IDs):
                 #------ III. Normalize the resulting stat maps to PAM50 template space
 
                 for i, contrast_fname in enumerate(stat_maps):
-                    Norm_files=preprocess_Sc.apply_warp(
+                    norm_stat_maps=preprocess_Sc.apply_warp(
                             i_img=[stat_maps[i]], # input clean image
                             ID=[ID],
                             o_folder=[os.path.dirname(stat_maps[i]) + "/"], # output folder
@@ -180,11 +180,10 @@ for ID_nb, ID in enumerate(IDs):
                             mean=False,
                             n_jobs=1,
                             verbose=False,
-                            redo=True)
+                            redo=redo)
                 
-                #------ IV. Extract the commun mask for all participants and tasks
                 # Normalize the individual masks to template space
-                id_norm_mask=preprocess_Sc.apply_warp(
+                norm_mask.append(preprocess_Sc.apply_warp(
                             i_img=[mask_final_file], # input clean image
                             ID=[ID],
                             o_folder=[os.path.dirname(stat_maps[i]) + "/"], # output folder
@@ -195,10 +194,25 @@ for ID_nb, ID in enumerate(IDs):
                             n_jobs=1,
                             threshold=0.1,
                             verbose=False,
-                            redo=True)
+                            redo=redo)[0])
     
     print(f'=== First level done for : {ID} ===', flush=True)
     print("=========================================", flush=True)
+
+#------ IV. Extract the commun mask for all participants and tasks
+first_level_dir = os.path.join(config["raw_dir"], config["first_level"]["dir"])
+common_mask_fname = os.path.join(first_level_dir.split("sub")[0], "common_mask_PAM50.nii.gz")
+print(norm_mask)
+if not os.path.exists("common_mask_fname") or redo:
+    norm_mask_data = [nib.as_closest_canonical(nib.load(f)).get_fdata() for f in norm_mask]
+    n_files = len(norm_mask_data)
+
+    # --- Compute common mask (n-1)---
+    sum_mask = np.sum(norm_mask_data, axis=0)
+    common_mask_data = (sum_mask >= n_files-3).astype(np.uint8)
+    common_mask_fname = os.path.join(first_level_dir.split("sub")[0], "common_mask_PAM50.nii.gz")
+    common_mask_img = nib.Nifti1Image(common_mask_data, affine=nib.load(norm_mask[0]).affine)
+    common_mask_img.to_filename(common_mask_fname)
 
 #------ V. Plot first level results for each task and participant
 
