@@ -82,6 +82,7 @@ print("")
 
 df_task = pd.DataFrame(columns=["ID", "task", "acq", "run", "contrast", "max_zscore", "active_voxels"])
 fname_task_metrics = os.path.join(fig_task_dir, "first_level_metrics_n" + str(len(IDs)) + ".csv")
+norm_mask=[]
 for ID_nb, ID in enumerate(IDs):
     print("", flush=True)
     print(f'=== First level start for :  {ID} ===', flush=True)
@@ -100,7 +101,7 @@ for ID_nb, ID in enumerate(IDs):
                     run_name=""
 
                 denoised_fmri=glob.glob(os.path.join(denoising_dir.format(ID ), tag, config["denoising"]["denoised_dir"],"*"+run_name+"*_nostd_s.nii.gz"))[0]
-# Select manual seg if exists
+                # Select manual seg if exists
                 mask_file_list = glob.glob(os.path.join(preprocessing_dir.format(ID), 'func',tag, config["preprocess_f"]["func_seg"].format(ID,tag,"")))
                 mask_file = mask_file_list[0] if len(mask_file_list) > 0 else None
                 manual_seg_file_list = glob.glob(os.path.join(f"{manual_dir}", f"sub-{ID}", "func", config["preprocess_f"]["func_seg"].format(ID,tag,run_name)))
@@ -122,10 +123,9 @@ for ID_nb, ID in enumerate(IDs):
                     raise RuntimeError(f"No warp file found for subject {ID}, task {tag}. Please check the preprocessing outputs and manual corrections.")
 
                 events_file=glob.glob(os.path.join(config["raw_dir"], f'sub-{ID}', 'func', f'sub-{ID}_{tag}_*events.tsv'))[0]
-                print(events_file)
+
                 #------------------------------------------------------------------
                 #------ I. Run first level GLM
-
                 stat_maps=postprocess.run_first_level_glm(ID=ID,
                                                           i_fname=denoised_fmri,
                                                           events_file=events_file,
@@ -168,6 +168,7 @@ for ID_nb, ID in enumerate(IDs):
                                 
                 
                 #------ III. Normalize the resulting stat maps to PAM50 template space
+
                 for i, contrast_fname in enumerate(stat_maps):
                     Norm_files=preprocess_Sc.apply_warp(
                             i_img=[stat_maps[i]], # input clean image
@@ -179,17 +180,30 @@ for ID_nb, ID in enumerate(IDs):
                             mean=False,
                             n_jobs=1,
                             verbose=False,
-                            redo=redo)
-
+                            redo=True)
+                
+                #------ IV. Extract the commun mask for all participants and tasks
+                # Normalize the individual masks to template space
+                id_norm_mask=preprocess_Sc.apply_warp(
+                            i_img=[mask_final_file], # input clean image
+                            ID=[ID],
+                            o_folder=[os.path.dirname(stat_maps[i]) + "/"], # output folder
+                            dest_img=os.path.join(path_code, "template", config["PAM50_t2"]), # PAM50 template
+                            warping_field=warp_file,
+                            tag="_inTemplate",
+                            mean=False,
+                            n_jobs=1,
+                            threshold=0.1,
+                            verbose=False,
+                            redo=True)
+    
     print(f'=== First level done for : {ID} ===', flush=True)
     print("=========================================", flush=True)
 
-#------ IV. Plot first level results for each task and participant
-# TODO change the output for the figure
+#------ V. Plot first level results for each task and participant
 
 # --- Select stat map files ---
 i_fnames=[]
-first_level_dir = os.path.join(config["raw_dir"], config["first_level"]["dir"])
 for task_name in config["design_exp"]["task_names"]:
     for acq_name in config["design_exp"]["acq_names"]:
         tag="task-" + task_name + "_acq-" + acq_name

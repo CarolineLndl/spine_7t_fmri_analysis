@@ -166,7 +166,6 @@ class Postprocess_main:
         """
         Plot first-level statistical maps for multiple participants and contrasts in a grid layout.
         TODO: reduce FOV coronal
-        - KEEp only max and mean value and remove stick lines in the colorbar
         - add spinal levels in the coronal view 
         """
         if output_dir is None:
@@ -218,7 +217,6 @@ class Postprocess_main:
                 stat_thresh = np.where(statmap_data > stat_min, statmap_data, 0)
 
                 # --- Coronal (top row) ---
-                
                 y_slice = statmap_data.shape[1] // 2
                 mip_cor = np.max(stat_thresh, axis=1).T
                 mip_cor = np.where(mip_cor > stat_min, mip_cor, np.nan)
@@ -233,7 +231,7 @@ class Postprocess_main:
                 ax_cor.axvline(x=y_slice, color="white", linestyle="--", linewidth=0.5, alpha=0.6)
                 ax_cor.axis("off")
 
-                # Bold title above coronal view
+
                 if map_idx == 0:
                     x_center = 1  
                     y_top = 1.15   
