@@ -227,7 +227,7 @@ class Postprocess_main:
             
             for map_idx, i_fname in enumerate(maps_pair):
                 x_min, x_max = 35, 105
-                z_min, z_max = 190, 350
+                z_min, z_max = 130, 350
                 statmap_img = nib.as_closest_canonical(nib.load(i_fname))
                 statmap_data = statmap_img.get_fdata()
                 if mask_data is not None:
