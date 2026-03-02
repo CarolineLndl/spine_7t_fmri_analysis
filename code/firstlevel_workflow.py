@@ -264,14 +264,11 @@ postprocess.plot_first_level_maps(i_fnames_pair=i_fnames_pairs,
                                           #underlay_fname=os.path.join(path_code, "template", config["PAM50_cord"]),
                                           task_name=tag,
                                           verbose=True,
-                                          redo=True)
+                                          redo=redo)
 
 #if not os.path.exists(fname_task_metrics) or redo:
  #   df_task.to_csv(fname_task_metrics, index=False)
   #  print(f"Task metrics saved to: {fname_task_metrics}")
-
-
-                
 
 #------------------------------------------------------------------
 #------ Second level

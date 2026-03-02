@@ -254,11 +254,6 @@ class Postprocess_main:
                 ax_cor.axvline(x=(x_max-x_min)/2, color="white", linestyle="--", linewidth=0.5, alpha=0.6)
                 ax_cor.axis("off")
 
-                print(f"Subject {subj_idx+1}, map {map_idx+1}")
-                print("template_cor shape:", template_cor.shape)
-                print("mip_cor shape:", mip_cor.shape)
-                print("x_min, x_max:", x_min, x_max)
-                print("z_min, z_max:", z_min, z_max)
                 if map_idx == 0:
                     x_center = 1  
                     y_top = 1.16   
