@@ -105,9 +105,6 @@ for ID_nb,ID in enumerate(IDs):
                     run_name=""
 
                 moco_file=glob.glob(os.path.join(preprocessing_dir.format(ID), config["preprocess_dir"]["func_moco"].format(tag), config["preprocess_f"]["func_moco"].format(ID,tag,run_name)))[0]
-
-
-
                 #------------------------------------------------------------------
                 #------ moco parameters
                 #------------------------------------------------------------------
@@ -122,11 +119,27 @@ for ID_nb,ID in enumerate(IDs):
                 #------------------------------------------------------------------
                 #------ Compute compcor
                 #------------------------------------------------------------------
+                #select seg and csf files
+                # Select manual seg if exists
+                cord_file_list = glob.glob(os.path.join(preprocessing_dir.format(ID), 'func',tag, config["preprocess_f"]["func_seg"].format(ID,tag,"")))
+                cord_file = cord_file_list[0] if len(cord_file_list) > 0 else None
+                manual_cord_file_list = glob.glob(os.path.join(f"{manual_dir}", f"sub-{ID}", "func", config["preprocess_f"]["func_seg"].format(ID,tag,run_name)))
+                manual_cord_file = manual_cord_file_list[0] if len(manual_cord_file_list) > 0 else ""
+                cord_final_file = manual_cord_file if os.path.exists(manual_cord_file) else cord_file
+                if cord_final_file is None:
+                    raise RuntimeError(f"No mask file found for subject {ID}, task {tag}, run {run_name}. Please check the preprocessing outputs and manual corrections.")
+                print(cord_final_file)
 
-                cord_seg_file = os.path.join(preprocessing_dir.format(ID), 'func', tag, f"sub-{ID}_{tag}_bold_moco_mean_seg.nii.gz")
-                csf_seg_file = os.path.join(preprocessing_dir.format(ID), 'func', tag, f"sub-{ID}_{tag}_bold_moco_mean_CSF_seg.nii.gz")
-                if not os.path.exists(cord_seg_file) or not os.path.exists(csf_seg_file):
-                    raise RuntimeError(f"No cord or CSF segmentation file found for participant {ID}, task {tag}, run {run_name}. Please check the preprocessing step and the manual corrections.")
+                csf_file_list = glob.glob(os.path.join(preprocessing_dir.format(ID), 'func',tag, config["preprocess_f"]["func_csf"].format(ID,tag,"")))
+                csf_file = csf_file_list[0] if len(csf_file_list) > 0 else None
+                manual_csf_file_list = glob.glob(os.path.join(f"{manual_dir}", f"sub-{ID}", "func", config["preprocess_f"]["func_csf"].format(ID,tag,run_name)))
+                manual_csf_file = manual_csf_file_list[0] if len(manual_csf_file_list) > 0 else ""
+                csf_final_file = manual_csf_file if os.path.exists(manual_csf_file) else csf_file
+
+                if cord_final_file is None:
+                    raise RuntimeError(f"No mask file found for subject {ID}, task {tag}, run {run_name}. Please check the preprocessing outputs and manual corrections.")
+                print(csf_final_file)
+          
 
                 # Run compcor / DCT
                 compcor_out, DCT_out = denoising.confounds_ts(
@@ -134,8 +147,8 @@ for ID_nb,ID in enumerate(IDs):
                     task_name=tag,
                     run_name=run_name,
                     func_file=moco_file,
-                    mask_seg_file=cord_seg_file,
-                    mask_csf_file=csf_seg_file,
+                    mask_seg_file=cord_final_file,
+                    mask_csf_file=csf_final_file,
                     n_compcor=15,
                     compcor=True,
                     DCT=False,
@@ -145,7 +158,7 @@ for ID_nb,ID in enumerate(IDs):
                 #------------------------------------------------------------------
                 #------ Combine all confounds together
                 #------------------------------------------------------------------
-                confound_infos={'outliers':1,'moco':2,'compcor':5} #'outliers':1 #'moco':2,
+                confound_infos={'outliers':1,'moco':2,'compcor':15} #'outliers':1 #'moco':2,
                 confounds=denoising.combine_confounds(
                     ID=ID,
                     task_name=tag,
@@ -180,7 +193,7 @@ for ID_nb,ID in enumerate(IDs):
                     task_name=tag,
                     run_name=run_name,
                     confounds_file=confounds,
-                    mask_file=cord_seg_file,
+                    mask_file=cord_final_file,
                     high_pass=0.01,
                     low_pass= None,
                     tag_name= "HP_nostd", #std means the data were z-scored
@@ -192,8 +205,10 @@ for ID_nb,ID in enumerate(IDs):
                 #------ Apply smoothing
                 #------------------------------------------------------------------
                 smooth_imag_file=Clean_image_file.split(".")[0] + "_s.nii.gz"
-                smoothed_image=image.smooth_img(Clean_image_file, [1.5,1.5,6])
-                smoothed_image.to_filename(smooth_imag_file)
+
+                if not os.path.exists(smooth_imag_file):
+                    smoothed_image=image.smooth_img(Clean_image_file, [1.5,1.5,6])
+                    smoothed_image.to_filename(smooth_imag_file)
                 
                 
 
