@@ -25,9 +25,9 @@
                   "func_mask":"",
                   "func_moco":"sub-{}*{}*{}*moco.nii.gz",
                   "moco_params":"moco_params*{}*{}.nii.gz",
-                  "func_seg":"sub-{}*{}*{}*_seg.nii.gz",
+                  "func_seg":"sub-{}*{}*{}*mean_seg.nii.gz",
                   "func_csf":"sub-{}*{}*{}*_CSF_seg.nii.gz",
-                  "func_warp":"*{}*func_to_PAM50*.nii.gz",
+                  "func_warp":"sub-{}*{}*{}*func_to_PAM50*.nii.gz",
                   "anat_coreg":""
                   },
 
@@ -37,6 +37,7 @@
     "smoothed_dir":""},
 
 "first_level":{"dir":"derivatives/processing/first_level/sub-{}/"},
+"second_level":{"dir":"derivatives/processing/second_level/{}/"},
 
 "figures_dir":{"main_dir":"derivatives/processing/figures/"},
 
