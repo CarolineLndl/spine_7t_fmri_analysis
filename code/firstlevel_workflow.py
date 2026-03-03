@@ -111,7 +111,6 @@ for ID_nb, ID in enumerate(IDs):
                     raise RuntimeError(f"No mask file found for subject {ID}, task {tag}, run {run_name}. Please check the preprocessing outputs and manual corrections.")
 
                 # Select segmentation
-                mask_final_file = os.path.join(preprocessing_dir.format(ID), 'func', tag, f"sub-{ID}_{tag}_bold_moco_mean_seg.nii.gz")
                 if not os.path.exists(mask_final_file):
                     raise RuntimeError(f"No mask file found for subject {ID}, task {tag}. Please check the preprocessing outputs and manual corrections.")
 
@@ -122,7 +121,7 @@ for ID_nb, ID in enumerate(IDs):
                 if not os.path.exists(warp_file):
                     raise RuntimeError(f"No warp file found for subject {ID}, task {tag}. Please check the preprocessing outputs and manual corrections.")
 
-                events_file=glob.glob(os.path.join(config["raw_dir"], f'sub-{ID}', 'func', f'sub-{ID}_{tag}_*events.tsv'))[0]
+                events_file=glob.glob(os.path.join(config["raw_dir"], f'sub-{ID}', 'func', f'sub-{ID}_{tag}_*{run_name}*events.tsv'))[0]
 
                 #------------------------------------------------------------------
                 #------ I. Run first level GLM
@@ -282,7 +281,7 @@ print("===================================", flush=True)
 print("")
 
 # list of first evel contrast images in template space for each participant and task
-second_level=False
+second_level=True
 if second_level==True:
     for task_name in config["design_exp"]["task_names"]:
         for acq_name in config["design_exp"]["acq_names"]:
@@ -303,8 +302,6 @@ if second_level==True:
                 # find the corresponding first-level file
                 
                 i_fnames.append(glob.glob(os.path.join(first_level_dir.format(ID), f"{tag}", f"*{tag}*{run_name}*trial_RH-rest*inTemplate.nii.gz"))[0])
-
-            print(i_fnames)
             
             z_map_file=postprocess.run_second_level_glm(i_fnames=i_fnames,
                                                             mask_fname=f"{path_code}/template/{config['PAM50_cord']}",

@@ -104,7 +104,8 @@ class Postprocess_main:
         os.makedirs(first_level_dir, exist_ok=True)
 
         df_events = pd.read_csv(events_file, sep="\t") # Load event file
-        df_events=df_events.iloc[1:-1] #remove the first raw
+        df_events=df_events#.iloc[1:-1] #remove the first raw
+        df_events["trial_type"] = df_events["trial_type"].replace({"start": "rest"}) # start is equivalent to rest
 
         # Load json file
         json_file = os.path.join(self.raw_dir, f"sub-{ID}/func/sub-{ID}_{task_name}{run_tag}_bold.json")
@@ -125,9 +126,9 @@ class Postprocess_main:
                 noise_model="ar1",
                 min_onset=0,
                 standardize=False,
-                hrf_model="glover + derivative + dispersion",
+                hrf_model="spm + derivative + dispersion",
                 drift_model=None,
-                signal_scaling=False,
+                signal_scaling=0,
                 high_pass=None,
                 smoothing_fwhm=smoothing_fwhm,
                 mask_img=mask_file
@@ -137,7 +138,6 @@ class Postprocess_main:
 
             # Plot design matrix 
             design_mat = fmri_glm.design_matrices_[0]
-            
             
             fig, ax1 = plt.subplots(1, 1, figsize=(6, 4), constrained_layout=True)
             plot_design_matrix(design_mat, ax=ax1)
@@ -150,7 +150,9 @@ class Postprocess_main:
         
         # --- Compute contrasts and save -----------------------------------------------------------
         stat_maps=[]
+
         for i, contrast in enumerate(contrasts):
+            print(contrasts)
             if smoothing_fwhm is not None:
                 tag="_s"
             else:
@@ -158,12 +160,12 @@ class Postprocess_main:
             stat_maps.append(os.path.join(first_level_dir, f"sub-{ID}_{task_name}{run_tag}_{contrast}{tag}.nii.gz"))
             
             if not os.path.exists(stat_maps[i]) or redo:
-                results = fmri_glm.compute_contrast(contrast, output_type="z_score")
+                results = fmri_glm.compute_contrast(contrast, output_type="stat")
                 results.to_filename(stat_maps[i])
         
         return stat_maps
     
-    def plot_first_level_maps(self, i_fnames_pair=None, output_dir=None,stat_min=1.6, stat_max=5,background_fname=None,mask_fname=None, underlay_fname=None,task_name=None, verbose=True, redo=False,n_cols=5):
+    def plot_first_level_maps(self, i_fnames_pair=None, output_dir=None,stat_min=1.6, stat_max=5,background_fname=None,mask_fname=None, underlay_fname=None,task_name=None,plot_mip=True, verbose=True, redo=False,n_cols=5):
         """
         Plot first-level statistical maps for multiple participants and contrasts in a grid layout.
 
@@ -238,9 +240,14 @@ class Postprocess_main:
                 stat_thresh = np.where(statmap_data > stat_min, statmap_data, 0)
 
                 # --- Coronal (top row) ---
-                y_slice = statmap_data.shape[1] // 2
-                mip_cor = np.max(stat_thresh, axis=1)
-                mip_cor = mip_cor[x_min:x_max, z_min:z_max]
+                if plot_mip:
+                    y_slice = statmap_data.shape[1] // 2
+                    mip_cor = np.max(stat_thresh, axis=1)
+                    mip_cor = mip_cor[x_min:x_max,z_min:z_max]
+                else:
+                    y_slice = 69
+                    mip_cor = stat_thresh
+                    mip_cor = mip_cor[x_min:x_max,y_slice, z_min:z_max]
                 mip_cor = np.where(mip_cor > stat_min, mip_cor, np.nan)
                 mip_cor=mip_cor.T
                 template_cor = template_data[x_min:x_max, y_slice, z_min:z_max].T
@@ -250,7 +257,7 @@ class Postprocess_main:
                 if underlay_data is not None:
                     ax_cor.imshow(underlay_data[x_min:x_max, y_slice, z_min:z_max].T, cmap="gray", origin="lower",aspect='auto')
                 
-                ax_cor.imshow(mip_cor, cmap="hot", origin="lower", vmin=stat_min, vmax=stat_max,aspect='auto')
+                ax_cor.imshow(mip_cor, cmap="autumn", origin="lower", vmin=stat_min, vmax=stat_max,aspect='auto')
                 ax_cor.axvline(x=(x_max-x_min)/2, color="white", linestyle="--", linewidth=0.5, alpha=0.6)
                 ax_cor.axis("off")
 
@@ -272,7 +279,10 @@ class Postprocess_main:
 
                 # --- Axial (bottom row) ---
                 row_axi = row_start + 1
-                z_slice = statmap_data.shape[2] // 2
+                if plot_mip:
+                    z_slice = statmap_data.shape[2] // 2
+                else:
+                    z_slice = 260
 
                 # Crop for smaller axial view
                 crop_x = 30
@@ -282,8 +292,13 @@ class Postprocess_main:
                 x_min, x_max = x0 - crop_x, x0 + crop_x
                 y_min, y_max = y0 - crop_y, y0 + crop_y
                 template_axi = template_data[x_min:x_max, y_min:y_max, z_slice].T
-                stat_crop = stat_thresh[x_min:x_max, y_min:y_max, :]
-                mip_axi = np.max(stat_crop, axis=2).T
+                
+                if plot_mip:
+                    stat_crop = stat_thresh[x_min:x_max, y_min:y_max, :]
+                    mip_axi = np.max(stat_crop, axis=2).T
+                else:
+                    stat_crop = stat_thresh[x_min:x_max, y_min:y_max, z_slice]
+                    mip_axi=stat_crop.T
                 mip_axi = np.where(mip_axi > stat_min, mip_axi, np.nan)
 
                 ax_axi = fig.add_subplot(gs[row_start + 1, col_start + map_idx])
@@ -326,7 +341,6 @@ class Postprocess_main:
 
         # --- Save figure ---
         out_file = os.path.join(output_dir, f"first_level_maps_{task_name}_all.png")
-        print(out_file)
         fig.savefig(out_file, dpi=300)
         plt.close(fig)
 
