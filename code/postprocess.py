@@ -152,7 +152,6 @@ class Postprocess_main:
         stat_maps=[]
 
         for i, contrast in enumerate(contrasts):
-            print(contrasts)
             if smoothing_fwhm is not None:
                 tag="_s"
             else:
@@ -165,7 +164,7 @@ class Postprocess_main:
         
         return stat_maps
     
-    def plot_first_level_maps(self, i_fnames_pair=None, output_dir=None,stat_min=1.6, stat_max=5,background_fname=None,mask_fname=None, underlay_fname=None,task_name=None,plot_mip=True, verbose=True, redo=False,n_cols=5):
+    def plot_first_level_maps(self, i_fnames_pair=None, output_dir=None,stat_min=1.6, stat_max=4,background_fname=None,mask_fname=None, underlay_fname=None,task_name=None,plot_mip=True, verbose=True, redo=False,n_cols=5):
         """
         Plot first-level statistical maps for multiple participants and contrasts in a grid layout.
 
@@ -326,7 +325,7 @@ class Postprocess_main:
 
                # Normalize and create colorbar
                 norm = plt.Normalize(vmin=stat_min, vmax=stat_max)
-                sm = plt.cm.ScalarMappable(cmap='hot', norm=norm)
+                sm = plt.cm.ScalarMappable(cmap='autumn', norm=norm)
                 sm.set_array([])
 
                 cbar = fig.colorbar(sm, cax=inner_ax)
@@ -424,7 +423,6 @@ class Postprocess_main:
                     verbose=1,
                     )
                 
-                print(out_dict)
                 out_dict["t"].to_filename(stat_map_file+ 't.nii.gz')
                 out_dict["logp_max_t"].to_filename(stat_map_file+ 'logp_max_t.nii.gz')
                 out_dict["logp_max_size"].to_filename(stat_map_file+ 'logp_max_size.nii.gz')

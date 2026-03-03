@@ -173,6 +173,7 @@ class Denoising:
 
                 # create a dataframe with volume value for each slice as we do not have the slice wise motion corrected parameters
             if structure=="spinalcord" or structure=="":
+                
                 #checkek wether there is params_x in the input_file list
                 X_file=[f for f in input_file if 'params_x' in f]
                 Y_file=[f for f in input_file if 'params_y' in f]
@@ -183,17 +184,17 @@ class Denoising:
                 for slice_nb in range(0,X_img.header.get_data_shape()[2]):
                     slice_str="00" + str(slice_nb + 1) if (slice_nb+1)<10 else "0" + str(slice_nb+1)
                     output_moco_file=physio_dir +  '/sub-' + ID +  '_2_'+'moco'+structure_tag+task_tag+run_tag+'_slice'+slice_str+'.txt'
+                    if not os.path.exists(output_moco_file) or redo :
+                        moco_value=[]
 
-                    moco_value=[]
+                        for img in [X_img,Y_img]:
+                            img_slice=img.slicer[:,:,slice_nb:slice_nb+1,:] # cropped func slices
+                            imgseries=img_slice.get_fdata(dtype=np.float32)
+                            imgseries_reshape=imgseries.reshape(img.shape[3], 1)
+                            moco_value.append(imgseries_reshape)
+                        moco_value=np.hstack(moco_value)
 
-                    for img in [X_img,Y_img]:
-                        img_slice=img.slicer[:,:,slice_nb:slice_nb+1,:] # cropped func slices
-                        imgseries=img_slice.get_fdata(dtype=np.float32)
-                        imgseries_reshape=imgseries.reshape(img.shape[3], 1)
-                        moco_value.append(imgseries_reshape)
-                    moco_value=np.hstack(moco_value)
-
-                    np.savetxt(output_moco_file, moco_value)
+                        np.savetxt(output_moco_file, moco_value)
 
                 if os.path.exists(output_moco_file) and not redo and verbose:
                     print("Spinal cord moco params were already extracted please, put redo=True to recalculate it")
@@ -266,7 +267,7 @@ class Denoising:
         # --- Define output file --------------------------------------------------------
         if output_file==None:
             output_file=self.denoising_dir.format(ID) + '/'+task_name+ '/'+ self.config["denoising"]["denoised_dir"].format(ID) +'/'+ structure +'/confounds/sub-' + ID + task_tag + run_tag + '_outliers'
-
+        
         if not os.path.exists(os.path.dirname(output_file)):
             os.makedirs(os.path.dirname(output_file))
 
@@ -616,6 +617,9 @@ class Denoising:
              raise(Exception('mask_csf_file should be provided ex: mask_csf_file="path/to/csf/file.nii.gz"'))
 
         # ---  Load files -----------------------------------------------------------
+        print("comcord")
+        print(func_file)
+        print(mask_seg_file)
         func_img=nib.load(func_file) # load the functional image
         mask_seg_img=nib.load(mask_seg_file) # load the seg mask image
         mask_csf_img=nib.load(mask_csf_file) # load the csf mask image
@@ -802,7 +806,9 @@ class Denoising:
 
         physio_dir=self.denoising_dir.format(ID) + '/'+task_name+ '/'+ self.config["denoising"]["denoised_dir"].format(ID) +'/'+ structure +'/confounds/' # output directory
 
-
+        print("combine confounds")
+        print(func_file)
+        
         if func_file==None:
             func_file=glob.glob(self.preproc_dir.format(ID)+ '/' + self.config["preprocess_dir"]["func_moco"].format(task_name) + self.config["preprocess_f"]["func_moco"].format(ID,task_tag,run_tag))[0]
 
@@ -840,7 +846,7 @@ class Denoising:
             slice_str = f"{slice_nb+1:03d}" if slice_wise else ""
             output_tag = f"_slice{slice_str}" if slice_wise else ""
             output_file = os.path.join(physio_dir, f"sub-{ID}_allconfounds{structure_tag}{task_tag}{run_tag}{output_tag}.txt")
-
+            print(output_file)
             if os.path.exists(output_file) and not redo:
                 continue
 
@@ -889,7 +895,7 @@ class Denoising:
                 df_z = pd.DataFrame(z)
                 output_zfile = output_file.replace(".txt", "_z.txt")
                 df_z.to_csv(output_zfile, index=False, header=False, sep=' ')
-
+       
         return output_file
 
     def plot_confound_design(self,ID=None,confound_file=None,confounds_infos=None,structure="",task_name="",run_name='',redo=False, verbose=True):
@@ -982,6 +988,8 @@ class Denoising:
             raise(Exception("'structure', 'confounds_files' and 'confound_infos' are required "))
 
         ###########  Load the func file and mask to extract the number of slices and the TR:
+        
+        
         if func_file==None:
             func_file=glob.glob(self.preproc_dir.format(ID) + self.config["moco_files"]["dir"].format(ID,run_name,structure) + self.config["moco_files"]["moco_mean_f"])[0]
         func_img=nib.load(func_file) # load the func image
@@ -1013,6 +1021,7 @@ class Denoising:
 
                 if not os.path.exists(output_file) or redo:
                     mask_img=nib.load(mask_file) # load the mask image
+                    
                     if slice_wise:
                         func_slice=func_img.slicer[:,:,slice_nb:slice_nb+1,:] # cropped func slices
                         mask_slice=mask_img.slicer[:,:,slice_nb:slice_nb+1] # cropped mask slices

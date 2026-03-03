@@ -101,23 +101,13 @@ for ID_nb, ID in enumerate(IDs):
                     run_name=""
 
                 denoised_fmri=glob.glob(os.path.join(denoising_dir.format(ID ), tag, config["denoising"]["denoised_dir"],"*"+run_name+"*_nostd_s.nii.gz"))[0]
-                # Select manual seg if exists
-                mask_file_list = glob.glob(os.path.join(preprocessing_dir.format(ID), 'func',tag, config["preprocess_f"]["func_seg"].format(ID,tag,"")))
-                mask_file = mask_file_list[0] if len(mask_file_list) > 0 else None
-                manual_seg_file_list = glob.glob(os.path.join(f"{manual_dir}", f"sub-{ID}", "func", config["preprocess_f"]["func_seg"].format(ID,tag,run_name)))
-                manual_seg_file = manual_seg_file_list[0] if len(manual_seg_file_list) > 0 else ""
-                mask_final_file = manual_seg_file if os.path.exists(manual_seg_file) else mask_file
-                if mask_final_file is None:
-                    raise RuntimeError(f"No mask file found for subject {ID}, task {tag}, run {run_name}. Please check the preprocessing outputs and manual corrections.")
+                cord_seg_file = glob.glob(os.path.join(preprocessing_dir.format(ID), 'func',tag, config["preprocess_f"]["func_seg"].format(ID,tag,"")))[0]
+                warp_file = os.path.join(preprocessing_dir.format(ID), 'func', tag, f"sub-{ID}_{tag}_from-func_to_PAM50_mode-image_xfm.nii.gz")
 
-                # Select segmentation
-                if not os.path.exists(mask_final_file):
+                if not os.path.exists(cord_seg_file):
                     raise RuntimeError(f"No mask file found for subject {ID}, task {tag}. Please check the preprocessing outputs and manual corrections.")
 
                 # Select warp file
-                warp_file = os.path.join(preprocessing_dir.format(ID), 'func', tag, f"sub-{ID}_{tag}_from-func_to_PAM50_mode-image_xfm.nii.gz")
-                
-                
                 if not os.path.exists(warp_file):
                     raise RuntimeError(f"No warp file found for subject {ID}, task {tag}. Please check the preprocessing outputs and manual corrections.")
 
@@ -128,7 +118,7 @@ for ID_nb, ID in enumerate(IDs):
                 stat_maps=postprocess.run_first_level_glm(ID=ID,
                                                           i_fname=denoised_fmri,
                                                           events_file=events_file,
-                                                          mask_file=mask_final_file,
+                                                          mask_file=cord_seg_file,
                                                           task_name=tag,
                                                           run_name=run_name,
                                                           redo=redo,
@@ -154,7 +144,7 @@ for ID_nb, ID in enumerate(IDs):
                         if run_name != "run-02":
                             if not os.path.exists(fname_task_metrics) or redo:
                                 img = nib.load(fname_thr_img)
-                                mask = nib.load(mask_final_file)
+                                mask = nib.load(cord_seg_file)
                                 masked_data = img.get_fdata() * mask.get_fdata()# Extract values within the mask
                                 max_zscore = np.max(masked_data[masked_data > 0]) if np.any(masked_data > 0) else 0 # Find max z-score in the mask
                                 active_voxels = np.sum(masked_data > 0)# Count active voxels in the mask
@@ -183,7 +173,7 @@ for ID_nb, ID in enumerate(IDs):
                 
                 # Normalize the individual masks to template space
                 norm_mask.append(preprocess_Sc.apply_warp(
-                            i_img=[mask_final_file], # input clean image
+                            i_img=[cord_seg_file], # input clean image
                             ID=[ID],
                             o_folder=[os.path.dirname(stat_maps[i]) + "/"], # output folder
                             dest_img=os.path.join(path_code, "template", config["PAM50_t2"]), # PAM50 template
@@ -281,7 +271,7 @@ print("===================================", flush=True)
 print("")
 
 # list of first evel contrast images in template space for each participant and task
-second_level=True
+second_level=False
 if second_level==True:
     for task_name in config["design_exp"]["task_names"]:
         for acq_name in config["design_exp"]["acq_names"]:
