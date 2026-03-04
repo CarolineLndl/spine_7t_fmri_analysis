@@ -105,9 +105,15 @@ for ID_nb,ID in enumerate(IDs):
                     run_name=""
 
                 moco_file=glob.glob(os.path.join(preprocessing_dir.format(ID), config["preprocess_dir"]["func_moco"].format(tag), config["preprocess_f"]["func_moco"].format(ID,tag,run_name)))[0]
+                cord_seg_file = glob.glob(os.path.join(preprocessing_dir.format(ID), 'func',tag, config["preprocess_f"]["func_seg"].format(ID,tag,"")))[0]
+                csf_seg_file = glob.glob(os.path.join(preprocessing_dir.format(ID), 'func',tag, config["preprocess_f"]["func_csf"].format(ID,tag,"")))[0]
+                
+                if cord_seg_file is None:
+                    raise RuntimeError(f"No mask file found for subject {ID}, task {tag}, run {run_name}. Please check the preprocessing outputs and manual corrections.")
 
-
-
+                if csf_seg_file is None:
+                    raise RuntimeError(f"No mask file found for subject {ID}, task {tag}, run {run_name}. Please check the preprocessing outputs and manual corrections.")
+          
                 #------------------------------------------------------------------
                 #------ moco parameters
                 #------------------------------------------------------------------
@@ -117,18 +123,12 @@ for ID_nb,ID in enumerate(IDs):
                 #------------------------------------------------------------------
                 #------ outliers parameters
                 #------------------------------------------------------------------
-                denoising.outliers(ID=ID,task_name=tag,run_name=run_name,redo=redo)
+                denoising.outliers(ID=ID,task_name=tag, mask_file= cord_seg_file,run_name=run_name,redo=redo)
+
 
                 #------------------------------------------------------------------
                 #------ Compute compcor
                 #------------------------------------------------------------------
-
-                cord_seg_file = os.path.join(preprocessing_dir.format(ID), 'func', tag, f"sub-{ID}_{tag}_bold_moco_mean_seg.nii.gz")
-                csf_seg_file = os.path.join(preprocessing_dir.format(ID), 'func', tag, f"sub-{ID}_{tag}_bold_moco_mean_CSF_seg.nii.gz")
-                if not os.path.exists(cord_seg_file) or not os.path.exists(csf_seg_file):
-                    raise RuntimeError(f"No cord or CSF segmentation file found for participant {ID}, task {tag}, run {run_name}. Please check the preprocessing step and the manual corrections.")
-
-                # Run compcor / DCT
                 compcor_out, DCT_out = denoising.confounds_ts(
                     ID=ID,
                     task_name=tag,
@@ -145,7 +145,7 @@ for ID_nb,ID in enumerate(IDs):
                 #------------------------------------------------------------------
                 #------ Combine all confounds together
                 #------------------------------------------------------------------
-                confound_infos={'outliers':1,'moco':2,'compcor':5} #'outliers':1 #'moco':2,
+                confound_infos={'outliers':1,'moco':2,'compcor':15} #'outliers':1 #'moco':2,
                 confounds=denoising.combine_confounds(
                     ID=ID,
                     task_name=tag,
@@ -184,7 +184,7 @@ for ID_nb,ID in enumerate(IDs):
                     high_pass=0.01,
                     low_pass= None,
                     tag_name= "HP_nostd", #std means the data were z-scored
-                    standardize=False,#"zscore", # False if you don't want
+                    standardize=False,
                     n_jobs=4,
                     redo=redo)
                 
@@ -192,8 +192,10 @@ for ID_nb,ID in enumerate(IDs):
                 #------ Apply smoothing
                 #------------------------------------------------------------------
                 smooth_imag_file=Clean_image_file.split(".")[0] + "_s.nii.gz"
-                smoothed_image=image.smooth_img(Clean_image_file, [1.5,1.5,6])
-                smoothed_image.to_filename(smooth_imag_file)
+
+                if not os.path.exists(smooth_imag_file):
+                    smoothed_image=image.smooth_img(Clean_image_file, [1.5,1.5,6])
+                    smoothed_image.to_filename(smooth_imag_file)
                 
                 
 

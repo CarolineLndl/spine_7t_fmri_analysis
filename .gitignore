@@ -33,4 +33,3 @@ config/spine_7T_env.sh
 
 # Ignore denoising pipelines for developpement
 code/spm/
-
