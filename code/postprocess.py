@@ -343,7 +343,7 @@ class Postprocess_main:
         fig.savefig(out_file, dpi=300)
         plt.close(fig)
 
-    def run_second_level_glm(self,i_fnames=None,design_matrix=None,mask_fname=None,smoothing_fwhm=None,task_name=None,parametric=False,run_name=None,verbose=True,redo=False):
+    def run_second_level_glm(self,i_fnames=None,design_matrix=None,mask_fname=None,smoothing_fwhm=None,parametric=False,n_perm=10000,vox_thr=0.01,task_name=None,run_name=None,verbose=True,redo=False):
         '''
         Run second-level GLM for a specific task.
         # ongoing test nilearn: https://nilearn.github.io/stable/modules/generated/nilearn.glm.second_level.SecondLevelModel.html
@@ -359,6 +359,12 @@ class Postprocess_main:
             Filename of the mask NIfTI file where to restrict the analysis (default is None)
         smoothing_fwhm : float, optional
             Full-width at half-maximum for spatial smoothing (default is None, which means no smoothing)
+        parametric: bool
+            Set True for parametric statistics or False for non-parametric
+        n_perm: int
+            Used for non-parametric testing, choose the number of permutation. 
+        vox_thr:
+            Cluster-forming threshold in p-scale: Uncorrected voxel threshold before cluster inerence (for non-parametric testing). 
         task_name : str
             Task name (e.g., "motor_acq-shimBase+3mm")
         run_name : str, optional
@@ -390,11 +396,7 @@ class Postprocess_main:
         if parametric ==True:
             stat_map_file = os.path.join(second_level_dir, f"n{len(i_fnames)}_{task_name}_intercept_z_map.nii.gz")
             if not os.path.exists(stat_map_file) or redo:
-                if verbose:
-                    print(f"Computing parametric second-level analysis for task {task_name}.")
-                
-                
-                
+                print(f"Computing parametric second-level analysis for task {task_name}.")
                 # --- Estimate and Fit second-level model -----------------------------------------------------------
                 second_level_model = SecondLevelModel(mask_img=mask_fname,smoothing_fwhm=smoothing_fwhm, n_jobs=2, verbose=1) # define the model to the contrast images and the design matrix
                 second_level_model.fit(i_fnames, design_matrix=design_matrix)  # fit the model to the contrast images and the design matrix
@@ -406,19 +408,18 @@ class Postprocess_main:
         else:
             stat_map_file = os.path.join(second_level_dir, f"n{len(i_fnames)}_{task_name}_")
             if not os.path.exists(stat_map_file + 'logp_max_t.nii.gz') or redo:
-                if verbose:
-                    print(f"Computing non-parametric second-level analysis for task {task_name}.")
-            
+                print(f"Computing non-parametric second-level analysis for task {task_name} with {n_perm} permutations.")
+
                 out_dict = non_parametric_inference(
                     i_fnames,
                     design_matrix=design_matrix,
                     mask=mask_fname,
                     model_intercept=True,
-                    n_perm=10000,  # 500 for the sake of time. Ideally, this should be 10,000.
+                    n_perm=n_perm, 
                     two_sided_test=False,
                     smoothing_fwhm=1,
                     n_jobs=2,
-                    threshold=0.01, # voxel level threshold for cluster definition (uncorrected p-value)
+                    threshold=vox_thr, # voxel level threshold for cluster definition (uncorrected p-value)
                     #tfce=True,
                     verbose=1,
                     )
