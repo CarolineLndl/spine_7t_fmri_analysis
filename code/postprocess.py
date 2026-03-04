@@ -13,6 +13,7 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 from preprocess import Preprocess_main, Preprocess_Sc
 from nibabel.processing import resample_from_to
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+import matplotlib
 #####################################################
 class Postprocess_main:
     '''
@@ -469,9 +470,9 @@ class Postprocess_main:
         
         height_ratios = [6.5, 3]  # coronal, axial
         
-        gs = fig.add_gridspec(nrows=2, ncols=4, 
+        gs = fig.add_gridspec(nrows=2, ncols=5, 
                               height_ratios=height_ratios,
-                               width_ratios=[0.2,1,1,1.5], hspace=0.01, wspace=0.05)
+                               width_ratios=[0.2,0.1,1,1,1.5], hspace=0.01, wspace=0.05)
 
 
         # --- Load template, mask, and underlay ---
@@ -494,7 +495,7 @@ class Postprocess_main:
 
             # --- Coronal slice ---
             x_min, x_max = 35, 105
-            z_min, z_max = 130, 350
+            z_min, z_max = 172, 333
             y_slice = np.unravel_index(np.nanargmax(statmap_data), statmap_data.shape)[1]
             
 
@@ -505,7 +506,7 @@ class Postprocess_main:
             cor_slice = np.where(cor_slice > stat_min, cor_slice, np.nan)
             cor_slice=cor_slice.T
 
-            ax_cor = fig.add_subplot(gs[0, i+1])
+            ax_cor = fig.add_subplot(gs[0, i+2])
             template_cor = template_data[x_min:x_max, y_slice, z_min:z_max].T
             ax_cor.imshow(template_cor, cmap="gray", origin="lower", aspect="auto")
             im_cor = ax_cor.imshow(cor_slice, cmap=cmap, origin="lower", vmin=stat_min, vmax=stat_max, aspect="auto")
@@ -528,16 +529,17 @@ class Postprocess_main:
             axi_slice = np.where(axi_slice > stat_min, axi_slice, np.nan)
             axi_slice=axi_slice.T
 
-            ax_axi = fig.add_subplot(gs[1, i+1])
+            ax_axi = fig.add_subplot(gs[1, i+2])
             template_axi = template_data[x_min:x_max, y_min:y_max, z_slice].T
             underlay_axi = underlay_data[x_min:x_max, y_min:y_max, z_slice].T
             ax_axi.imshow(template_axi, cmap="gray", origin="lower", aspect="auto")
             ax_axi.imshow(underlay_axi, cmap="gray", origin="lower", aspect="auto",alpha=0.1)
+            print(template_axi.shape)
             im_axi = ax_axi.imshow(axi_slice, cmap=cmap, origin="lower", vmin=stat_min, vmax=stat_max, aspect="auto")
             ax_axi.axis("off")
             ax_axi.text(0.5, 0.01, f"z={z_slice}", color="white", fontsize=5,ha="center", va="bottom", transform=ax_axi.transAxes)
             ax_cor.axhline(y=z_slice - z_min, color='white', linestyle='--', linewidth=0.8, alpha=0.7)
-            
+
             if i==0:
                 ax_cor.set_title(f"baseShim", color="black", fontweight='bold', fontsize=7, fontname="Arial")
                 ax_cor.text(0.05, 0.05, "L", transform=ax_cor.transAxes, color="white", fontsize=7, ha="left", va="bottom")
@@ -550,33 +552,69 @@ class Postprocess_main:
             else:
                 ax_cor.set_title(f"sliceShim", color="black", fontweight='bold', fontsize=7, fontname="Arial")
 
-            # Shared colorbar
-            cbar_ax = fig.add_axes([0.7, 0.1, 0.2, 0.03])  # left, bottom, width, height
+        # -- Shared colorbar
+        
+        cbar_ax = fig.add_axes([0.03, 0.05, 0.02, 0.15])  # left, bottom, width, height
+        norm = plt.Normalize(vmin=stat_min, vmax=stat_max)
+        sm = plt.cm.ScalarMappable(cmap='autumn', norm=norm)
+        sm.set_array([])
 
+        cbar = fig.colorbar(sm, cax=cbar_ax)
+        cbar.set_label('z-score', fontsize=6, labelpad=1.5,fontweight='bold',fontname="Arial")
+        cbar.ax.set_yticks([])
+        cbar.ax.text(1.35, 1.1, f"{stat_min:.1f}", fontsize=6, va='center', ha='right', color='black', transform=cbar.ax.transAxes)
+        cbar.ax.text(1.35, -0.12, f"{stat_max:.1f}", fontsize=6, va='center', ha='right', color='black', transform=cbar.ax.transAxes)
+        cbar.ax.set_frame_on(False)
 
-            # Normalize and create colorbar
-            norm = plt.Normalize(vmin=stat_min, vmax=stat_max)
-            sm = plt.cm.ScalarMappable(cmap='autumn', norm=norm)
-            sm.set_array([])
+        # -- plot spinal levels at the very left side
+        ax_levels = fig.add_subplot(gs[0, 1])
+        ax_levels.axis("off") 
+        spinal_levels = {5: range(300, 333),  # C5
+                     6: range(269, 300),  # C6
+                     7: range(238, 269),  # C7
+                     8: range(206, 238),  # C8
+                     9: range(172, 206)  # T1
+                     } 
+        data_spinal_levels = np.zeros((cor_slice.shape[0], z_max - z_min))  # height x width
+        print(data_spinal_levels.shape)
+        for level, z_range in spinal_levels.items():
+            z_start = max(z_range.start, z_min)
+            z_end = min(z_range.stop, z_max)
+            if z_start >= z_end:
+                continue
 
-            cbar = fig.colorbar(sm, cax=cbar_ax, orientation='horizontal')
-            cbar.set_label('z-score', fontsize=6, labelpad=1.5,fontweight='bold',fontname="Arial")
-            cbar.ax.set_xticks([])
-            cbar.ax.text(-0.1, 0.5, f"{stat_min:.1f}", fontsize=6, va='center', ha='right', color='black', transform=cbar.ax.transAxes)
-            cbar.ax.text(1.25, 0.5, f"{stat_max:.1f}", fontsize=6, va='center', ha='right', color='black', transform=cbar.ax.transAxes)
-            cbar.ax.set_frame_on(False)
+            z_inds = np.arange(z_start, z_end) - z_min  
+            data_spinal_levels[:, z_inds] = level  
+        
+        data_spinal_alpha = np.zeros_like(data_spinal_levels, dtype=float)
+        data_spinal_alpha[data_spinal_levels > 0] = 1
+        data_spinal_levels_2 = np.copy(data_spinal_levels).astype(float)
+        data_spinal_levels_2[data_spinal_levels % 2 == 0] = 0.5
+        data_spinal_levels_2[data_spinal_levels % 2 == 1] = 0.75 
+
+        ax_levels.imshow(data_spinal_levels_2.T, cmap="gray", vmin=0, vmax=1, alpha=data_spinal_alpha.T, origin='lower', aspect='auto')
+
+        # --- Add text for the segmental labels
+        ax_levels_txt = fig.add_subplot(gs[0, 0])
+        ax_levels_txt.axis("off")  # we only want labels and lines
+
+        ax_levels_txt.text(-1.3, 0.9, "C5", transform=ax_cor.transAxes, color="black", fontsize=6, ha="center", va="center",fontweight='bold',fontname="Arial")
+        ax_levels_txt.text(-1.3, 0.68, "C6", transform=ax_cor.transAxes, color="black", fontsize=6, ha="center", va="center",fontweight='bold',fontname="Arial")
+        ax_levels_txt.text(-1.3, 0.49, "C7", transform=ax_cor.transAxes, color="black", fontsize=6, ha="center", va="center",fontweight='bold',fontname="Arial")
+        ax_levels_txt.text(-1.3, 0.3, "C8", transform=ax_cor.transAxes, color="black", fontsize=6, ha="center", va="center",fontweight='bold',fontname="Arial")
+        ax_levels_txt.text(-1.3, 0.1, "T1", transform=ax_cor.transAxes, color="black", fontsize=6, ha="center", va="center",fontweight='bold',fontname="Arial")
 
         # --- Add bar plot column for number of voxels ---
         colors=["#43BA8C","#F5AD27"]
         maps_name=["baseShim","SliceShim"]
-        ax_bar_container = fig.add_subplot(gs[:, 3])
+        ax_bar_container = fig.add_subplot(gs[:, 4])
         ax_bar_container.axis("off")  # hide container axis
         ax_bar_top = inset_axes(
         ax_bar_container,
         width="40%",     # full width of column 3
         height="25%",     # 50% of its height
         loc="upper right",
-        bbox_to_anchor=(-0.1, 0.1, 0.9, 0.9),
+        bbox_to_anchor=(-0.1, 0.01, 0.9, 0.9),
         bbox_transform=ax_bar_container.transAxes
         )
 
@@ -601,7 +639,7 @@ class Postprocess_main:
         width="50%",     # full width of column 3
         height="25%",     # 50% of its height
         loc="center right",
-        bbox_to_anchor=(-0.1, 0.01, 0.9, 0.9),
+        bbox_to_anchor=(-0.1, -0.1, 0.9, 0.9),
         bbox_transform=ax_bar_container.transAxes
         )
 
@@ -630,7 +668,7 @@ class Postprocess_main:
 
         ax_hist.legend(fontsize=6, frameon=False)
         ax_hist.legend(
-            fontsize=6,
+            fontsize=5,
             frameon=False,
             loc='upper left',
             bbox_to_anchor=(0.4, 1)   # x slightly outside axes
