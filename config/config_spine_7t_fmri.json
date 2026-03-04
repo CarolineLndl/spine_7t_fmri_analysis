@@ -14,6 +14,7 @@
                   "QC_dir":"derivatives/processing/preprocessing/QC/",
                   "func_mask":"func/{}/sct_get_centerline/",
                   "func_moco":"func/{}/sct_fmri_moco/",
+                  "func_mppca":"func/{}/fmri_mppca/",
                   "func_seg":"func/{}/sct_deepseg/",
                   "func_csf_seg":"func/{}/sct_propseg/",
                   "func_coreg":"func/{}/sct_register_multimodal/",
