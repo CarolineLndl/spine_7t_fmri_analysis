@@ -469,9 +469,9 @@ class Postprocess_main:
         
         height_ratios = [6.5, 3]  # coronal, axial
         
-        gs = fig.add_gridspec(nrows=2, ncols=3, 
+        gs = fig.add_gridspec(nrows=2, ncols=4, 
                               height_ratios=height_ratios,
-                               width_ratios=[1,1,1.5], hspace=0.01, wspace=0.05)
+                               width_ratios=[0.2,1,1,1.5], hspace=0.01, wspace=0.05)
 
 
         # --- Load template, mask, and underlay ---
@@ -505,9 +505,9 @@ class Postprocess_main:
             cor_slice = np.where(cor_slice > stat_min, cor_slice, np.nan)
             cor_slice=cor_slice.T
 
-            ax_cor = fig.add_subplot(gs[0, i])
-            bg_cor = template_data[x_min:x_max, y_slice, z_min:z_max].T
-            ax_cor.imshow(bg_cor, cmap="gray", origin="lower", aspect="auto")
+            ax_cor = fig.add_subplot(gs[0, i+1])
+            template_cor = template_data[x_min:x_max, y_slice, z_min:z_max].T
+            ax_cor.imshow(template_cor, cmap="gray", origin="lower", aspect="auto")
             im_cor = ax_cor.imshow(cor_slice, cmap=cmap, origin="lower", vmin=stat_min, vmax=stat_max, aspect="auto")
             ax_cor.text(0.5, 0.01, f"y={y_slice}", color="white", fontsize=5,ha="center", va="bottom", transform=ax_cor.transAxes)
             
@@ -528,9 +528,11 @@ class Postprocess_main:
             axi_slice = np.where(axi_slice > stat_min, axi_slice, np.nan)
             axi_slice=axi_slice.T
 
-            ax_axi = fig.add_subplot(gs[1, i])
+            ax_axi = fig.add_subplot(gs[1, i+1])
             template_axi = template_data[x_min:x_max, y_min:y_max, z_slice].T
+            underlay_axi = underlay_data[x_min:x_max, y_min:y_max, z_slice].T
             ax_axi.imshow(template_axi, cmap="gray", origin="lower", aspect="auto")
+            ax_axi.imshow(underlay_axi, cmap="gray", origin="lower", aspect="auto",alpha=0.1)
             im_axi = ax_axi.imshow(axi_slice, cmap=cmap, origin="lower", vmin=stat_min, vmax=stat_max, aspect="auto")
             ax_axi.axis("off")
             ax_axi.text(0.5, 0.01, f"z={z_slice}", color="white", fontsize=5,ha="center", va="bottom", transform=ax_axi.transAxes)
@@ -564,12 +566,10 @@ class Postprocess_main:
             cbar.ax.text(1.25, 0.5, f"{stat_max:.1f}", fontsize=6, va='center', ha='right', color='black', transform=cbar.ax.transAxes)
             cbar.ax.set_frame_on(False)
 
-
-
         # --- Add bar plot column for number of voxels ---
         colors=["#43BA8C","#F5AD27"]
         maps_name=["baseShim","SliceShim"]
-        ax_bar_container = fig.add_subplot(gs[:, 2])
+        ax_bar_container = fig.add_subplot(gs[:, 3])
         ax_bar_container.axis("off")  # hide container axis
         ax_bar_top = inset_axes(
         ax_bar_container,
