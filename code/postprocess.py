@@ -446,4 +446,109 @@ class Postprocess_main:
         
         return stat_map_file
     
-  
+    def plot_second_level_maps(self, i_fnames_pair=None, output_dir=None,stat_min=2.3, stat_max=5,background_fname=None,cmap="autumn",mask_fname=None, underlay_fname=None,task_name=None, verbose=True, redo=False):
+        """
+        Plot first-level statistical maps for multiple participants and contrasts in a grid layout.
+
+        To do: add spinal levels in the coronal view 
+        """
+        if output_dir is None:
+            raise ValueError("output_dir is empty")
+        if i_fnames_pair is None or len(i_fnames_pair) == 0:
+            raise ValueError("i_fnames_pair is empty")
+        if background_fname is None :
+            raise ValueError("Please provide PAM50 template filename")
+
+        # --- Figure and gridspec ---
+        fig = plt.figure(figsize=(2, 3.5))
+        fig.subplots_adjust(left=0.01,right=0.99,top=0.95,bottom=0.01)
+        
+        height_ratios = [6.5, 3]  # coronal, axial
+        
+        gs = fig.add_gridspec(nrows=2, ncols=2, 
+                              height_ratios=height_ratios,
+                               width_ratios=[1,1], hspace=0.01, wspace=0.05)
+
+
+        # --- Load template, mask, and underlay ---
+        print(background_fname)
+        template_img = nib.load(background_fname)
+        template_data = nib.as_closest_canonical(template_img).get_fdata()
+        
+        if underlay_fname is not None:
+            underlay_data = nib.as_closest_canonical(nib.load(underlay_fname)).get_fdata()
+        
+        print(i_fnames_pair)
+        for i, fname in enumerate(i_fnames_pair):
+            stat_img = nib.as_closest_canonical(nib.load(fname))
+            statmap_data = stat_img.get_fdata()
+
+            # --- Coronal slice ---
+            x_min, x_max = 35, 105
+            z_min, z_max = 130, 350
+            y_slice = np.unravel_index(np.nanargmax(statmap_data), statmap_data.shape)[1]
+            
+
+            # Find y_slice along y-axis with maximum intensity
+            crop_data = statmap_data[x_min:x_max, :, z_min:z_max]
+            y_slice = np.argmax(np.nanmax(crop_data, axis=(0, 2)))  # max over x and z, returns y index
+            print(y_slice)
+            cor_slice = statmap_data[x_min:x_max,y_slice,z_min:z_max]
+            cor_slice = np.where(cor_slice > stat_min, cor_slice, np.nan)
+            cor_slice=cor_slice.T
+
+            ax_cor = fig.add_subplot(gs[0, i])
+            bg_cor = template_data[x_min:x_max, y_slice, z_min:z_max].T
+            ax_cor.imshow(bg_cor, cmap="gray", origin="lower", aspect="auto")
+            im_cor = ax_cor.imshow(cor_slice, cmap=cmap, origin="lower", vmin=stat_min, vmax=stat_max, aspect="auto")
+            ax_cor.text(0.5, 0.01, f"y={y_slice}", color="white", fontsize=5,ha="center", va="bottom", transform=ax_cor.transAxes)
+            ax_cor.axis("off")
+
+
+            # --- Axial slice ---
+            crop_x = 30
+            crop_y = 30
+            x0 = statmap_data.shape[0] // 2
+            y0 = statmap_data.shape[1] // 2
+            x_min, x_max = x0 - crop_x, x0 + crop_x
+            y_min, y_max = y0 - crop_y, y0 + crop_y
+            
+            crop_data = statmap_data[x_min:x_max, y_min:y_max, :]
+            z_slice = np.argmax(np.nanmax(crop_data, axis=(0, 1)))  # max over x and z, returns y index
+            print(z_slice)
+            axi_slice = crop_data[:, :, z_slice]
+            axi_slice = np.where(axi_slice > stat_min, axi_slice, np.nan)
+            axi_slice=axi_slice.T
+
+            ax_axi = fig.add_subplot(gs[1, i])
+            template_axi = template_data[x_min:x_max, y_min:y_max, z_slice].T
+            ax_axi.imshow(template_axi, cmap="gray", origin="lower", aspect="auto")
+            im_axi = ax_axi.imshow(axi_slice, cmap=cmap, origin="lower", vmin=stat_min, vmax=stat_max, aspect="auto")
+            ax_axi.axis("off")
+            ax_axi.text(0.5, 0.01, f"z={z_slice}", color="white", fontsize=5,ha="center", va="bottom", transform=ax_axi.transAxes)
+
+            if i==0:
+                ax_cor.set_title(f"baseShim", color="black", fontweight='bold', fontsize=7, fontname="Arial")
+                ax_cor.text(0.05, 0.05, "L", transform=ax_cor.transAxes, color="white", fontsize=7, ha="left", va="bottom")
+                ax_cor.text(0.95, 0.05, "R", transform=ax_cor.transAxes, color="white", fontsize=7, ha="right", va="bottom")
+                ax_axi.text(0.02, 0.5, "L", transform=ax_axi.transAxes, color="white", fontsize=7, ha="left", va="center")
+                ax_axi.text(0.98, 0.5, "R", transform=ax_axi.transAxes, color="white", fontsize=7, ha="right", va="center")
+                ax_axi.text(0.5, 0.90, "A", transform=ax_axi.transAxes, color="white", fontsize=7, ha="center", va="top")
+                ax_axi.text(0.5, 0.12, "P", transform=ax_axi.transAxes, color="white", fontsize=7, ha="center", va="bottom")
+
+            else:
+                ax_cor.set_title(f"sliceShim", color="black", fontweight='bold', fontsize=7, fontname="Arial")
+
+            # Shared colorbar
+            cbar_ax = fig.add_axes([0.92, 0.15, 0.02, 0.7])  # left, bottom, width, height
+            cbar = fig.colorbar(im_cor, cax=cbar_ax)
+            cbar.set_label("z-score", fontsize=10)
+
+        out_file=os.path.join(output_dir, f"second_level_maps.png")
+        print(out_file)
+        plt.savefig(out_file, dpi=300)
+        plt.close(fig)
+
+
+
+            

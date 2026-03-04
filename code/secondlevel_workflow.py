@@ -83,9 +83,7 @@ print("")
 
 common_mask_fname = os.path.join(first_level_dir.split("sub")[0], "common_mask_PAM50.nii.gz")
 
-
 for task_name in config["design_exp"]["task_names"]:
-    
     for acq_name in config["design_exp"]["acq_names"]:
         i_fnames=[]
         tag="task-" + task_name + "_acq-" + acq_name
@@ -119,3 +117,20 @@ for task_name in config["design_exp"]["task_names"]:
         print(f'=== Second level done for : {tag} ===', flush=True)
         print("=========================================", flush=True)
         
+#------------------------------------------------------------------
+#------ Second level plots
+#------------------------------------------------------------------
+# select the second level files
+i_fnames_pair=[]
+for task_name in config["design_exp"]["task_names"]:
+    for acq_name in config["design_exp"]["acq_names"]:
+        tag="task-" + task_name + "_acq-" + acq_name
+        i_fnames_pair.append(os.path.join(second_level_dir.format(tag),f"n{len(IDs)}_{tag}_t_clustercorrected.nii.gz"))
+
+output_dir=os.path.join(config["raw_dir"], config["figures_dir"]["main_dir"], "task")
+postprocess.plot_second_level_maps(i_fnames_pair=i_fnames_pair, 
+                                   output_dir=output_dir,
+                                   stat_min=2.3, 
+                                   stat_max=6,
+                                   background_fname=os.path.join(path_code, "template", config["PAM50_t2"]))
+                                   
