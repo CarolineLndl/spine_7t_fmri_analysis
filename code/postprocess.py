@@ -12,7 +12,7 @@ from nilearn.glm.second_level import non_parametric_inference
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from preprocess import Preprocess_main, Preprocess_Sc
 from nibabel.processing import resample_from_to
-
+from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 #####################################################
 class Postprocess_main:
     '''
@@ -448,9 +448,13 @@ class Postprocess_main:
     
     def plot_second_level_maps(self, i_fnames_pair=None, output_dir=None,stat_min=2.3, stat_max=5,background_fname=None,cmap="autumn",mask_fname=None, underlay_fname=None,task_name=None, verbose=True, redo=False):
         """
-        Plot first-level statistical maps for multiple participants and contrasts in a grid layout.
+        Plot second-level statistical maps for two maps.
 
-        To do: add spinal levels in the coronal view 
+
+        To do: 
+        - plot GM
+        - add spinal levels in the coronal view 
+
         """
         if output_dir is None:
             raise ValueError("output_dir is empty")
@@ -460,28 +464,33 @@ class Postprocess_main:
             raise ValueError("Please provide PAM50 template filename")
 
         # --- Figure and gridspec ---
-        fig = plt.figure(figsize=(2, 3.5))
+        fig = plt.figure(figsize=(3.5, 3.5))
         fig.subplots_adjust(left=0.01,right=0.99,top=0.95,bottom=0.01)
         
         height_ratios = [6.5, 3]  # coronal, axial
         
-        gs = fig.add_gridspec(nrows=2, ncols=2, 
+        gs = fig.add_gridspec(nrows=2, ncols=3, 
                               height_ratios=height_ratios,
-                               width_ratios=[1,1], hspace=0.01, wspace=0.05)
+                               width_ratios=[1,1,1.5], hspace=0.01, wspace=0.05)
 
 
         # --- Load template, mask, and underlay ---
-        print(background_fname)
         template_img = nib.load(background_fname)
         template_data = nib.as_closest_canonical(template_img).get_fdata()
         
         if underlay_fname is not None:
             underlay_data = nib.as_closest_canonical(nib.load(underlay_fname)).get_fdata()
         
-        print(i_fnames_pair)
+        # --- Plotting ---
+        num_voxels_list=[];values_list=[]
+
         for i, fname in enumerate(i_fnames_pair):
             stat_img = nib.as_closest_canonical(nib.load(fname))
             statmap_data = stat_img.get_fdata()
+
+            # Count suprathreshold voxels
+            num_voxels_list.append(np.nansum(statmap_data > stat_min))
+            values_list.append(statmap_data.flatten()) 
 
             # --- Coronal slice ---
             x_min, x_max = 35, 105
@@ -492,7 +501,6 @@ class Postprocess_main:
             # Find y_slice along y-axis with maximum intensity
             crop_data = statmap_data[x_min:x_max, :, z_min:z_max]
             y_slice = np.argmax(np.nanmax(crop_data, axis=(0, 2)))  # max over x and z, returns y index
-            print(y_slice)
             cor_slice = statmap_data[x_min:x_max,y_slice,z_min:z_max]
             cor_slice = np.where(cor_slice > stat_min, cor_slice, np.nan)
             cor_slice=cor_slice.T
@@ -502,6 +510,7 @@ class Postprocess_main:
             ax_cor.imshow(bg_cor, cmap="gray", origin="lower", aspect="auto")
             im_cor = ax_cor.imshow(cor_slice, cmap=cmap, origin="lower", vmin=stat_min, vmax=stat_max, aspect="auto")
             ax_cor.text(0.5, 0.01, f"y={y_slice}", color="white", fontsize=5,ha="center", va="bottom", transform=ax_cor.transAxes)
+            
             ax_cor.axis("off")
 
 
@@ -515,7 +524,6 @@ class Postprocess_main:
             
             crop_data = statmap_data[x_min:x_max, y_min:y_max, :]
             z_slice = np.argmax(np.nanmax(crop_data, axis=(0, 1)))  # max over x and z, returns y index
-            print(z_slice)
             axi_slice = crop_data[:, :, z_slice]
             axi_slice = np.where(axi_slice > stat_min, axi_slice, np.nan)
             axi_slice=axi_slice.T
@@ -526,7 +534,8 @@ class Postprocess_main:
             im_axi = ax_axi.imshow(axi_slice, cmap=cmap, origin="lower", vmin=stat_min, vmax=stat_max, aspect="auto")
             ax_axi.axis("off")
             ax_axi.text(0.5, 0.01, f"z={z_slice}", color="white", fontsize=5,ha="center", va="bottom", transform=ax_axi.transAxes)
-
+            ax_cor.axhline(y=z_slice - z_min, color='white', linestyle='--', linewidth=0.8, alpha=0.7)
+            
             if i==0:
                 ax_cor.set_title(f"baseShim", color="black", fontweight='bold', fontsize=7, fontname="Arial")
                 ax_cor.text(0.05, 0.05, "L", transform=ax_cor.transAxes, color="white", fontsize=7, ha="left", va="bottom")
@@ -540,12 +549,97 @@ class Postprocess_main:
                 ax_cor.set_title(f"sliceShim", color="black", fontweight='bold', fontsize=7, fontname="Arial")
 
             # Shared colorbar
-            cbar_ax = fig.add_axes([0.92, 0.15, 0.02, 0.7])  # left, bottom, width, height
-            cbar = fig.colorbar(im_cor, cax=cbar_ax)
-            cbar.set_label("z-score", fontsize=10)
+            cbar_ax = fig.add_axes([0.7, 0.1, 0.2, 0.03])  # left, bottom, width, height
+
+
+            # Normalize and create colorbar
+            norm = plt.Normalize(vmin=stat_min, vmax=stat_max)
+            sm = plt.cm.ScalarMappable(cmap='autumn', norm=norm)
+            sm.set_array([])
+
+            cbar = fig.colorbar(sm, cax=cbar_ax, orientation='horizontal')
+            cbar.set_label('z-score', fontsize=6, labelpad=1.5,fontweight='bold',fontname="Arial")
+            cbar.ax.set_xticks([])
+            cbar.ax.text(-0.1, 0.5, f"{stat_min:.1f}", fontsize=6, va='center', ha='right', color='black', transform=cbar.ax.transAxes)
+            cbar.ax.text(1.25, 0.5, f"{stat_max:.1f}", fontsize=6, va='center', ha='right', color='black', transform=cbar.ax.transAxes)
+            cbar.ax.set_frame_on(False)
+
+
+
+        # --- Add bar plot column for number of voxels ---
+        colors=["#43BA8C","#F5AD27"]
+        maps_name=["baseShim","SliceShim"]
+        ax_bar_container = fig.add_subplot(gs[:, 2])
+        ax_bar_container.axis("off")  # hide container axis
+        ax_bar_top = inset_axes(
+        ax_bar_container,
+        width="40%",     # full width of column 3
+        height="25%",     # 50% of its height
+        loc="upper right",
+        bbox_to_anchor=(-0.1, 0.1, 0.9, 0.9),
+        bbox_transform=ax_bar_container.transAxes
+        )
+
+        ax_bar_top.bar(range(len(num_voxels_list)), num_voxels_list, color=colors, width=0.5, alpha=0.7)
+        ax_bar_top.set_xticks(range(len(num_voxels_list)))
+        ax_bar_top.set_xticklabels(
+            [ maps_name[i] for i in range(len(num_voxels_list))],
+            rotation=45,fontsize=6,fontweight='bold',fontname="Arial")
+        ax_bar_top.set_ylabel("# voxels", fontsize=6,fontweight='bold',fontname="Arial")
+        ax_bar_top.tick_params(axis='y', labelsize=6)
+        ax_bar_top.yaxis.set_label_coords(-0.9, 0.5)
+        ax_bar_top.tick_params(axis='y', which='both', pad=2)  # reduce padding if needed
+
+        ax_bar_top.spines['left'].set_position(('outward', 10))  # 10 points outward
+        ax_bar_top.spines['top'].set_visible(False)
+        ax_bar_top.spines['right'].set_visible(False)
+
+        # --- Add bar plot column for t-value distribution ---
+        maps_name=["baseShim","SliceShim"]
+        ax_hist = inset_axes(
+        ax_bar_container,
+        width="50%",     # full width of column 3
+        height="25%",     # 50% of its height
+        loc="center right",
+        bbox_to_anchor=(-0.1, 0.01, 0.9, 0.9),
+        bbox_transform=ax_bar_container.transAxes
+        )
+
+        for i, vals in enumerate(values_list):
+            vals = np.asarray(vals)  # ensure it’s a NumPy array
+            
+        all_values = np.concatenate(values_list)
+        bins = np.linspace(stat_min, np.nanmax(all_values), 30)
+        
+        for i, values in enumerate(values_list):
+            ax_hist.hist(
+                values,
+                bins=bins,
+                color=colors[i],
+                density=False,      # normalize
+                alpha=0.5,         # transparency
+                label=maps_name[i]
+            )
+
+        ax_hist.set_xlabel("z-score", fontsize=6, fontweight='bold',fontname="Arial")
+        ax_hist.set_ylabel("# voxels", fontsize=6, fontweight='bold',fontname="Arial")
+        ax_hist.tick_params(axis='both', labelsize=6)
+
+        ax_hist.spines['top'].set_visible(False)
+        ax_hist.spines['right'].set_visible(False)
+
+        ax_hist.legend(fontsize=6, frameon=False)
+        ax_hist.legend(
+            fontsize=6,
+            frameon=False,
+            loc='upper left',
+            bbox_to_anchor=(0.4, 1)   # x slightly outside axes
+        )
+        ax_hist.yaxis.set_label_coords(-0.5, 0.5)
+
+
 
         out_file=os.path.join(output_dir, f"second_level_maps.png")
-        print(out_file)
         plt.savefig(out_file, dpi=300)
         plt.close(fig)
 

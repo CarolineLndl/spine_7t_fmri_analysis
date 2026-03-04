@@ -134,3 +134,5 @@ postprocess.plot_second_level_maps(i_fnames_pair=i_fnames_pair,
                                    stat_max=6,
                                    background_fname=os.path.join(path_code, "template", config["PAM50_t2"]))
                                    
+# Next step:
+# - extract the number of voxels by conditions
