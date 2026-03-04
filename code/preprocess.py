@@ -15,6 +15,7 @@ from IPython.display import HTML
 # neuroimaging imports
 from nilearn import image
 import nibabel as nib
+from dipy.denoise.localpca import mppca
 
 #custom imports
 import utils
@@ -269,7 +270,84 @@ class Preprocess_Sc:
 
         return centerline_f+'.nii.gz', mask_f
 
+    def mppca_denoising(self,ID=None,i_img=None,mask_img=None,o_folder=None,ses_name='',task_name='',run_name="",redo=False,verbose=True):
+        """
+        This function performs thermal denoising using Marcenko-Pastur PCA approach
 
+        Reference:
+        ----------
+
+
+        Attributes:
+        -----------
+        ID : str
+            Name of the participant (default: None; an error will be raised if not provided).
+        i_img : str
+            Input filename of the 4D functional images (default: None; an error will be raised if not provided).
+        mask_img : str
+            Filename of the binary mask used to restrict voxels considered by the registration metric (default: None; an error will be raised if not provided).
+        o_folder : str
+            Output folder (default: None; if not provided, the input folder will be used).
+        ses_name : str
+            Session name, if applicable (should include the 'ses-' prefix in BIDS format).
+        task_name : str
+            Task name, if applicable (should include the 'task-' prefix in BIDS format).
+        run_name : str
+            Run name, if applicable (should include the 'run-' prefix in BIDS format).
+        redo : bool
+            Whether to redo the motion correction step (default: False).
+        verbose : bool
+            Whether to display information and generate quality control plots (default: True).
+
+        Outputs:
+        --------
+        mppca_file : str
+            Filename of the denoised fMRI volumes: *_mppca.nii.gz
+        noise_file : str
+            Filename of the image containing the noise: *_noise_map.nii.gz
+
+
+        """
+         
+        # --- Validate inputs --------------------------------------------------------------
+        if ID is None:
+            raise ValueError("Please provide a participant ID (e.g., _.stc(ID='A001')).")
+        if i_img is None:
+            raise ValueError("Please provide the input image filename.")
+        if mask_img is None:
+            raise ValueError("Please provide the mask image filename.")
+        
+        # --- Define main folders ----------------------------------------------------------
+        preprocess_dir =self.preprocessing_dir.format(ID)
+        if o_folder is None : # gave the default folder name if not provided
+            o_folder=preprocess_dir + "/" + ses_name + self.config["preprocess_dir"]["func_mppca"].format(task_name)
+        
+        print(o_folder)
+        os.makedirs(o_folder, exist_ok=True)
+        run_tag = f"_{run_name}" if run_name else ""
+        task_tag = f"_{task_name}" if task_name else ""
+
+        mppca_file= o_folder+self.structure+ os.path.basename(i_img).split(".")[0] + "_mppca.nii.gz"
+        noise_file=mppca_file.split(".")[0] + '_noise_map.nii.gz'
+
+        if not os.path.exists(mppca_file) or redo:
+            print(f"MP PCA estimation is running")
+            # --- Load data
+            fmri_img=nib.load(i_img)
+            fmri_data = fmri_img.get_fdata()
+            mask_data = nib.load(mask_img).get_fdata()
+            mask_data = mask_data.astype(bool) 
+
+            # --- run mppca
+            denoised_masked = mppca(fmri_data, patch_radius=2,mask=mask_data)
+
+            denoised_data = fmri_data.copy()
+            denoised_data[mask_data] = denoised_masked[mask_data]
+
+            # --- save file
+            nib.save(nib.Nifti1Image(denoised_data, fmri_img.affine), mppca_file)
+        
+        return mppca_file#, noise_file
 
     def moco(self,ID=None,i_img=None,mask_img=None,ref_img=None,o_folder=None,params=None,ses_name='',task_name='',run_name="",redo=False,verbose=True):
 

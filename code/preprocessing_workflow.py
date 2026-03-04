@@ -181,7 +181,7 @@ for ID_nb, ID in enumerate(IDs):
                     mean_func_f = utils.tmean_img(ID=ID,i_img=func_file,o_img=o_img,verbose=False)
                     ctrl_sc_file, mask_sc_file = preprocess_Sc.moco_mask(ID=ID,
                                                                         i_img=mean_func_f,
-                                                                        radius_size=25,
+                                                                        radius_size=30,
                                                                         task_name=tag,
                                                                         manual=manual_centerline,
                                                                         redo_ctrl=redo,
@@ -192,10 +192,22 @@ for ID_nb, ID in enumerate(IDs):
                     print(f'=== Moco masks : Done  {ID} {tag} {run_name} ===', flush=True)
 
                     #------------------------------------------------------------------
+                    #------ Thermal noise removal using Marcenko-Pastur PCA
+                    #------------------------------------------------------------------
+                    func_mppca_file=preprocess_Sc.mppca_denoising(ID=ID,
+                                         i_img=func_file,
+                                         mask_img=mask_sc_file,
+                                         task_name=tag,
+                                         run_name=run_name,
+                                         redo=redo,
+                                         verbose=verbose)
+                    
+
+                    #------------------------------------------------------------------
                     #------ Run moco
                     #------------------------------------------------------------------
                     moco_f,moco_mean_f,qc_dir=preprocess_Sc.moco(ID=ID,
-                                                                i_img=func_file,
+                                                                i_img=func_mppca_file,
                                                                 mask_img=mask_sc_file,
                                                                 task_name=tag,
                                                                 run_name=run_name,
