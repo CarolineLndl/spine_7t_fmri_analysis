@@ -163,7 +163,7 @@ for ID_nb, ID in enumerate(IDs):
             o_dir = os.path.join(preprocessing_dir.format(ID),  "func", tag)
             params_moco = 'poly=0,smooth=1,metric=MeanSquares,gradStep=1,sampling=0.2'
 
-            for func_file in raw_func:
+            for i_func, func_file in enumerate(raw_func):
                 # Check run number if multiple run exists
                 match = re.search(r"_?(run-\d+)", func_file)
                 if match:
@@ -172,8 +172,8 @@ for ID_nb, ID in enumerate(IDs):
                 else:
                     run_name = ""
 
-                # Full processing only for motor task run-1, the others will be co-registered
-                if task_name == 'motor' and (run_name == "run-01" or run_name == ""):
+                # Full processing only for the first motor task, the others will be co-registered
+                if task_name == 'motor' and i_func == 0:
                     #------------------------------------------------------------------
                     #------ Create mask around the cord for moco
                     #------------------------------------------------------------------
