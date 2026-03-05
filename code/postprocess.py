@@ -377,7 +377,7 @@ class Postprocess_main:
         Returns
         -------
         z_map_file : str
-            Filename of the output z-map NIfTI file (e.g., "n20_motor_acq-shimBase+3mm_intercept_z_map.nii.gz")
+            Filename of the output t-map NIfTI file (e.g., "n20_motor_acq-shimBase+3mm_intercept_z_map.nii.gz")
         '''
         
 
@@ -560,7 +560,7 @@ class Postprocess_main:
         sm.set_array([])
 
         cbar = fig.colorbar(sm, cax=cbar_ax)
-        cbar.set_label('z-score', fontsize=6, labelpad=1.5,fontweight='bold',fontname="Arial")
+        cbar.set_label('t-score', fontsize=6, labelpad=1.5,fontweight='bold',fontname="Arial")
         cbar.ax.set_yticks([])
         cbar.ax.text(1.35, 1.1, f"{stat_min:.1f}", fontsize=6, va='center', ha='right', color='black', transform=cbar.ax.transAxes)
         cbar.ax.text(1.35, -0.12, f"{stat_max:.1f}", fontsize=6, va='center', ha='right', color='black', transform=cbar.ax.transAxes)
@@ -659,7 +659,7 @@ class Postprocess_main:
                 label=maps_name[i]
             )
 
-        ax_hist.set_xlabel("z-score", fontsize=6, fontweight='bold',fontname="Arial")
+        ax_hist.set_xlabel("t-score", fontsize=6, fontweight='bold',fontname="Arial")
         ax_hist.set_ylabel("# voxels", fontsize=6, fontweight='bold',fontname="Arial")
         ax_hist.tick_params(axis='both', labelsize=6)
 
