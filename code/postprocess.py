@@ -344,7 +344,7 @@ class Postprocess_main:
         fig.savefig(out_file, dpi=300)
         plt.close(fig)
 
-    def run_second_level_glm(self,i_fnames=None,design_matrix=None,mask_fname=None,smoothing_fwhm=None,parametric=False,n_perm=10000,vox_thr=0.01,task_name=None,run_name=None,verbose=True,redo=False):
+    def run_second_level_glm(self,i_fnames=None,design_matrix=None,mask_fname=None,smoothing_fwhm=None,parametric=False,n_jobs=5,n_perm=10000,vox_thr=0.01,task_name=None,run_name=None,verbose=True,redo=False):
         '''
         Run second-level GLM for a specific task.
         # ongoing test nilearn: https://nilearn.github.io/stable/modules/generated/nilearn.glm.second_level.SecondLevelModel.html
@@ -410,7 +410,6 @@ class Postprocess_main:
             stat_map_file = os.path.join(second_level_dir, f"n{len(i_fnames)}_{task_name}_")
             if not os.path.exists(stat_map_file + 'logp_max_t.nii.gz') or redo:
                 print(f"Computing non-parametric second-level analysis for task {task_name} with {n_perm} permutations.")
-
                 out_dict = non_parametric_inference(
                     i_fnames,
                     design_matrix=design_matrix,
@@ -418,8 +417,8 @@ class Postprocess_main:
                     model_intercept=True,
                     n_perm=n_perm, 
                     two_sided_test=False,
-                    smoothing_fwhm=1,
-                    n_jobs=2,
+                    smoothing_fwhm=smoothing_fwhm,
+                    n_jobs=n_jobs,
                     threshold=vox_thr, # voxel level threshold for cluster definition (uncorrected p-value)
                     #tfce=True,
                     verbose=1,

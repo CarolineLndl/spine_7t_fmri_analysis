@@ -102,13 +102,13 @@ for task_name in config["design_exp"]["task_names"]:
 
             # find the corresponding first-level file
             i_fnames.append(glob.glob(os.path.join(first_level_dir.format(ID), f"{tag}", f"*{tag}*{run_name}*trial_RH-rest*inTemplate.nii.gz"))[0])
-            
+
         z_map_file=postprocess.run_second_level_glm(i_fnames=i_fnames,
                                                             mask_fname=common_mask_fname,
                                                             task_name=tag,
                                                             run_name="",
                                                             parametric=False,
-                                                            n_perm=1000,
+                                                            n_perm=500,
                                                             vox_thr=0.01,
                                                             redo=redo,
                                                             verbose=verbose)
