@@ -165,184 +165,207 @@ class Postprocess_main:
         
         return stat_maps
     
-    def plot_first_level_maps(self, i_fnames_pair=None, output_dir=None,stat_min=1.6, stat_max=4,background_fname=None,mask_fname=None, underlay_fname=None,task_name=None,plot_mip=True, verbose=True, redo=False,n_cols=5):
+    def plot_first_level_maps(self, i_fnames=None, output_fname=None,titles=["shimBase","shimSlice",""],cmap="autumn",stat_min=1.6, stat_max=4,background_fname=None,mask_fname=None, underlay_fname=None,task_name=None,plot_mip=True, verbose=True, redo=False,n_cols=5):
         """
         Plot first-level statistical maps for multiple participants and contrasts in a grid layout.
 
         To do: add spinal levels in the coronal view 
         """
-        if output_dir is None:
-            output_dir = os.path.join(self.first_level_dir)
-        if i_fnames_pair is None or len(i_fnames_pair) == 0:
+        if output_fname is None:
+            output_fname = os.path.join(self.first_level_dir.split("sub-")[0], f"first_level_maps_n{len(i_fnames)}_all.png")
+        if i_fnames is None or len(i_fnames) == 0:
             raise ValueError("i_fnames_pair is empty")
 
-        n_subjects = len(i_fnames_pair)
-        n_participant_rows = (n_subjects + n_cols - 1) // n_cols  # number of participant rows
-        n_rows = n_participant_rows * 3  # coronal, axial, gap
-        n_actual_cols = min(n_subjects, n_cols)
-        total_cols = (n_cols * 3) - 1  # 2 maps + 1 spacer per participant expect for the 5th one
+        if not os.path.exists(output_fname) or redo:
+            n_subjects = len(i_fnames)
+            n_participant_rows = (n_subjects + n_cols - 1) // n_cols  # number of participant rows
+            n_rows = n_participant_rows * 3  # coronal, axial, gap
+            n_actual_cols = min(n_subjects, n_cols)
+            total_cols = (n_cols * 4) - 1  # 2 maps + 1 spacer per participant expect for the 5th one
 
-        # --- Load template, mask, and underlay ---
-        template_img = nib.as_closest_canonical(nib.load(background_fname))
-        template_data = template_img.get_fdata()
-        mask_data = None
-        if mask_fname is not None:
-            mask_img = nib.load(mask_fname)
-            mask_data = nib.as_closest_canonical(mask_img).get_fdata()
+            # --- Load template, mask, and underlay ---
+            template_img = nib.as_closest_canonical(nib.load(background_fname))
+            template_data = template_img.get_fdata()
+            mask_data = None
+            if mask_fname is not None:
+                mask_img = nib.load(mask_fname)
+                mask_data = nib.as_closest_canonical(mask_img).get_fdata()
 
-        underlay_data = None
-        if underlay_fname is not None:
-            underlay_data = nib.as_closest_canonical(nib.load(underlay_fname)).get_fdata()
+            underlay_data = None
+            if underlay_fname is not None:
+                underlay_data = nib.as_closest_canonical(nib.load(underlay_fname)).get_fdata()
 
-        # --- Figure and gridspec ---
-        # Figure size scales with number of participant rows
-        fig_height = n_participant_rows *2
-        fig_width = 7 #max paper width is 7 inches
-        fig = plt.figure(figsize=(fig_width, fig_height))
-        fig.subplots_adjust(left=0.01,right=0.99,top=0.95,bottom=0.01)
+            # --- Figure and gridspec ---
+            # Figure size scales with number of participant rows
+            fig_height = n_participant_rows *2
+            fig_width = 7 #max paper width is 7 inches
+            fig = plt.figure(figsize=(fig_width, fig_height))
+            fig.subplots_adjust(left=0.01,right=0.99,top=0.94,bottom=0.01)
 
-        height_ratios = []
-        for _ in range(n_participant_rows):
-            height_ratios += [6.5, 3, 2]  # coronal, axial, gap
-        
-        width_ratios = []
-        for i in range(n_cols):
-            width_ratios += [1, 1]  # two map columns
-            if i != n_cols - 1:     # add spacer except after last participant
-                width_ratios += [0.2]  # spacer column smaller
-
-        gs = fig.add_gridspec(nrows=len(height_ratios), ncols=total_cols,
-                          height_ratios=height_ratios, 
-                          width_ratios=width_ratios,
-                          hspace=0.01,wspace=0.1)
-
-
-        for subj_idx, maps_pair in enumerate(i_fnames_pair):
-            if len(maps_pair) != 2:
-                raise ValueError("Each subject should have exactly 2 statistical maps")
-
-            col_idx = subj_idx % n_cols
-            row_participant = subj_idx // n_cols 
-            row_start = (subj_idx // n_cols) * 3
-            col_start = (subj_idx % n_cols) * 3   # 2 for maps, 1 for spacer (subj_idx % n_cols) * 3   
-
+            height_ratios = []
+            for _ in range(n_participant_rows):
+                height_ratios += [6.5, 2.7, 3]  # coronal, axial, gap
             
-            for map_idx, i_fname in enumerate(maps_pair):
-                x_min, x_max = 35, 105
-                z_min, z_max = 130, 350
-                statmap_img = nib.as_closest_canonical(nib.load(i_fname))
-                statmap_data = statmap_img.get_fdata()
-                if mask_data is not None:
-                    mask_resampled = resample_from_to(mask_img, statmap_img, order=0)  # nearest-neighbor for mask
-                    mask_data = mask_resampled.get_fdata() > 0  # boolean
-                    statmap_data = np.where(mask_data, statmap_data, 0)
+            width_ratios = []
+            for i in range(n_cols):
+                width_ratios += [1, 1, 1]  # three map columns
+                if i != n_cols - 1:     # add spacer except after last participant
+                    width_ratios += [0.2]  # spacer column smaller
+
+            gs = fig.add_gridspec(nrows=len(height_ratios), ncols=total_cols,
+                            height_ratios=height_ratios, 
+                            width_ratios=width_ratios,
+                            hspace=0.01,wspace=0.1)
+
+            for subj_idx, maps in enumerate(i_fnames):
+                if len(maps) == 2:
+                    maps=maps+ [None]
+
+                col_idx = subj_idx % n_cols
+                row_participant = subj_idx // n_cols 
+                row_start = (subj_idx // n_cols) * 3
+                col_start = (subj_idx % n_cols) * 4   # 3 for maps, 1 for spacer (subj_idx % n_cols) * 3   
+
+                for map_idx, i_fname in enumerate(maps):
+                    if map_idx == 0:
+                        cmap = "winter"
+                    else:
+                        cmap = "autumn"
+                    if i_fname is None:
+                        ax = fig.add_subplot(gs[row_start, col_start + map_idx])
+                        ax.axis("off")   # empty panel
+                        continue
+
+                    x_min, x_max = 35, 105
+                    z_min, z_max = 130, 350
+                    statmap_img = nib.as_closest_canonical(nib.load(i_fname))
+                    statmap_data = statmap_img.get_fdata()
+                    if mask_data is not None:
+                        mask_resampled = resample_from_to(mask_img, statmap_img, order=0)  # nearest-neighbor for mask
+                        mask_data = mask_resampled.get_fdata() > 0  # boolean
+                        statmap_data = np.where(mask_data, statmap_data, 0)
+            
+                    stat_thresh = np.where(statmap_data > stat_min, statmap_data, 0)
+
+                    # --- Coronal (top row) ---
+                    if plot_mip:
+                        y_slice = statmap_data.shape[1] // 2
+                        mip_cor = np.max(stat_thresh, axis=1)
+                        mip_cor = mip_cor[x_min:x_max,z_min:z_max]
+                    else:
+                        y_slice = 69
+                        mip_cor = stat_thresh
+                        mip_cor = mip_cor[x_min:x_max,y_slice, z_min:z_max]
+                    mip_cor = np.where(mip_cor > stat_min, mip_cor, np.nan)
+                    mip_cor=mip_cor.T
+                    template_cor = template_data[x_min:x_max, y_slice, z_min:z_max].T
+
+                    ax_cor = fig.add_subplot(gs[row_start, col_start + map_idx])
+                    ax_cor.imshow(template_cor, cmap="gray", origin="lower",aspect='auto')
+                    if underlay_data is not None:
+                        ax_cor.imshow(underlay_data[x_min:x_max, y_slice, z_min:z_max].T, cmap="gray", origin="lower",aspect='auto')
+                    
+                    ax_cor.imshow(mip_cor, cmap=cmap, origin="lower", vmin=stat_min, vmax=stat_max,aspect='auto')
+                    ax_cor.axvline(x=(x_max-x_min)/2, color="white", linestyle="--", linewidth=0.5, alpha=0.6)
+                    ax_cor.axis("off")
+
+                    if map_idx == 0:
+                        x_center = 1.7 
+                        y_top = 1.2   
+                        ax_cor.text(x_center, y_top, f"ID #{subj_idx + 1}", ha='center', va='bottom', fontsize=8, fontweight='black', transform=ax_cor.transAxes, fontname="Arial")
+                        line_y = 1.2
+                        ax_cor.hlines(y=line_y, xmin=0.15, xmax=3, colors='black', linewidth=0.8, transform=ax_cor.transAxes, clip_on=False)
         
-                stat_thresh = np.where(statmap_data > stat_min, statmap_data, 0)
+                        ax_cor.set_title(titles[0], color="black",  fontsize=6, fontname="Arial")
+                    if map_idx == 1:
+                        ax_cor.set_title(f"{titles[1]}\nrun-01", color="black",  fontsize=6, fontname="Arial",y=0.94)
+                    if map_idx == 2 and i_fname != None:
+                        ax_cor.set_title(f"{titles[2]}\nrun-02", color="black",  fontsize=6, fontname="Arial",y=0.94)
+  
+                        
 
-                # --- Coronal (top row) ---
-                if plot_mip:
-                    y_slice = statmap_data.shape[1] // 2
-                    mip_cor = np.max(stat_thresh, axis=1)
-                    mip_cor = mip_cor[x_min:x_max,z_min:z_max]
-                else:
-                    y_slice = 69
-                    mip_cor = stat_thresh
-                    mip_cor = mip_cor[x_min:x_max,y_slice, z_min:z_max]
-                mip_cor = np.where(mip_cor > stat_min, mip_cor, np.nan)
-                mip_cor=mip_cor.T
-                template_cor = template_data[x_min:x_max, y_slice, z_min:z_max].T
+                    # Orientation labels only for first participant
+                    if subj_idx == 0 and map_idx == 0:
+                        ax_cor.text(0.05, 0.05, "L", transform=ax_cor.transAxes, color="white", fontsize=5, ha="left", va="bottom")
+                        ax_cor.text(0.95, 0.05, "R", transform=ax_cor.transAxes, color="white", fontsize=5, ha="right", va="bottom")
 
-                ax_cor = fig.add_subplot(gs[row_start, col_start + map_idx])
-                ax_cor.imshow(template_cor, cmap="gray", origin="lower",aspect='auto')
-                if underlay_data is not None:
-                    ax_cor.imshow(underlay_data[x_min:x_max, y_slice, z_min:z_max].T, cmap="gray", origin="lower",aspect='auto')
-                
-                ax_cor.imshow(mip_cor, cmap="autumn", origin="lower", vmin=stat_min, vmax=stat_max,aspect='auto')
-                ax_cor.axvline(x=(x_max-x_min)/2, color="white", linestyle="--", linewidth=0.5, alpha=0.6)
-                ax_cor.axis("off")
+                    # --- Axial (bottom row) ---
+                    row_axi = row_start + 1
+                    if plot_mip:
+                        z_slice = statmap_data.shape[2] // 2
+                    else:
+                        z_slice = 260
 
-                if map_idx == 0:
-                    x_center = 1  
-                    y_top = 1.16   
-                    ax_cor.text(x_center, y_top, f"ID #{subj_idx + 1}", ha='center', va='bottom', fontsize=8, fontweight='black', transform=ax_cor.transAxes, fontname="Arial")
-                    line_y = 1.17
-                    ax_cor.hlines(y=line_y, xmin=0, xmax=2, colors='black', linewidth=0.8, transform=ax_cor.transAxes, clip_on=False)
-    
-                    ax_cor.set_title(f"baseShim", color="black", fontweight='bold', fontsize=7, fontname="Arial")
-                else:
-                    ax_cor.set_title(f"sliceShim", color="black", fontweight='bold', fontsize=7, fontname="Arial")
+                    # Crop for smaller axial view
+                    crop_x = 30
+                    crop_y = 30
+                    x0 = statmap_data.shape[0] // 2
+                    y0 = statmap_data.shape[1] // 2
+                    x_min, x_max = x0 - crop_x, x0 + crop_x
+                    y_min, y_max = y0 - crop_y, y0 + crop_y
+                    template_axi = template_data[x_min:x_max, y_min:y_max, z_slice].T
+                    
+                    if plot_mip:
+                        stat_crop = stat_thresh[x_min:x_max, y_min:y_max, :]
+                        mip_axi = np.max(stat_crop, axis=2).T
+                    else:
+                        stat_crop = stat_thresh[x_min:x_max, y_min:y_max, z_slice]
+                        mip_axi=stat_crop.T
+                    mip_axi = np.where(mip_axi > stat_min, mip_axi, np.nan)
 
-                # Orientation labels only for first participant
-                if subj_idx == 0 and map_idx == 0:
-                    ax_cor.text(0.05, 0.05, "L", transform=ax_cor.transAxes, color="white", fontsize=5, ha="left", va="bottom")
-                    ax_cor.text(0.95, 0.05, "R", transform=ax_cor.transAxes, color="white", fontsize=5, ha="right", va="bottom")
+                    ax_axi = fig.add_subplot(gs[row_start + 1, col_start + map_idx])
+                    ax_axi.imshow(template_axi, cmap="gray", origin="lower",aspect='auto')
+                    if underlay_data is not None:
+                        ax_axi.imshow(underlay_data[x_min:x_max, y_min:y_max, z_slice].T,
+                                    cmap="gray", alpha=0.3, origin="lower")
+                    ax_axi.imshow(mip_axi, cmap=cmap, origin="lower", vmin=stat_min, vmax=stat_max,aspect='auto')
+                    ax_axi.axis("off")
 
-                # --- Axial (bottom row) ---
-                row_axi = row_start + 1
-                if plot_mip:
-                    z_slice = statmap_data.shape[2] // 2
-                else:
-                    z_slice = 260
+                    if subj_idx == 0 and map_idx == 0:
+                        ax_axi.text(0.02, 0.5, "L", transform=ax_axi.transAxes, color="white", fontsize=5, ha="left", va="center")
+                        ax_axi.text(0.98, 0.5, "R", transform=ax_axi.transAxes, color="white", fontsize=5, ha="right", va="center")
+                        ax_axi.text(0.5, 0.98, "A", transform=ax_axi.transAxes, color="white", fontsize=5, ha="center", va="top")
+                        ax_axi.text(0.5, 0.02, "P", transform=ax_axi.transAxes, color="white", fontsize=5, ha="center", va="bottom")
+                    
+                    # ---- Add colorbar only for the first participant and first map -----
+                    gap_col_idx = 2
+                    row_for_cbar = 0
+                    cbar_ax = fig.add_subplot(gs[row_for_cbar, gap_col_idx])
+                    cbar_ax.axis("off")
 
-                # Crop for smaller axial view
-                crop_x = 30
-                crop_y = 30
-                x0 = statmap_data.shape[0] // 2
-                y0 = statmap_data.shape[1] // 2
-                x_min, x_max = x0 - crop_x, x0 + crop_x
-                y_min, y_max = y0 - crop_y, y0 + crop_y
-                template_axi = template_data[x_min:x_max, y_min:y_max, z_slice].T
-                
-                if plot_mip:
-                    stat_crop = stat_thresh[x_min:x_max, y_min:y_max, :]
-                    mip_axi = np.max(stat_crop, axis=2).T
-                else:
-                    stat_crop = stat_thresh[x_min:x_max, y_min:y_max, z_slice]
-                    mip_axi=stat_crop.T
-                mip_axi = np.where(mip_axi > stat_min, mip_axi, np.nan)
+                    # positions of the two colorbars
+                    pos_winter = [14.45, -3.8, 0.3, 0.8]
+                    pos_autumn = [14.80, -3.8, 0.3, 0.8]
 
-                ax_axi = fig.add_subplot(gs[row_start + 1, col_start + map_idx])
-                ax_axi.imshow(template_axi, cmap="gray", origin="lower",aspect='auto')
-                if underlay_data is not None:
-                    ax_axi.imshow(underlay_data[x_min:x_max, y_min:y_max, z_slice].T,
-                                cmap="gray", alpha=0.3, origin="lower")
-                ax_axi.imshow(mip_axi, cmap="hot", origin="lower", vmin=stat_min, vmax=stat_max,aspect='auto')
-                ax_axi.axis("off")
+                    ax_winter = cbar_ax.inset_axes(pos_winter)
+                    ax_autumn = cbar_ax.inset_axes(pos_autumn)
 
-                if subj_idx == 0 and map_idx == 0:
-                    ax_axi.text(0.02, 0.5, "L", transform=ax_axi.transAxes, color="white", fontsize=5, ha="left", va="center")
-                    ax_axi.text(0.98, 0.5, "R", transform=ax_axi.transAxes, color="white", fontsize=5, ha="right", va="center")
-                    ax_axi.text(0.5, 0.98, "A", transform=ax_axi.transAxes, color="white", fontsize=5, ha="center", va="top")
-                    ax_axi.text(0.5, 0.02, "P", transform=ax_axi.transAxes, color="white", fontsize=5, ha="center", va="bottom")
-                
-                # ---- Add colorbar only for the first participant and first map -----
-                gap_col_idx = 2 
-                row_for_cbar = 0  
-                cbar_ax = fig.add_subplot(gs[row_for_cbar, gap_col_idx])
-                cbar_ax.axis('off')
-                pos = [0.45, 0.3, 0.7, 0.4]  # left, bottom, width, height
+                    norm = plt.Normalize(vmin=stat_min, vmax=stat_max)
 
-                inner_ax = cbar_ax.inset_axes(pos)
+                    sm_winter = plt.cm.ScalarMappable(cmap="winter", norm=norm)
+                    sm_winter.set_array([])
 
-               # Normalize and create colorbar
-                norm = plt.Normalize(vmin=stat_min, vmax=stat_max)
-                sm = plt.cm.ScalarMappable(cmap='autumn', norm=norm)
-                sm.set_array([])
+                    sm_autumn = plt.cm.ScalarMappable(cmap="autumn", norm=norm)
+                    sm_autumn.set_array([])
 
-                cbar = fig.colorbar(sm, cax=inner_ax)
-                cbar.set_label('z-score', fontsize=5, labelpad=1.5)
-                cbar.ax.yaxis.set_label_position('left')  #
-                cbar.ax.set_yticks([])
-                cbar.ax.text(1.2, -0.2, f"{stat_min:.1f}", fontsize=4.5, va='center', ha='right', color='black', transform=cbar.ax.transAxes)
-                cbar.ax.text(1.2, 1.1, f"{stat_max:.1f}", fontsize=4.5, va='center', ha='right', color='black', transform=cbar.ax.transAxes)
+                    cbar_winter = fig.colorbar(sm_winter, cax=ax_winter)
+                    cbar_autumn = fig.colorbar(sm_autumn, cax=ax_autumn)
 
-                cbar.ax.set_frame_on(False)
+                    for cbar in [cbar_winter, cbar_autumn]:
+                        cbar.ax.set_yticks([])
+                        cbar.ax.set_frame_on(False)
 
+                    cbar_winter.ax.text(-1.55, 0.5, f"z-score (uncorr)",rotation=90, fontsize=6,va="center", ha="right", transform=cbar.ax.transAxes)
+                    cbar_winter.ax.text(0.5, -0.1, f"{stat_min:.1f}", fontsize=6,va="center", ha="right", transform=cbar.ax.transAxes)
+                    cbar_winter.ax.text(0.5, 1.1, f"{stat_max:.1f}", fontsize=6, va="center", ha="right", transform=cbar.ax.transAxes)
+                    
 
-        # --- Save figure ---
-        out_file = os.path.join(output_dir, f"first_level_maps_{task_name}_all.png")
-        fig.savefig(out_file, dpi=300)
-        plt.close(fig)
+            # --- Save figure ---
+            fig.savefig(output_fname, dpi=300)
+            plt.close(fig)
+        
+        else:
+            print("First level figure already exists, put redo=True to regenerate the figure")
 
     def run_second_level_glm(self,i_fnames=None,design_matrix=None,mask_fname=None,smoothing_fwhm=None,parametric=False,n_perm=10000,vox_thr=0.01,task_name=None,run_name=None,verbose=True,redo=False):
         '''
@@ -418,7 +441,7 @@ class Postprocess_main:
                     model_intercept=True,
                     n_perm=n_perm, 
                     two_sided_test=False,
-                    smoothing_fwhm=1,
+                    smoothing_fwhm=None,
                     n_jobs=2,
                     threshold=vox_thr, # voxel level threshold for cluster definition (uncorrected p-value)
                     #tfce=True,
