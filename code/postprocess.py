@@ -14,6 +14,9 @@ from preprocess import Preprocess_main, Preprocess_Sc
 from nibabel.processing import resample_from_to
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 import matplotlib
+import pingouin as pg
+from nilearn.image import resample_to_img
+
 #####################################################
 class Postprocess_main:
     '''
@@ -367,6 +370,74 @@ class Postprocess_main:
         else:
             print("First level figure already exists, put redo=True to regenerate the figure")
 
+    def run_icc(self, i_fnames=None, mask_file=None, threshold=0):
+        if i_fnames is None or len(i_fnames) == 0:
+            raise ValueError("i_fnames is empty or not enough files")
+
+        # --- Load common mask ---
+        if mask_file is not None:
+            mask_img = nib.load(mask_file)
+            common_mask = mask_img.get_fdata() > 0  # boolean mask
+        else:
+            # compute intersection mask across subjects and runs
+            common_mask = None
+            for subj_files in i_fnames:
+                subj_mask = None
+                for f in subj_files:
+                    data = nib.load(f).get_fdata()
+                    data_mask = data != 0
+                    if subj_mask is None:
+                        subj_mask = data_mask
+                    else:
+                        subj_mask &= data_mask  # intersection across runs
+                if common_mask is None:
+                    common_mask = subj_mask
+                else:
+                    common_mask &= subj_mask  # intersection across subjects
+
+        # --- Load and mask functional maps ---
+        all_maps = []
+        for subj_files in i_fnames:
+            subj_maps = []
+            for f in subj_files:
+                func_img = nib.load(f)
+                data = func_img.get_fdata()
+
+                # --- RESAMPLE COMMON MASK TO FUNCTIONAL MAP SPACE ---
+                if mask_file is not None or common_mask is not None:
+                    mask_img = nib.load(mask_file)  # has correct affine
+                    mask_resampled_img = resample_to_img(mask_img, func_img, interpolation='nearest')
+                    mask_resampled = mask_resampled_img.get_fdata() > 0
+  
+                else:
+                    mask_resampled = data != 0  # fallback
+                # apply threshold & common mask
+                masked_data = data[mask_resampled]
+                subj_maps.append(masked_data.ravel())
+
+
+            all_maps.append(subj_maps)
+
+        # --- Convert to array ---
+        n_subjects = len(all_maps)
+        n_runs = len(all_maps[0])
+        n_voxels = all_maps[0][0].size
+        all_maps_array = np.array([np.stack(maps, axis=0) for maps in all_maps])  # subjects × runs × voxels
+
+        # --- Compute voxel-wise ICC ---
+        icc_map = np.zeros(n_voxels)
+        for v in range(n_voxels):
+            voxel_data = all_maps_array[:, :, v]  # subjects × runs
+            df = pd.DataFrame({
+                'ID': np.repeat(np.arange(n_subjects), n_runs),
+                'run': np.tile(np.arange(n_runs), n_subjects),
+                'value': voxel_data.ravel()
+            })
+            icc_result = pg.intraclass_corr(data=df, targets='ID', raters='run', ratings='value')
+            icc_map[v] = icc_result[icc_result['Type'] == 'ICC3']['ICC'].values[0]
+
+        return icc_map, all_maps_array
+        
     def run_second_level_glm(self,i_fnames=None,design_matrix=None,mask_fname=None,smoothing_fwhm=None,parametric=False,n_perm=10000,vox_thr=0.01,task_name=None,run_name=None,verbose=True,redo=False):
         '''
         Run second-level GLM for a specific task.

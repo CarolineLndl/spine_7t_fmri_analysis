@@ -19,6 +19,7 @@ from nilearn.glm import threshold_stats_img
 import nibabel as nib
 import numpy as np
 from collections import defaultdict
+import pingouin as pg
 
 # Get the environment variable PATH_CODE
 path_code = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -277,4 +278,24 @@ postprocess.plot_first_level_maps(i_fnames=i_fnames_by_runs,
                                          #underlay_fname=os.path.join(path_code, "template", config["PAM50_cord"]),
                                           task_name=tag,
                                           verbose=True,
-                                           redo=True)
+                                           redo=redo)
+
+
+#ICC for reproductiblity measure
+# --- Select stat map files ---
+i_fnames_by_runs = []
+tag="task-motor_acq-shimSlice+3mm"
+for ID in IDs:
+    raw_func=sorted(glob.glob(os.path.join(config["raw_dir"], f'sub-{ID}', 'func', f'sub-{ID}_{tag}_*bold.nii.gz')))
+    if len(raw_func)==2:
+        for fname in raw_func:
+            match = re.search(r"_?(run-\d+)", fname)
+            run_name = match.group(1)
+            i_fnames_runs.append(glob.glob(os.path.join(first_level_dir.format(ID), f"{tag}", f"*{tag}*{run_name}*trial_RH-rest*inTemplate.nii.gz"))[0])
+                            
+    i_fnames_by_runs.append(i_fnames_runs)
+
+
+# create left, right  masks before computing ICC.
+# try with levels mask -R/L
+#icc_map, all_maps_array=postprocess.run_icc(i_fnames=i_fnames_by_runs, mask_file=cropped_PAM50_fname, threshold=0)
