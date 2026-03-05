@@ -10,6 +10,7 @@ TASKS=() # empty → process all tasks
 RUN_PREPROSS=false
 RUN_DENOISING=false
 RUN_FIRSTLEVEL=false
+RUN_SECONDLEVEL=false
 RUN_FIGURES=false
 REDO=false
 
@@ -23,6 +24,7 @@ while [[ $# -gt 0 ]]; do
         --preprocess) RUN_PREPROSS=true; shift;;
         --denoising) RUN_DENOISING=true; shift;;
         --firstlevel) RUN_FIRSTLEVEL=true; shift;;
+        --secondlevel) RUN_SECONDLEVEL=true; shift;;
         --figures) RUN_FIGURES=true; shift;;
         --redo) REDO=true; shift;;
       *) echo "Unknown argument $1"; exit 1 ;;
@@ -32,9 +34,10 @@ done
 if [ "${RUN_PREPROSS}" = false ] && \
    [ "${RUN_DENOISING}" = false ] && \
    [ "${RUN_FIRSTLEVEL}" = false ] && \
+   [ "${RUN_SECONDLEVEL}" = false ] && \
    [ "${RUN_FIGURES}" = false ]; then
     echo "ERROR: No processing step selected."
-    echo "Use --preprocess, --denoising, --firstlevel and/or --figures"
+    echo "Use --preprocess, --denoising, --firstlevel, --secondlevel and/or --figures"
     exit 1
 fi
 
@@ -114,6 +117,23 @@ if [ "${RUN_FIRSTLEVEL}" = true ]; then
     echo "kill ${PID}"
     wait ${PID}
     echo "Finished first level analysis!"
+fi
+
+# --------------------------
+# Run second level analysis
+# --------------------------
+if [ "${RUN_SECONDLEVEL}" = true ]; then
+    echo "Starting second level analysis..."
+    nohup python -u ../code/secondlevel_workflow.py --path-data "${PATH_DATA}" --ids "${IDs[@]}" "${TASKS_ARG[@]}" --redo "${REDO}" \
+    > "nohup_secondlevel_${timestamp}.txt" 2>&1 &
+
+    PID=$!
+    echo "second level analysis launched in background."
+    echo "Log file: log/nohup_secondlevel_${timestamp}.txt"
+    echo "To stop the process, run:"
+    echo "kill ${PID}"
+    wait ${PID}
+    echo "Finished second level analysis!"
 fi
 
 # --------------------------
