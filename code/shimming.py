@@ -488,10 +488,6 @@ def main():
     #     for y in np.linspace(-20, 20, 9):
     #         for z in np.linspace(-20, 20, 9):
     #             movements.append((x, y, z))
-    # # for x in np.linspace(0, 0, 1):
-    # #     for y in np.linspace(0, 0, 1):
-    # #         for z in np.linspace(0, 0, 1):
-    # #             movements.append((x, y, z))
     #
     # os.makedirs(os.path.join(path_shimming, "movement"), exist_ok=True)
     #
@@ -501,6 +497,27 @@ def main():
     #     df_mov = pd.read_csv(fname_dfmov)
     # else:
     #     df_mov = pd.DataFrame(columns=["ID", "Experiment", "rmse", "std", "movement_x", "movement_y", "movement_z"])
+    #
+    # # Separate field effects in 2 (shim [tune-up - current shim], patient effects). Assumption here that tune-up shim is perfect
+    # for ID in IDs:
+    #     os.makedirs(os.path.join(path_shimming, "movement", f"sub-{ID}"), exist_ok=True)
+    #     fname_fmap = os.path.join(path_shimming, f"sub-{ID}", f"sub-{ID}_fieldmap.nii.gz")
+    #     fname_mask_25 = os.path.join(path_shimming, f"sub-{ID}", f"sub-{ID}_mask_25.nii.gz")
+    #     tune_up_params = [25.12, -15.77, 2.55, -56.91, 0, -54.33, -36.59, -94.48]  # ut/m and uT/m2
+    #     # Read JSON sidecar to get the values
+    #     with open(fname_fmap.rsplit(".nii.gz")[0] + ".json", "r") as f:
+    #         fmap_json = json.load(f)
+    #     shimmed_dac_params = fmap_json.get("ShimSetting")
+    #
+    #     # Get conversion factor from dac to uT/m and uT/m2 in Shimming Toolbox
+    #
+    #     # Get the coil profiles from previous processing to compute the effects of the shim
+    #
+    #     # Remove effects of the shim from the field map = patient fmap
+    #
+    #     # Move the patient fmap, add non-moved volume shim
+    #
+    #     # Shim the new fmap
     #
     # for movement in movements:
     #     for ID in IDs:
