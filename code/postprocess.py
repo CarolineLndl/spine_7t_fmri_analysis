@@ -1125,7 +1125,7 @@ class EpiComparison:
                     template_slice_idx = func_slice_to_template_slice(slice_idx, com_baseline[0], com_baseline[1], fname_warp_from_pam50_to_func_baseline, fname_baseline, ID, task, name_baseline,
                                                                   self.redo, self.path_fig_data, self.config)
                     spinal_level = template_slice_to_spinal_level(template_slice_idx)[1]
-                    axs_baseline[idx].text(0.1, 0.9, spinal_level, color='white', fontsize=5, fontweight='bold', ha='center', va='center', transform=axs_baseline[idx].transAxes)
+                    axs_baseline[idx].text(0.15, 0.87, spinal_level, color='white', fontsize=8, fontweight='bold', ha='center', va='center', transform=axs_baseline[idx].transAxes)
 
                     if ID in highlight and slice_idx in highlight[ID].keys():
                         # Add an arrow pointing to a specific point
