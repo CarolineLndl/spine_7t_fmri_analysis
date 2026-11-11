@@ -279,3 +279,6 @@ figures.plot_first_level_maps(i_fnames=i_fnames_by_runs,
                                           verbose=True,
                                           redo=redo)
 
+print("Plot segmentation metrics")
+fname_seg_metrics = os.path.join(config["raw_dir"], "derivatives", "processing", "segmentation_metrics.csv")
+figures.plot_segmentation_metrics(fname_seg_metrics, redo=redo)

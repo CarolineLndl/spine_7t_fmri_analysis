@@ -14,6 +14,7 @@ import nibabel as nib
 
 #custom imports
 import utils
+from medpy.metric.binary import hd, asd
 
 
 #####################################################
@@ -1040,6 +1041,59 @@ class Preprocess_Sc:
         plt.title(f'sub-{ID} {ses_name} {task_name} {tag} overlay QC')
         plt.axis('off')
         plt.show()
+
+    def compute_segmentation_metrics(self, ID, tag):
+        fname_manual_mask = glob.glob(os.path.join(self.manual_dir, f"sub-{ID}", "func", f"sub-{ID}_{tag}*bold_moco_mean_seg.nii.gz"))[0]
+        if not os.path.exists(fname_manual_mask):
+            return {}
+        fname_auto_mask = glob.glob(os.path.join(self.preprocessing_dir.format(ID), "func", f"{tag}", "sct_deepseg", f"sub-{ID}_{tag}*bold_moco_mean_seg.nii.gz"))[0]
+        if not os.path.exists(fname_auto_mask):
+            return RuntimeError("No automatic segmentation file found for {tag} in preprocessing folder for {ID}. Cannot compute segmentation metrics.")
+        metrics = compute_segmentation_metrics(fname_manual_mask, fname_auto_mask)
+        return metrics
+
+
+def compute_segmentation_metrics(fname_manual_mask, fname_auto_mask):
+    """
+    Computes segmentation metrics (Dice coefficient, Hausdorff distance, and average surface distance)
+    between a manual and an automatic segmentation mask.
+
+    Parameters:
+    -----------
+    fname_manual_mask : str
+        Path to the manual segmentation mask file.
+    fname_auto_mask : str
+        Path to the automatic segmentation mask file.
+
+    Returns:
+    --------
+    metrics : dict
+        Dictionary containing the computed metrics.
+    """
+    # Load the masks using nibabel
+    manual_mask = nib.load(fname_manual_mask).get_fdata()
+    auto_mask = nib.load(fname_auto_mask).get_fdata()
+
+    # Compute Dice coefficient
+    intersection = np.sum(manual_mask * auto_mask)
+    dice_coefficient = (2. * intersection) / (np.sum(manual_mask) + np.sum(auto_mask))
+
+    # Compute Hausdorff distance and average surface distance using medpy
+    hausdorff_distance = hd(manual_mask, auto_mask)
+    average_surface_distance = asd(manual_mask, auto_mask)
+
+    # Compute volume difference
+    volume_diff = np.sum(manual_mask) - np.sum(auto_mask)
+    volume_diff *= np.prod(nib.load(fname_auto_mask).header.get_zooms())  # Volume in mm^3
+
+    metrics = {
+        'Dice Coefficient': dice_coefficient,
+        'Hausdorff Distance': hausdorff_distance,
+        'Average Surface Distance': average_surface_distance,
+        'Volume difference': volume_diff
+    }
+
+    return metrics
 
 
 def copy_segmentation_from_ref_tag(ID, tag, ref_tag, manual_dir, preprocessing_dir):

@@ -101,6 +101,7 @@ print("Participant(s) included : ", IDs, flush=True)
 print("===================================", flush=True)
 print("")
 
+df_seg_metrics = pd.DataFrame(columns=['IDs', 'task', 'acq', 'run', 'Dice Coefficient', 'Hausdorff Distance', 'Average Surface Distance'])
 for ID_nb, ID in enumerate(IDs):
     print("", flush=True)
     print(f'=== Preprocessing start for :  {ID} ===', flush=True)
@@ -311,12 +312,24 @@ for ID_nb, ID in enumerate(IDs):
 
                 print(f'=== Func registration : Done  {ID} {tag} {run_name} ===')
 
+            # Compute metrics between manual segmentation and automatic segmentation for each participant
+            if task_name=="motor":
+                seg_metrics = preprocess_Sc.compute_segmentation_metrics(ID=ID, tag=tag)
+                seg_metrics['IDs'] = ID
+                seg_metrics['task'] = task_name
+                seg_metrics['acq'] = acq_name
+
+                df_seg_metrics = pd.concat([df_seg_metrics, pd.DataFrame(seg_metrics, index=[0])], ignore_index=True)
+
     print(f'=== Preprocessing done for : {ID} ===', flush=True)
     print("=========================================", flush=True)
+
+df_seg_metrics.to_csv(os.path.join(derivatives_dir, "processing", "segmentation_metrics.csv"), index=False)
 
 df = pd.DataFrame(acq_parameters)
 df_ordered = df[['ID', 'task', 'acq', 'run', 'EchoTime', 'RepetitionTime', 'FlipAngle', 'BandwidthRO', 'BandwidthPerPixelRO', 'BandwidthPerPixelPE', 'EchoSpacing', 'NumberOfVolumes']]
 df_ordered.to_csv(os.path.join(derivatives_dir, "processing", "acquisition_parameters.csv"), index=False)
+
 
 # Print participant metrics
 print(f"Number of particiants that have rest scans: {df_ordered[df_ordered['task'] == 'rest']['ID'].nunique()}", flush=True)

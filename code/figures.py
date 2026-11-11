@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 from nibabel.processing import resample_from_to
 import seaborn as sns
+from postprocess import pair_ttest
 
 
 #####################################################
@@ -865,9 +866,9 @@ class Figures_main:
                 stats_df = pd.read_csv(stats_file)
                 ax = g.axes.flat[0]
 
-                if ymax == None:
+                if ymax is None:
                     ymax = ax.get_ylim()[1]
-                if ymin == None:
+                if ymin is None:
                     ymin = ax.get_ylim()[0]
 
                 for line in stats_df.itertuples():
@@ -1092,3 +1093,38 @@ class Figures_main:
                                 left=0.01, right=0.99, top=0.93, bottom=0.01)
             plt.savefig(output_fname, dpi=dpi, transparent=transparent, bbox_inches='tight')
             plt.close()
+
+    def plot_segmentation_metrics(self, fname, redo):
+        redo=True
+        main_fig_dir = os.path.join(self.config["raw_dir"], "derivatives", "processing", "figures")
+        fig_dir = os.path.join(main_fig_dir, "segmentation_comparison")
+
+        for metric in ["Dice Coefficient",]:
+            fname_ttset = os.path.join(fig_dir, f"segmentation_metrics_ttest_{metric.replace(' ', '_')}.csv")
+            pair_ttest(csv_files=[fname,],
+                       output_fname=fname_ttset,
+                       acq_col="acq",
+                       value_col=metric,
+                       cond1="shimBase+3mm",
+                       cond2="shimSlice+3mm",
+                       redo=redo)
+
+            if metric == "Dice Coefficient":
+                ymin = 0.7
+                ymax = 0.9
+            else:
+                ymin = None
+                ymax = None
+            fname_seg_metric_plot = os.path.join(fig_dir, f"segmentation_plot_{metric.replace(' ', '_')}.png")
+            self.boxplots(csv_file=fname,
+                          stats_file=fname_ttset,
+                          output_fname=fname_seg_metric_plot,
+                          x_data="acq",
+                          x_order=["shimBase+3mm","shimSlice+3mm"],
+                          y_data=metric,
+                          indiv_values=True,
+                          ymin=ymin,
+                          ymax=ymax,
+                          height=3.0,
+                          aspect=0.8,
+                          redo=redo)
