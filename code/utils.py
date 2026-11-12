@@ -241,8 +241,10 @@ def compute_tsnr_map(fname_file, ofolder, redo, first_n_vols=None, smooth=False)
         raise FileNotFoundError(f"Input file not found: {fname_file}")
 
     fname_tsnr = os.path.join(ofolder, os.path.basename(fname_file).split(".")[0] + "_tsnr.nii.gz")
+    fname_mean = os.path.join(ofolder, os.path.basename(fname_file).split(".")[0] + "_mean.nii.gz")
+    fname_std = os.path.join(ofolder, os.path.basename(fname_file).split(".")[0] + "_std.nii.gz")
     # compute tSNR *******************************************************************************
-    if not os.path.exists(fname_tsnr) or redo:
+    if not os.path.exists(fname_tsnr) or not os.path.exists(fname_mean) or not os.path.exists(fname_std) or redo:
         if not os.path.exists(os.path.dirname(fname_tsnr)):
             os.makedirs(os.path.dirname(fname_tsnr))
         nii = nib.load(fname_file)
@@ -251,7 +253,13 @@ def compute_tsnr_map(fname_file, ofolder, redo, first_n_vols=None, smooth=False)
         if first_n_vols > nii.shape[3]:
             raise ValueError(f"first_n_vols ({first_n_vols}) is greater than the number of volumes in the file ({nii.shape[3]})")
         data = nii.get_fdata()[:, :, :, :first_n_vols]
-        tsnr = np.mean(data, axis=3) / np.std(data, axis=3)
+        mean = np.mean(data, axis=3)
+        nii_mean = nib.Nifti1Image(mean, affine=nii.affine, header=nii.header)
+        nii_mean.to_filename(fname_mean)
+        std = np.std(data, axis=3)
+        nii_std = nib.Nifti1Image(std, affine=nii.affine, header=nii.header)
+        nii_std.to_filename(fname_std)
+        tsnr = mean / std
         nii_tsnr = nib.Nifti1Image(tsnr, affine=nii.affine, header=nii.header)
 
         if smooth:

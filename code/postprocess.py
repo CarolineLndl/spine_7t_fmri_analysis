@@ -503,7 +503,9 @@ class TSNR_main:
         self.path_tsnr_inTemplate = os.path.join(self.second_level_dir.format("snr"))
         self.fname_metrics = {
             "ssnr": os.path.join(self.path_tsnr, "ssnr_metrics.csv"),
-            "tsnr": os.path.join(self.path_tsnr, "tsnr_metrics.csv")
+            "tsnr": os.path.join(self.path_tsnr, "tsnr_metrics.csv"),
+            "mean_signal": os.path.join(self.path_tsnr, "mean_signal_metrics.csv"),
+            "std": os.path.join(self.path_tsnr, "std_metrics.csv")
         }
 
     def generate_tsnr_maps_and_csv(self, space="native", native_gm_mask=None):
@@ -514,7 +516,9 @@ class TSNR_main:
         """
         dfs= {
             "tsnr": pd.DataFrame(columns=["IDs", "task", "acq", "tsnr"]),
-            "ssnr": pd.DataFrame(columns=["IDs", "task", "acq", "ssnr"])
+            "ssnr": pd.DataFrame(columns=["IDs", "task", "acq", "ssnr"]),
+            "mean_signal": pd.DataFrame(columns=["IDs", "task", "acq", "mean_signal"]),
+            "std": pd.DataFrame(columns=["IDs", "task", "acq", "std"])
         }
 
         print("=== Compute tSNR map on longest moco neighbour run ===", flush=True)
@@ -605,6 +609,10 @@ class TSNR_main:
                             tsnr_mean = tsnr_mean_gm / tsnr_mean_wm
                         else:
                             tsnr_mean = extract_mean_within_mask(fname_tsnr, fname_mask)
+                            fname_mean = fname_tsnr.split("_tsnr.nii.gz")[0] + "_mean.nii.gz"
+                            mean_signal_mean = extract_mean_within_mask(fname_mean, fname_mask)
+                            fname_std = fname_tsnr.split("_tsnr.nii.gz")[0] + "_std.nii.gz"
+                            std_mean = extract_mean_within_mask(fname_std, fname_mask)
 
                     # Extract metrics from PAM50 space
                     elif space == 'PAM50' and fname_tsnr_in_template is not None:
@@ -623,8 +631,18 @@ class TSNR_main:
                     # Extract sSNR
                     ssnr = compute_SNR(selected_mean_file, fname_mask)
 
-                    for metric in ["tsnr", "ssnr"]:
-                        values = tsnr_mean if metric=="tsnr" else ssnr
+                    for metric in ["tsnr", "ssnr", "mean_signal", "std"]:
+                        if metric == "tsnr":
+                            values = tsnr_mean
+                        elif metric == "mean_signal":
+                            values = mean_signal_mean
+                        elif metric == "std":
+                            values = std_mean
+                        elif metric == "ssnr":
+                            values = ssnr
+                        else:
+                            raise ValueError(f"Unknown metric: {metric}")
+
                         if len(dfs[metric]) == 0:
                             dfs[metric] = pd.DataFrame([[ID, task, acq_name.split("+")[0], values]], columns=dfs[metric].columns)
                         else:
@@ -632,20 +650,171 @@ class TSNR_main:
                                 [pd.DataFrame([[ID, task, acq_name.split("+")[0], values]], columns=dfs[metric].columns), dfs[metric]], ignore_index=True)
 
         # Keep only 'rest' rows for IDs that have both 'motor' and 'rest'
-        for metric in ["tsnr","ssnr"]:
+        for metric in ["tsnr","ssnr","mean_signal","std"]:
+            for task in ["rest", "motor", "motor-rest"]:
+                if task == "motor-rest":
+                    fname_reduced = self.fname_metrics[metric].split(".csv")[0] + "_reduced.csv"
+                    if not os.path.exists(fname_reduced) or self.redo:
+                        ids_with_both = dfs[metric].groupby('IDs')['task'].apply(
+                            lambda x: set(['motor', 'rest']).issubset(set(x))
+                        )
+                        ids_with_both = ids_with_both[ids_with_both].index
+                        df_reduced = dfs[metric][~((dfs[metric]['IDs'].isin(ids_with_both)) & (dfs[metric]['task'] == 'motor'))]
+                        df_reduced.to_csv(fname_reduced, index=False)
+                elif task == "rest" or task == "motor":
+                    fname_reduced = self.fname_metrics[metric].split(".csv")[0] + f"_{task}_reduced.csv"
+                    if not os.path.exists(fname_reduced) or self.redo:
+                        df_reduced = dfs[metric][dfs[metric]['task'] == task]
+                        df_reduced.to_csv(fname_reduced, index=False)
+                else:
+                    raise ValueError("Please provide a valid value for keep_acq")
 
-            if not os.path.exists(self.fname_metrics[metric].split(".csv")[0]+"_reduced.csv") or self.redo:
-                ids_with_both = dfs[metric].groupby('IDs')['task'].apply(
-                    lambda x: set(['motor', 'rest']).issubset(set(x))
-                )
-                ids_with_both = ids_with_both[ids_with_both].index
-                df_reduced = dfs[metric][~((dfs[metric]['IDs'].isin(ids_with_both)) & (dfs[metric]['task'] == 'motor'))]
-                df_reduced.to_csv(self.fname_metrics[metric].split(".csv")[0]+"_reduced.csv", index=False)
-            pair_ttest(csv_files=[self.fname_metrics[metric].split(".csv")[0]+"_reduced.csv"], value_col=metric, redo=self.redo)
+                pair_ttest(csv_files=[fname_reduced], value_col=metric, redo=self.redo)
 
             if not os.path.exists(self.fname_metrics[metric]) or self.redo:
                 dfs[metric].to_csv(self.fname_metrics[metric], index=False)
                 pair_ttest(csv_files=[self.fname_metrics[metric]], value_col=metric, redo=self.redo)
+
+    def plot_tSNR_vs_FD(self):
+        fname_tsnr_vs_fd = os.path.join(self.path_tsnr, "tsnr_vs_fd.csv")
+        if not os.path.exists(fname_tsnr_vs_fd) or self.redo:
+            df = pd.DataFrame(columns=["IDs", "task", "acq", "fd", "tsnr"])
+            print(f"plot_tSNR_vs_FD", flush=True)
+            for ID in self.IDs:
+                print(f"Participant: {ID}")
+                for task in ["motor", "rest"]:
+                    for acq_name in self.config["design_exp"]["acq_names"]:
+                        tag = "task-" + task + "_acq-" + acq_name
+                        fname_fd_mean = os.path.join(
+                            self.config["raw_dir"],
+                            self.config["preprocess_dir"]["main_dir"].format(ID),
+                            "func",
+                            tag,
+                            "sct_fmri_moco",
+                            "FD_mean.txt"
+                        )
+                        if not os.path.exists(fname_fd_mean):
+                            continue
+
+                        with open(fname_fd_mean, 'r') as f:
+                            mean_fd = float(f.read().strip())
+
+                        use_average_offset = False  # Set to True to use the average offset for FD calculation
+                        if use_average_offset:
+                            fname_fd = glob.glob(os.path.join(
+                            self.config["raw_dir"],
+                            self.config["preprocess_dir"]["main_dir"].format(ID),
+                            "func",
+                            tag,
+                            "sct_fmri_moco",
+                            f"moco_params_{tag}*.tsv"))[0]
+                            df_fd = pd.read_csv(fname_fd, sep="\t")
+                            a_mean = df_fd['mean(sqrt(X^2 + Y^2))'].mean()
+                            mean_fd = np.abs(df_fd['mean(sqrt(X^2 + Y^2))'] - a_mean).mean()
+
+                        fname_tsnr_native = glob.glob(os.path.join(self.path_tsnr, f"sub-{ID}", tag, f"sub-{ID}_{tag}*_bold_moco_tsnr.nii.gz"))[0]
+                        fname_mask = os.path.join(self.config["raw_dir"],
+                                                  self.config["preprocess_dir"]["main_dir"].format(ID), "func", tag,
+                                                  f"sub-{ID}_{tag}_bold_moco_mean_seg.nii.gz")
+
+                        tsnr_mean = extract_mean_within_mask(fname_tsnr_native, fname_mask=fname_mask)
+
+                        if len(df) == 0:
+                            df = pd.DataFrame([[ID, task, acq_name.split("+")[0], mean_fd, tsnr_mean]],
+                                              columns=df.columns)
+                        else:
+                            df = pd.concat(
+                                [pd.DataFrame([[ID, task, acq_name.split("+")[0], mean_fd, tsnr_mean]],
+                                              columns=df.columns), df], ignore_index=True)
+            df.to_csv(os.path.join(self.path_tsnr, "tsnr_vs_fd.csv"), index=False)
+
+        df = pd.read_csv(fname_tsnr_vs_fd)
+        for acq in ["shimBase", "shimSlice"]:
+            df_shimslice = df[df['acq'] == acq]
+            df_motor = df_shimslice[df_shimslice['task'] == "motor"]
+            df_rest = df_shimslice[df_shimslice['task'] == "rest"]
+            plt.figure(figsize=(8, 6))
+            plt.scatter(df_motor['fd'], df_motor['tsnr'], alpha=0.7, color='blue', label='motor')
+            plt.scatter(df_rest['fd'], df_rest['tsnr'], alpha=0.7, color='red', label='rest')
+            plt.title(f'tSNR vs Mean Framewise Displacement (FD) for {acq} Acquisitions')
+            plt.xlabel('Mean Framewise Displacement (FD)')
+            plt.ylabel('tSNR')
+            plt.grid(True)
+
+            # put a line between corresponding motor and rest points for the same participant
+            for ID in self.IDs:
+                df_motor_ID = df_motor[df_motor['IDs'] == int(ID)]
+                df_rest_ID = df_rest[df_rest['IDs'] == int(ID)]
+                if len(df_motor_ID) > 1 and len(df_rest_ID) > 1:
+                    raise ValueError(f"Multiple entries found for participant {ID} in motor or rest data.")
+                if not df_motor_ID.empty and not df_rest_ID.empty:
+                    plt.plot([df_motor_ID['fd'].values[0], df_rest_ID['fd'].values[0]],
+                             [df_motor_ID['tsnr'].values[0], df_rest_ID['tsnr'].values[0]], color='gray', alpha=0.5)
+
+            # Show the trend line for motor and rest separately
+            for task, color in zip(['motor', 'rest'], ['blue', 'red']):
+                df_task = df_shimslice[df_shimslice['task'] == task]
+                if len(df_task) > 1:
+                    y = df_task['tsnr']
+                    z = np.polyfit(df_task['fd'], y, 1)
+                    p = np.poly1d(z)
+                    y_pred = p(df_task['fd'])
+                    ss_res = np.sum((y - y_pred) ** 2)
+                    ss_tot = np.sum((y - np.mean(y)) ** 2)
+                    r2 = 1 - (ss_res / ss_tot)
+                    plt.plot(df_task['fd'], p(df_task['fd']), color=color, linestyle='--', alpha=0.7, label=f'{task} trend (R²={r2:.2f})')
+
+            plt.legend()
+            plt.savefig(os.path.join(self.path_tsnr, f"tsnr_vs_fd_{acq}.png"), dpi=600)
+            plt.close()
+
+        ids_with_both = df.groupby('IDs')['task'].apply(
+            lambda x: set(['motor', 'rest']).issubset(set(x))
+        )
+        ids_with_both = ids_with_both[ids_with_both].index
+        df_reduced = df[~((df['IDs'].isin(ids_with_both)) & (df['task'] == 'motor'))]
+        df_shimBase = df_reduced[df_reduced['acq'] == "shimBase"]
+        df_shimslice = df_reduced[df_reduced['acq'] == "shimSlice"]
+
+        color_shim_base, color_shim_slice = "#ADA8A8", "#ED263F"
+        # Show similar scatter plot as above but this time colour shim base and shim SLice
+        plt.figure(figsize=(8, 6))
+        plt.scatter(df_shimBase['fd'], df_shimBase['tsnr'], alpha=0.7, color=color_shim_base, label='shimBase')
+        plt.scatter(df_shimslice['fd'], df_shimslice['tsnr'], alpha=0.7, color=color_shim_slice, label='shimSlice')
+        plt.title(f'tSNR vs Mean Framewise Displacement (FD) for ShimBase and ShimSlice Acquisitions')
+        plt.xlabel('Mean Framewise Displacement (FD)')
+        plt.ylabel('tSNR')
+        plt.grid(True)
+        # put a line between corresponding shimBase and shimSlice points for the same participant
+        for ID in self.IDs:
+            df_shimBase_ID = df_shimBase[df_shimBase['IDs'] == int(ID)]
+            df_shimslice_ID = df_shimslice[df_shimslice['IDs'] == int(ID)]
+            if len(df_shimBase_ID) > 1 and len(df_shimslice_ID) > 1:
+                raise ValueError(f"Multiple entries found for participant {ID} in shimBase or shimSlice data.")
+            if not df_shimBase_ID.empty and not df_shimslice_ID.empty:
+                plt.plot([df_shimBase_ID['fd'].values[0], df_shimslice_ID['fd'].values[0]],
+                         [df_shimBase_ID['tsnr'].values[0], df_shimslice_ID['tsnr'].values[0]], color='gray', alpha=0.7)
+
+        # Show the trend line for shimBase and shimSlice separately
+
+        for acq, color in zip(['shimBase', 'shimSlice'], [color_shim_base, color_shim_slice]):
+            df_acq = df_reduced[df_reduced['acq'] == acq]
+            if len(df_acq) > 1:
+                y = df_acq['tsnr']
+                z = np.polyfit(df_acq['fd'], y, 1)
+                p = np.poly1d(z)
+                y_pred = p(df_acq['fd'])
+                ss_res = np.sum((y - y_pred) ** 2)
+                ss_tot = np.sum((y - np.mean(y)) ** 2)
+                r2 = 1 - (ss_res / ss_tot)
+                plt.plot([df_acq['fd'].min(), df_acq['fd'].max()], [p(df_acq['fd'].min()), p(df_acq['fd'].max())], color=color, linestyle='--', alpha=0.7, label=f'{acq} trend (R²={r2:.2f})')
+
+        plt.legend()
+        plt.savefig(os.path.join(self.path_tsnr, f"tsnr_vs_fd_shimBase_shimslice.png"), dpi=600)
+        plt.close()
+
+
+
 
     def generate_average_tsnr_in_pam50(self, IDs, acq_name=None,task_name=None,tsnr_fnames=None,seg_fnames=None, warp_fnames=None,fname_mask=None, redo=False):
         
